@@ -413,12 +413,6 @@ User input reference
   
     **Default** ``False``
   
-   :geometric_derivative: Compute geometric derivative. 
-  
-    **Type** ``bool``
-  
-    **Default** ``False``
-  
    :plot_density: Plot converged electron density. 
   
     **Type** ``bool``
@@ -430,6 +424,12 @@ User input reference
     **Type** ``List[int]``
   
     **Default** ``[]``
+  
+   :geometric_derivative: Compute geometric derivative. 
+  
+    **Type** ``bool``
+  
+    **Default** ``user['GeometryOptimizer']['run']``
   
  :ExternalFields: Define external electromagnetic fields. 
 
@@ -920,6 +920,51 @@ User input reference
         **Predicates**
           - ``value.lower() in ['exponential']``
       
+ :GeometryOptimizer: Includes parameters related to the internal geometry optimization using the SQNM (Stabilized Quasi-Newton Method) for noisy PES. 
+
+  :red:`Keywords`
+   :run: Run optimizer. Otherwise single point energy/properties are computed. 
+  
+    **Type** ``bool``
+  
+    **Default** ``False``
+  
+   :init_step_size: Initial step size. 
+  
+    **Type** ``float``
+  
+    **Default** ``-0.5``
+  
+   :minimal_step_size: Minimal step size. 
+  
+    **Type** ``float``
+  
+    **Default** ``0.01``
+  
+   :max_history_length: Maximum length of history. 
+  
+    **Type** ``int``
+  
+    **Default** ``10``
+  
+   :subspace_tolerance: Subspace tolerance. 
+  
+    **Type** ``float``
+  
+    **Default** ``1e-3``
+  
+   :max_iter: Maximum number of iterations. 
+  
+    **Type** ``int``
+  
+    **Default** ``100``
+  
+   :max_force_component: Maximum force component. 
+  
+    **Type** ``float``
+  
+    **Default** ``5e-3``
+  
  :Constants: Physical and mathematical constants used by MRChem
 
   :red:`Keywords`
