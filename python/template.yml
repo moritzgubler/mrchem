@@ -373,7 +373,7 @@ sections:
           Compute NMR shielding tensor.
       - name: geometric_derivative
         type: bool
-        default: false
+        default: user['GeometryOptimizer']['run']
         docstring: |
           Compute geometric derivative.
       - name: plot_density
@@ -681,7 +681,7 @@ sections:
           and ``chk`` guess.
       - name: write_orbitals
         type: bool
-        default: false
+        default: user['GeometryOptimizer']['use_previous_guess']
         docstring: |
           Write final orbitals to disk, file name
           ``<path_orbitals>/phi_<p/a/b>_scf_idx_<0..Np/Na/Nb>``.
@@ -938,6 +938,54 @@ sections:
             docstring: |
               Formulation of the Permittivity function. Currently only the
               exponential is used.
+  - name: GeometryOptimizer
+    docstring: |
+      Includes parameters related to the internal geometry optimization using the
+      SQNM (Stabilized Quasi-Newton Method) for noisy PES.
+    keywords:
+      - name: run
+        type: bool
+        default: false
+        docstring: |
+          Run optimizer. Otherwise single point energy/properties are computed.
+      - name: use_previous_guess
+        type: bool
+        default: false
+        docstring: |
+          Start each SCF from the converged orbitals from the previous geometry step. The guess_type
+          will change to "mw" after the first iteration, and the intermediate orbitals will be stored
+          in the "orbitals" directory. If toggled off, start over using the same initial guess method
+          as in the first iteration.
+      - name: init_step_size
+        type: float
+        default: -0.5
+        docstring: |
+          Initial step size.
+      - name: minimal_step_size
+        type: float
+        default: 0.01
+        docstring: |
+          Minimal step size.
+      - name: max_history_length
+        type: int
+        default: 10
+        docstring: |
+          Maximum length of history.
+      - name: subspace_tolerance
+        type: float
+        default: 0.001
+        docstring: |
+          Subspace tolerance.
+      - name: max_iter
+        type: int
+        default: 100
+        docstring: |
+          Maximum number of iterations.
+      - name: max_force_component
+        type: float
+        default: 0.005
+        docstring: |
+          Maximum force component.
   - name: Constants
     docstring: Physical and mathematical constants used by MRChem
     keywords:

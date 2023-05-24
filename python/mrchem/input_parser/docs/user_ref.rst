@@ -413,12 +413,6 @@ User input reference
   
     **Default** ``False``
   
-   :geometric_derivative: Compute geometric derivative. 
-  
-    **Type** ``bool``
-  
-    **Default** ``False``
-  
    :plot_density: Plot converged electron density. 
   
     **Type** ``bool``
@@ -430,6 +424,12 @@ User input reference
     **Type** ``List[int]``
   
     **Default** ``[]``
+  
+   :geometric_derivative: Compute geometric derivative. 
+  
+    **Type** ``bool``
+  
+    **Default** ``user['GeometryOptimizer']['run']``
   
  :ExternalFields: Define external electromagnetic fields. 
 
@@ -698,12 +698,6 @@ User input reference
     **Predicates**
       - ``value[-1] != '/'``
   
-   :write_orbitals: Write final orbitals to disk, file name ``<path_orbitals>/phi_<p/a/b>_scf_idx_<0..Np/Na/Nb>``. Can be used as ``mw`` initial guess in subsequent calculations. 
-  
-    **Type** ``bool``
-  
-    **Default** ``False``
-  
    :path_orbitals: Path to where converged orbitals will be written in connection with the ``write_orbitals`` keyword. Note: must be given in quotes if there are slashes in the path "path/to/orbitals". 
   
     **Type** ``str``
@@ -712,6 +706,12 @@ User input reference
   
     **Predicates**
       - ``value[-1] != '/'``
+  
+   :write_orbitals: Write final orbitals to disk, file name ``<path_orbitals>/phi_<p/a/b>_scf_idx_<0..Np/Na/Nb>``. Can be used as ``mw`` initial guess in subsequent calculations. 
+  
+    **Type** ``bool``
+  
+    **Default** ``user['GeometryOptimizer']['use_previous_guess']``
   
    :orbital_thrs: Convergence threshold for orbital residuals. 
   
@@ -920,6 +920,57 @@ User input reference
         **Predicates**
           - ``value.lower() in ['exponential']``
       
+ :GeometryOptimizer: Includes parameters related to the internal geometry optimization using the SQNM (Stabilized Quasi-Newton Method) for noisy PES. 
+
+  :red:`Keywords`
+   :run: Run optimizer. Otherwise single point energy/properties are computed. 
+  
+    **Type** ``bool``
+  
+    **Default** ``False``
+  
+   :use_previous_guess: Start each SCF from the converged orbitals from the previous geometry step. The guess_type will change to "mw" after the first iteration, and the intermediate orbitals will be stored in the "orbitals" directory. If toggled off, start over using the same initial guess method as in the first iteration. 
+  
+    **Type** ``bool``
+  
+    **Default** ``False``
+  
+   :init_step_size: Initial step size. 
+  
+    **Type** ``float``
+  
+    **Default** ``-0.5``
+  
+   :minimal_step_size: Minimal step size. 
+  
+    **Type** ``float``
+  
+    **Default** ``0.01``
+  
+   :max_history_length: Maximum length of history. 
+  
+    **Type** ``int``
+  
+    **Default** ``10``
+  
+   :subspace_tolerance: Subspace tolerance. 
+  
+    **Type** ``float``
+  
+    **Default** ``0.001``
+  
+   :max_iter: Maximum number of iterations. 
+  
+    **Type** ``int``
+  
+    **Default** ``100``
+  
+   :max_force_component: Maximum force component. 
+  
+    **Type** ``float``
+  
+    **Default** ``0.005``
+  
  :Constants: Physical and mathematical constants used by MRChem
 
   :red:`Keywords`
