@@ -291,7 +291,6 @@ sections:
           including all potentials (``V_nuc``, ``J``, ``V_xc``) but this can be overwritten in the ``ZORA`` section.
           ``nZORA`` is shortcut for nuclear-ZORA, i.e. only ``V_nuc`` is included (this keyword takes precedence
           over keywords in the ``ZORA`` section).
-
       - name: environment
         type: str
         default: none
@@ -300,6 +299,17 @@ sections:
         docstring: |
           Set method for treatment of environment. ``none`` for vacuum calculation. ``PCM`` for Polarizable Continuum Model,
           which will activate the ``PCM`` input section for further parametrization options.
+      - name: nuclear_model
+        type: str
+        default: point_like
+        predicates:
+          - value.lower() in ['point_like', 'point_parabola', 'point_minimal', 'finite_gaussian',
+            'finite_sphere']
+        docstring: |
+          Type of nucleus model.
+          Point-like (numerical smoothing): HFYGB (default), parabola or minimal.
+          Finite models (physical smoothing): Gaussian or Homogeneous sphere
+          Finite models are derived from nuclear RMS radius, Visscher (1997)
   - name: ZORA
     docstring: |
       Define required parameters for the ZORA Hamiltonian.

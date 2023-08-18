@@ -37,27 +37,32 @@ namespace mrchem {
 
 class Nucleus final {
 public:
-    Nucleus(const Element &elm, const mrcpp::Coord<3> &r)
+    Nucleus(const Element &elm, const mrcpp::Coord<3> &r, double rms = -1.0)
             : charge(elm.getZ())
+            , radius(rms)
             , coord(r)
             , element(&elm) {}
     Nucleus(const Nucleus &nuc)
             : charge(nuc.charge)
+            , radius(nuc.radius)
             , coord(nuc.coord)
             , element(nuc.element) {}
     Nucleus &operator=(const Nucleus &nuc) {
         if (this != &nuc) {
             this->charge = nuc.charge;
-            this->element = nuc.element;
+            this->radius = nuc.radius;
             this->coord = nuc.coord;
+            this->element = nuc.element;
         }
         return *this;
     }
 
     void setCharge(double z) { this->charge = z; }
+    void setRMSRadius(double r) { this->radius = r; }
     void setCoord(const mrcpp::Coord<3> &r) { this->coord = r; }
 
     double getCharge() const { return this->charge; }
+    double getRMSRadius() const { return this->radius; }
     const mrcpp::Coord<3> &getCoord() const { return this->coord; }
     const Element &getElement() const { return *this->element; }
 
@@ -71,6 +76,7 @@ public:
 
 private:
     double charge;
+    double radius;
     mrcpp::Coord<3> coord;
     const Element *element;
 };
@@ -78,9 +84,9 @@ private:
 class Nuclei : public std::vector<Nucleus> {
 public:
     void push_back(const Nucleus &nuc) { std::vector<Nucleus>::push_back(nuc); }
-    void push_back(const std::string &atom, const mrcpp::Coord<3> &xyz) {
+    void push_back(const std::string &atom, const mrcpp::Coord<3> &xyz, double rms = -1.0) {
         PeriodicTable pt;
-        Nucleus nuc(pt.getElement(atom.c_str()), xyz);
+        Nucleus nuc(pt.getElement(atom.c_str()), xyz, rms);
         std::vector<Nucleus>::push_back(nuc);
     }
 };

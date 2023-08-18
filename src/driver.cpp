@@ -139,7 +139,8 @@ void driver::init_molecule(const json &json_mol, Molecule &mol) {
     for (const auto &coord : json_mol["coords"]) {
         auto atom = coord["atom"];
         auto xyz = coord["xyz"];
-        nuclei.push_back(atom, xyz);
+        auto rms = coord["r_rms"];
+        nuclei.push_back(atom, xyz, rms);
     }
     mol.printGeometry();
 
@@ -1000,10 +1001,11 @@ void driver::build_fock_operator(const json &json_fock, Molecule &mol, FockBuild
     //////////////////   Nuclear Operator   ///////////////////
     ///////////////////////////////////////////////////////////
     if (json_fock.contains("nuclear_operator")) {
+        auto nuc_model = json_fock["nuclear_operator"]["nuclear_model"];
         auto proj_prec = json_fock["nuclear_operator"]["proj_prec"];
         auto smooth_prec = json_fock["nuclear_operator"]["smooth_prec"];
         auto shared_memory = json_fock["nuclear_operator"]["shared_memory"];
-        auto V_p = std::make_shared<NuclearOperator>(nuclei, proj_prec, smooth_prec, shared_memory);
+        auto V_p = std::make_shared<NuclearOperator>(nuclei, proj_prec, smooth_prec, shared_memory, nuc_model);
         F.getNuclearOperator() = V_p;
     }
     ///////////////////////////////////////////////////////////

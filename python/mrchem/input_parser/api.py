@@ -301,6 +301,16 @@ def stencil() -> JSONDict:
                                             'predicates': [   'value.lower() '
                                                               "in ['none', "
                                                               "'pcm']"],
+                                            'type': 'str'},
+                                        {   'default': 'point_like',
+                                            'name': 'nuclear_model',
+                                            'predicates': [   'value.lower() '
+                                                              'in '
+                                                              "['point_like', "
+                                                              "'point_parabola', "
+                                                              "'point_minimal', "
+                                                              "'finite_gaussian', "
+                                                              "'finite_sphere']"],
                                             'type': 'str'}],
                         'name': 'WaveFunction'},
                     {   'keywords': [   {   'default': True,

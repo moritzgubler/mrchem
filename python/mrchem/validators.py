@@ -129,7 +129,7 @@ class MoleculeValidator:
         self.cavity_sigma = self.cavity_dict["sigma"]
 
         # Validate atomic coordinates
-        self.atomic_symbols, self.atomic_coords = self.validate_atomic_coordinates()
+        self.atomic_symbols, self.atomic_coords, self.atomic_rms = self.validate_atomic_coordinates()
         self.n_atoms = len(self.atomic_coords)
 
         # Translate center of mass if requested
@@ -162,8 +162,8 @@ class MoleculeValidator:
     def get_coords_in_program_syntax(self):
         """Convert nuclear coordinates from JSON syntax to program syntax."""
         return [
-            {"atom": label, "xyz": coord}
-            for label, coord in zip(self.atomic_symbols, self.atomic_coords)
+            {"atom": label, "xyz": coord, "r_rms": rms}
+            for label, coord, rms in zip(self.atomic_symbols, self.atomic_coords, self.atomic_rms)
         ]
 
     def get_cavity_in_program_syntax(self):
@@ -221,18 +221,22 @@ class MoleculeValidator:
         # Parse coordinates
         coords = []
         labels = []
+        radii = []
         bad_atoms = []
         for atom in lines:
             match_symbol = p_with_symbol.match(atom)
             match_number = p_with_number.match(atom)
             if match_symbol:
                 g = match_symbol.group()
-                labels.append(g.split()[0].strip().lower())
+                symbol = g.split()[0].strip().lower()
+                labels.append(symbol)
+                radii.append(float (PeriodicTable[symbol].r_rms))
                 coords.append([float(c.strip()) for c in g.split()[1:]])
             elif match_number:
                 g = match_number.group()
                 Z = int(g.split()[0].strip())
                 labels.append(PeriodicTableByZ[Z].symbol.lower())
+                radii.append(float(PeriodicTableByZ[Z].r_rms))
                 coords.append([float(c.strip()) for c in g.split()[1:]])
             else:
                 bad_atoms.append(atom)
@@ -255,7 +259,7 @@ class MoleculeValidator:
                 )
             )
 
-        return labels, coords
+        return labels, coords, radii
 
     def validate_cavity(self):
         """Parse the $spheres block and ensure correct formatting.

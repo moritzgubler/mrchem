@@ -76,13 +76,9 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     print_utils::text(0, "Zeta quality", std::to_string(zeta));
     mrcpp::print::separator(0, '~', 2);
 
-    Timer t_tot, t_lap;
-    auto plevel = Printer::getPrintLevel();
-    plevel=1;
-    if (plevel == 1) mrcpp::print::header(1, "SAD Initial Guess");
 
     // Make Fock operator contributions
-    t_lap.start();
+    Timer t_tot, t_lap;
     auto P_p = std::make_shared<mrcpp::PoissonOperator>(*MRA, prec);
     auto D_p = std::make_shared<mrcpp::ABGVOperator<3>>(*MRA, 0.0, 0.0);
 
@@ -97,7 +93,10 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     CoulombOperator J(P_p);
     XCOperator XC(mrdft_p);
     RankZeroOperator V = V_nuc + J + XC;
-    if (plevel == 1) mrcpp::print::time(1, "Projecting nuclear potential", t_lap);
+
+    auto plevel = Printer::getPrintLevel();
+    if (plevel == 1) mrcpp::print::header(1, "SAD Initial Guess");
+    if (plevel == 1) mrcpp::print::time(1, "Initializing operators", t_lap);
 
     // Compute Coulomb density
     t_lap.start();
@@ -157,13 +156,9 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     print_utils::text(0, "AO basis    ", "3-21G");
     mrcpp::print::separator(0, '~', 2);
 
-    Timer t_tot, t_lap;
-    auto plevel = Printer::getPrintLevel();
-    plevel=1;
-    if (plevel == 1) mrcpp::print::header(1, "SAD Initial Guess");
 
     // Make Fock operator contributions
-    t_lap.start();
+    Timer t_tot, t_lap;
     auto P_p = std::make_shared<mrcpp::PoissonOperator>(*MRA, prec);
     auto D_p = std::make_shared<mrcpp::ABGVOperator<3>>(*MRA, 0.0, 0.0);
 
@@ -177,7 +172,10 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     CoulombOperator J(P_p);
     XCOperator XC(mrdft_p);
     RankZeroOperator V = V_nuc + J + XC;
-    if (plevel == 1) mrcpp::print::time(1, "Projecting nuclear potential", t_lap);
+
+    auto plevel = Printer::getPrintLevel();
+    if (plevel == 1) mrcpp::print::header(1, "SAD Initial Guess");
+    if (plevel == 1) mrcpp::print::time(1, "Initializing operators", t_lap);
 
     // Compute Coulomb density
     t_lap.start();

@@ -25,38 +25,41 @@
 
 #pragma once
 
-#include <cmath>
-#include <vector>
+#include "NuclearFunction.h"
 
-#include <MRCPP/MWFunctions>
-
-#include "chemistry/Nucleus.h"
+#include "utils/math_utils.h"
 
 namespace mrchem {
 
-class NuclearFunction : public mrcpp::RepresentableFunction<3> {
+class FiniteNucleusSphere : public NuclearFunction {
 public:
-    NuclearFunction() = default;
-    void push_back(const std::string &atom, const mrcpp::Coord<3> &r, double p1, double p2);
-    void push_back(const Nucleus &nuc, double p1, double p2);
+    FiniteNucleusSphere() = default;
 
-    double getPrec() const { return this->prec; }
-    Nuclei &getNuclei() { return this->nuclei; }
-    const Nuclei &getNuclei() const { return this->nuclei; }
+    double evalf(const mrcpp::Coord<3> &r) const override {
+        double result = 0.0;
+        for (int i = 0; i < this->nuclei.size(); i++) {
+            const auto &R = this->nuclei[i].getCoord();
+            auto R1 = math_utils::calc_distance(r, R);
+            auto Z = this->nuclei[i].getCharge();
+            auto R0 = this->param2[i];
+            if (R1 <= R0) {
+                result += -(Z / (2.0*R0)) * (3.0 - (R1*R1)/(R0*R0));
+            } else { 
+                result += -(Z / R1);
+            }
+        }
+        return result;
+    }
 
-    bool isVisibleAtScale(int scale, int nQuadPts) const override;
-    bool isZeroOnInterval(const double *a, const double *b) const override;
-
-    virtual std::string getParamName1() const = 0;
-    virtual std::string getParamName2() const = 0;
-    virtual double calcParam1(double prec, const Nucleus &nuc) const = 0;
-    virtual double calcParam2(double prec, const Nucleus &nuc) const = 0;
-
-protected:
-    double prec;
-    Nuclei nuclei;
-    std::vector<double> param1;
-    std::vector<double> param2;
+    std::string getParamName1() const { return "RMS"; }
+    std::string getParamName2() const { return "R0"; }
+    double calcParam1(double prec, const Nucleus &nuc) const { return nuc.getRMSRadius(); }
+    double calcParam2(double prec, const Nucleus &nuc) const {
+        auto RMS = nuc.getRMSRadius();
+        auto RMS2 = RMS*RMS;
+        auto R0 = std::sqrt(RMS2*(5.0/3.0));
+        return R0;
+    }
 };
 
 } // namespace mrchem

@@ -338,6 +338,15 @@ User input reference
     **Predicates**
       - ``value.lower() in ['none', 'pcm']``
   
+   :nuclear_model: Type of nucleus model. Point-like (numerical smoothing): HFYGB (default), parabola or minimal. Finite models (physical smoothing): Gaussian or Homogeneous sphere Finite models are derived from nuclear RMS radius, Visscher (1997) 
+  
+    **Type** ``str``
+  
+    **Default** ``point_like``
+  
+    **Predicates**
+      - ``value.lower() in ['point_like', 'point_parabola', 'point_minimal', 'finite_gaussian', 'finite_sphere']``
+  
  :ZORA: Define required parameters for the ZORA Hamiltonian. 
 
   :red:`Keywords`

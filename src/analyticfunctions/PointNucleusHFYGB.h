@@ -25,38 +25,39 @@
 
 #pragma once
 
-#include <cmath>
-#include <vector>
+#include "NuclearFunction.h"
 
-#include <MRCPP/MWFunctions>
-
-#include "chemistry/Nucleus.h"
+#include "utils/math_utils.h"
 
 namespace mrchem {
 
-class NuclearFunction : public mrcpp::RepresentableFunction<3> {
+class PointNucleusHFYGB : public NuclearFunction {
 public:
-    NuclearFunction() = default;
-    void push_back(const std::string &atom, const mrcpp::Coord<3> &r, double p1, double p2);
-    void push_back(const Nucleus &nuc, double p1, double p2);
+    PointNucleusHFYGB() = default;
 
-    double getPrec() const { return this->prec; }
-    Nuclei &getNuclei() { return this->nuclei; }
-    const Nuclei &getNuclei() const { return this->nuclei; }
+    double evalf(const mrcpp::Coord<3> &r) const override {
+        double result = 0.0;
+        for (int i = 0; i < this->nuclei.size(); i++) {
+            const auto &R = this->nuclei[i].getCoord();
+            double R1 = math_utils::calc_distance(R, r);
+            double Z = this->nuclei[i].getCharge();
+            double S_i = this->param2[i];
+            R1 /= S_i;
+            double c = -1.0 / (3.0 * mrcpp::root_pi);
+            double partResult = -std::erf(R1) / R1 + c * (std::exp(-R1 * R1) + 16.0 * std::exp(-4.0 * R1 * R1));
+            result += Z * partResult / S_i;
+        }
+        return result;
+    }
 
-    bool isVisibleAtScale(int scale, int nQuadPts) const override;
-    bool isZeroOnInterval(const double *a, const double *b) const override;
-
-    virtual std::string getParamName1() const = 0;
-    virtual std::string getParamName2() const = 0;
-    virtual double calcParam1(double prec, const Nucleus &nuc) const = 0;
-    virtual double calcParam2(double prec, const Nucleus &nuc) const = 0;
-
-protected:
-    double prec;
-    Nuclei nuclei;
-    std::vector<double> param1;
-    std::vector<double> param2;
+    std::string getParamName1() const { return "Precision"; }
+    std::string getParamName2() const { return "Smoothing"; }
+    double calcParam1(double prec, const Nucleus &nuc) const { return prec; }
+    double calcParam2(double prec, const Nucleus &nuc) const {
+        auto Z = nuc.getCharge();
+        double tmp = 0.00435 * prec / std::pow(Z, 5.0);
+        return std::cbrt(tmp);
+    }
 };
 
 } // namespace mrchem

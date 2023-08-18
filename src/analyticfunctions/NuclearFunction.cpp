@@ -33,6 +33,7 @@ using mrcpp::Printer;
 
 namespace mrchem {
 
+/*
 NuclearFunction::NuclearFunction(const Nuclei &nucs, double smooth_prec, double prec) {
     int pprec = Printer::getPrecision();
     int w0 = Printer::getWidth() - 1;
@@ -69,63 +70,23 @@ NuclearFunction::NuclearFunction(const Nuclei &nucs, double smooth_prec, double 
         println(2, o_row.str());
     }
 }
-
-void NuclearFunction::push_back(const std::string &atom, const mrcpp::Coord<3> &r, double c) {
+*/
+void NuclearFunction::push_back(const std::string &atom, const mrcpp::Coord<3> &r, double p1, double p2) {
     PeriodicTable pt;
     Nucleus nuc(pt.getElement(atom.c_str()), r);
-    push_back(nuc, c);
+    push_back(nuc, p1, p2);
 }
 
-void NuclearFunction::push_back(const Nucleus &nuc, double c) {
+void NuclearFunction::push_back(const Nucleus &nuc, double p1, double p2) {
     this->nuclei.push_back(nuc);
-    this->smooth.push_back(c);
-    double Z = nuc.getCharge();
-    double minPot = -Z * 23 / (c * 3.0 * mrcpp::root_pi); // compatibility with older definition
-    this->minPot.push_back(minPot);
-}
-
-double NuclearFunction::evalf(const mrcpp::Coord<3> &r) const {
-    double result = 0.0;
-    // all three method have same lowest value at r = 0
-    for (int i = 0; i < this->nuclei.size(); i++) {
-        double Z_i = this->nuclei[i].getCharge();
-        const mrcpp::Coord<3> &R = this->nuclei[i].getCoord();
-        double R1 = math_utils::calc_distance(R, r);
-        if (smooth_method == "parabola") {
-            // second order, the value and first derivative are equal at R0
-            double a = -this->minPot[i];
-            double R0 = 1.5 * Z_i / a;
-            double b = 0.5 * Z_i / (R0 * R0 * R0);
-            if (R1 < R0)
-                result += -a + b * R1 * R1;
-            else
-                result += -Z_i / R1;
-        } else if (smooth_method == "minimum") {
-            // zero order, just take constant
-            result += std::max(-Z_i / R1, this->minPot[i]);
-        } else if (smooth_method == "very_smooth") {
-            // expensive smoothing that conserve moments
-            double c = -1.0 / (3.0 * mrcpp::root_pi);
-            double S_i = this->smooth[i];
-            R1 /= S_i;
-            double partResult = -std::erf(R1) / R1 + c * (std::exp(-R1 * R1) + 16.0 * std::exp(-4.0 * R1 * R1));
-            result += Z_i * partResult / S_i;
-        } else
-            MSG_ABORT("smoothing method not recognized");
-    }
-    return result;
+    this->param1.push_back(p1);
+    this->param2.push_back(p2);
 }
 
 bool NuclearFunction::isVisibleAtScale(int scale, int nQuadPts) const {
-    double minSmooth = 1.0;
-    if (this->smooth.size() > 0) minSmooth = *std::min_element(this->smooth.begin(), this->smooth.end());
-    double stdDeviation = std::pow(minSmooth, -0.5);
+    double stdDeviation = 1.0;
     auto visibleScale = static_cast<int>(std::floor(std::log2(nQuadPts * 5.0 * stdDeviation)));
-    if (scale < visibleScale) {
-        return false;
-    } else {
-        return true;
-    }
+    return (scale >= visibleScale);
 }
 
 bool NuclearFunction::isZeroOnInterval(const double *a, const double *b) const {
@@ -138,11 +99,7 @@ bool NuclearFunction::isZeroOnInterval(const double *a, const double *b) const {
         if (a[2] > R[2] or b[2] < R[2]) split = 0;
         totSplit += split;
     }
-    if (totSplit == 0) {
-        return true;
-    } else {
-        return false;
-    }
+    return (totSplit == 0);
 }
 
 } // namespace mrchem

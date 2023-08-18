@@ -5,7 +5,7 @@ Running MRChem with QCEngine
 MRChem >=1.0 can be used as a computational engine with the `QCEngine
 <http://docs.qcarchive.molssi.org/projects/qcengine/>`_ program executor.
 QCEngine can be useful for running calculations on large sets of molecules and input parameters.
-The results are collected in standardised `QCScheme format
+The results are collected in standardised `QCSchema format
 <http://molssi-qc-schema.readthedocs.io/en/latest/index.html#>`_, which makes it
 easy to build post-processing pipelines and store data according to Findability,
 Accessibility, Interoperability, and Reuse (FAIR) of digital assets principles.
@@ -81,11 +81,9 @@ Note that:
    <http://docs.qcarchive.molssi.org/projects/qcelemental/en/latest/>`_ object.
 #. The computation is described using a Python dictionary.
 #. The ``driver`` selects the kind of calculation you want to run with MRChem.
-   Available drivers are: 
-
+   Available drivers are:
    - ``energy``, for single-point energy calculations.
-   - ``gradient``, for evaluation of the molecular gradient at a given
-     geometry.
+   - ``gradient``, for evaluation of the molecular gradient at a given geometry.
    - ``properties``, for the calculation of molecular properties.
 #. The ``model`` selects the wavefunction: ``HF`` for Hartree-Fock and any of
    the DFT functionals known to MRChem for a corresponding DFT calculation.
@@ -123,7 +121,7 @@ argument to ``compute``:
 .. code-block:: python
 
    ret = qcng.compute(
-           computation, 
+           computation,
            "mrchem",
            task_config={"ncores": 20}) 
 
@@ -228,7 +226,7 @@ as optimization driver, but `pyberny
 
    mol =  qcel.models.Molecule(
        geometry=[
-           [ 0.29127930, 3.00875625, 0.20308515], 
+           [ 0.29127930, 3.00875625, 0.20308515],
            [-1.21253048, 1.95820900, 0.10303324],
            [ 0.10002049, 4.24958115,-1.10222079]
        ],
