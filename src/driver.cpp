@@ -420,16 +420,16 @@ bool driver::scf::guess_energy(const json &json_guess, Molecule &mol, FockBuilde
     auto &Phi = mol.getOrbitals();
     auto &nucs = mol.getNuclei();
     auto &F_mat = mol.getFockMatrix();
-    Phi.distribute();
+
     F_mat = ComplexMatrix::Zero(Phi.size(), Phi.size());
     if (localize) orbital::localize(prec, Phi, F_mat);
-    else orbital::diagonalize(prec, Phi, F_mat);
 
     F.setup(prec);
     F_mat = F(Phi, Phi);
     mol.getSCFEnergy() = F.trace(Phi, nucs);
     F.clear();
 
+    if (not localize) orbital::diagonalize(prec, Phi, F_mat);
     if (plevel == 1) mrcpp::print::footer(1, t_scf, 2);
 
     Timer t_eps;
