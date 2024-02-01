@@ -2,6 +2,7 @@
 #include <string>
 #include<tuple>
 #include <fstream>
+#include <vector>
 
 #include <MRCPP/Timer>
 #include <MRCPP/Parallel>
@@ -20,6 +21,30 @@
 
 using json = nlohmann::json;
 using namespace mrchem;
+
+/**
+ * @brief Writes positions to xyz file.
+ * @param xyzFile open file stream.
+ * @param atomicPositions Eigen matrix containing the atomic positions
+ * @param atomicLabels Vector containing all the chemical symbols of all atoms
+ * @param comment String containing comment that will be printed on the second line
+*/
+void writeXYZFile(std::ofstream& xyzFile, const Eigen::MatrixXd& atomicPositions, const std::vector<std::string>& atomicLabels, std::string comment) {
+    if (!xyzFile.is_open()) {
+        std::cerr << "Error: Output stream is not open for writing." << std::endl;
+        return;
+    }
+
+    int numAtoms = atomicPositions.rows();
+
+    xyzFile << numAtoms << "\n";
+    xyzFile << comment << std::endl;
+
+    for (int i = 0; i < numAtoms; ++i) {
+        xyzFile << atomicLabels[i] << " " << atomicPositions(0, i) << " " << atomicPositions(1, i)
+                << " " << atomicPositions(2, i) << "\n";
+    }
+}
 
 /**
  * @brief Gets postion from a molecule in json format.
@@ -113,6 +138,17 @@ json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp) {
     int printLevel = 0;
     int pprec = 2 * mrcpp::Printer::getPrecision();
 
+    std::ofstream xyzFile;
+    std::vector<std::string> element_symbols;
+
+    for (int i = 0; i < mol_inp["coords"].size(); i++) {
+        element_symbols.push_back(mol_inp["coords"][i]["atom"]);
+    }
+
+    if (mrcpp::mpi::grand_master()) {
+        xyzFile.open("geometry_optimization_trajectory.xyz", std::ios::out);
+    }
+
     mrcpp::print::header(printLevel, "Starting geometry optimization using the SQNM method", 1, '=');
     println(printLevel, " Scientific users of the geometry optimization feature should cite");
     println(printLevel, " M. Gubler, M. Krummenacher, H. Huber, S. Goedecker");
@@ -159,6 +195,10 @@ json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp) {
     i++;
 
     Eigen::MatrixXd pos = getPositions(mol_inp);
+    if (mrcpp::mpi::grand_master()) {
+        std::string comment = "Iteration 0, total energy:" + std::to_string(energy);
+        writeXYZFile(xyzFile, pos, element_symbols, comment);
+    }
 
     while (i < max_iter && forces.cwiseAbs().maxCoeff() > max_force_component) {
         optimizer.step(pos, energy, forces);
@@ -180,6 +220,10 @@ json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp) {
             {"energy", energy},
             {"max_force_component", forces.cwiseAbs().maxCoeff()},
         };
+        if (mrcpp::mpi::grand_master()) {
+            std::string comment = "Iteration " + std::to_string(i) + ", total energy: " + std::to_string(energy);
+            writeXYZFile(xyzFile, pos, element_symbols, comment);
+        }
         mrcpp::print::header(printLevel, "Geometry optimization summary of iteration", 0, '=');
         print_utils::scalar(0, "Iteration", i, "", 0);
         print_utils::scalar(-1, "Energy", energy, "Ha", pprec, true);
@@ -209,6 +253,7 @@ json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp) {
         ofs.open("geometry_optimization_summary.json", std::ios::out);
         ofs << summary.dump(2) << std::endl;
         ofs.close();
+        xyzFile.close();
     }
 
     return std::get<1>(results_tuple);
