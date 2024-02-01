@@ -1,5 +1,7 @@
 #include <iostream>
 #include <string>
+#include<tuple>
+#include <fstream>
 
 #include <MRCPP/Timer>
 #include <MRCPP/Parallel>
@@ -56,15 +58,17 @@ void setPositions(json &mol_inp, const Eigen::MatrixXd &pos) {
  * @param mol_inp: json that describes the molecule.
  * @param scf_inp: scf settings.
  * 
- * @return: json summary of scf results.
+ * @return: tuple containing print_properties of scf results the json that the driver returned
 */
-json getSCFResults(const json mol_inp, const json scf_inp) {
+std::tuple<json, json> getSCFResults(const json mol_inp, const json scf_inp) {
     Molecule mol;
+    std::tuple <json, json> results;
     driver::init_molecule(mol_inp, mol);
-    auto scf_out = driver::scf::run(scf_inp, mol);
+    json scf_out = driver::scf::run(scf_inp, mol);
     // keeping the mpi barrier to be on the safe side, but not sure if it is needed
     mrcpp::mpi::barrier(mrcpp::mpi::comm_wrk);
-    return driver::print_properties(mol);
+    results = std::make_tuple(driver::print_properties(mol), scf_out);
+    return results;
 }
 
 /**
@@ -130,8 +134,13 @@ json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp) {
     Eigen::MatrixXd forces(3, num_atoms);
     double energy;
     
-    json results = getSCFResults(mol_inp, scf_inp);
+    std::tuple<json, json> results_tuple = getSCFResults(mol_inp, scf_inp);
+    std::cout<< "unpacking\n";
+    json results = std::get<0>(results_tuple);
+    std::cout << "unpacked\n";
     energy = extractEnergy(results);
+    std::cout<< "extracted\n";
+
     double energyOld = energy;
     extractForcesInPlace(results, forces);
     mrcpp::print::header(-1, "Geometry optimization summary of initial iteration", 0, '=');
@@ -160,7 +169,9 @@ json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp) {
             scf_inp["initial_guess"]["file_phi_a"] = scf_inp["write_orbitals"]["file_phi_a"];
             scf_inp["initial_guess"]["file_phi_b"] = scf_inp["write_orbitals"]["file_phi_b"];
         }
-        json results = getSCFResults(mol_inp, scf_inp);
+        std::cout<<"2nd\n";
+        std::tuple<json, json> results_tuple = getSCFResults(mol_inp, scf_inp);
+        json results = std::get<0>(results_tuple);
         energy = extractEnergy(results);
         extractForcesInPlace(results, forces);
         summary["iteration_" + std::to_string(i)] = {
@@ -193,6 +204,12 @@ json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp) {
     mrcpp::print::value(-1, "Est. difference from minimum", energy - optimizer.lower_bound(), "Ha", pprec);
     mrcpp::print::separator(-1, '=', 0);
 
-    return summary;
+    if (mrcpp::mpi::grand_master()) {
+        std::ofstream ofs;
+        ofs.open("geometry_optimization_summary.json", std::ios::out);
+        ofs << summary.dump(2) << std::endl;
+        ofs.close();
+    }
 
+    return std::get<1>(results_tuple);
 }
