@@ -202,7 +202,8 @@ json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp, std::
 
     Eigen::MatrixXd pos = getPositions(mol_inp);
     if (mrcpp::mpi::grand_master()) {
-        std::string comment = "Iteration 0, total energy:" + std::to_string(energy);
+        std::string comment = "Unit of positions is angstrom. Iteration 0, total energy:" + std::to_string(energy) 
+            + " max force component: " + std::to_string(forces.cwiseAbs().maxCoeff());
         writeXYZFile(xyzFile, pos, element_symbols, comment);
     }
 
@@ -226,7 +227,8 @@ json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp, std::
             {"max_force_component", forces.cwiseAbs().maxCoeff()},
         };
         if (mrcpp::mpi::grand_master()) {
-            std::string comment = "Iteration " + std::to_string(i) + ", total energy: " + std::to_string(energy);
+            std::string comment = "Iteration " + std::to_string(i) + ", total energy: " + std::to_string(energy)
+                + " max force component: " + std::to_string(forces.cwiseAbs().maxCoeff());
             writeXYZFile(xyzFile, pos, element_symbols, comment);
         }
         mrcpp::print::header(printLevel, "Geometry optimization summary of iteration", 0, '=');
