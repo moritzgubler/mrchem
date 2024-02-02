@@ -43,6 +43,7 @@ void writeXYZFile(std::ofstream& xyzFile, const Eigen::MatrixXd& atomicPositions
         xyzFile << atomicLabels[i] << " " << atomicPositions(0, i) * 0.529177 << " " << atomicPositions(1, i) * 0.529177
                 << " " << atomicPositions(2, i) * 0.529177 << "\n";
     }
+    xyzFile.flush();
 }
 
 /**
