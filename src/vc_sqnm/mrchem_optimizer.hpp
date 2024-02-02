@@ -13,7 +13,6 @@
 #include "version.h"
 
 #include "chemistry/Molecule.h"
-// #include "chemistry/PhysicalConstants.h"
 #include "vc_sqnm/periodic_optimizer.hpp"
 
 #include <Eigen/Dense>
@@ -23,10 +22,10 @@ using json = nlohmann::json;
 using namespace mrchem;
 
 /**
- * @brief Writes positions to xyz file.
+ * @brief Writes positions to xyz file. Unit if file is angstrom.
  * @param xyzFile open file stream.
- * @param atomicPositions Eigen matrix containing the atomic positions
- * @param atomicLabels Vector containing all the chemical symbols of all atoms
+ * @param atomicPositions Eigen matrix containing the atomic positions, shape(3, n). Unit is bohr, will be converted to angstrom.
+ * @param atomicLabels Vector containing strings of all the chemical symbols of all atoms
  * @param comment String containing comment that will be printed on the second line
 */
 void writeXYZFile(std::ofstream& xyzFile, const Eigen::MatrixXd& atomicPositions, const std::vector<std::string>& atomicLabels, std::string comment) {
@@ -41,8 +40,8 @@ void writeXYZFile(std::ofstream& xyzFile, const Eigen::MatrixXd& atomicPositions
     xyzFile << comment << std::endl;
 
     for (int i = 0; i < numAtoms; ++i) {
-        xyzFile << atomicLabels[i] << " " << atomicPositions(0, i) << " " << atomicPositions(1, i)
-                << " " << atomicPositions(2, i) << "\n";
+        xyzFile << atomicLabels[i] << " " << atomicPositions(0, i) * 0.529177 << " " << atomicPositions(1, i) * 0.529177
+                << " " << atomicPositions(2, i) * 0.529177 << "\n";
     }
 }
 
@@ -130,9 +129,16 @@ double extractEnergy(const json &scf_results){
  * @param scf_inp: scf settings.
  * @param mol_inp: json that contains the molecule.
  * @param geopt_inp: json that contains the geometry optization settings.
+ * @param jsonOutFileName the filename of the default json output. Used to construct names for own output files.
  * @return: A summary of the geometry optimization trajectory.
 */
-json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp) {
+json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp, std::string jsonOutFileName) {
+
+    size_t stringPos = jsonOutFileName.find(".json");
+    if (stringPos != std::string::npos)
+    {
+        jsonOutFileName.erase(stringPos, 5);
+    }
 
     int num_atoms = mol_inp["coords"].size();
     int printLevel = 0;
@@ -140,13 +146,16 @@ json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp) {
 
     std::ofstream xyzFile;
     std::vector<std::string> element_symbols;
+    std::string element_symbol;
 
     for (int i = 0; i < mol_inp["coords"].size(); i++) {
-        element_symbols.push_back(mol_inp["coords"][i]["atom"]);
+        element_symbol = mol_inp["coords"][i]["atom"];
+        element_symbol[0] = std::toupper(element_symbol[0]);
+        element_symbols.push_back(element_symbol);
     }
 
     if (mrcpp::mpi::grand_master()) {
-        xyzFile.open("geometry_optimization_trajectory.xyz", std::ios::out);
+        xyzFile.open(jsonOutFileName + ".xyz", std::ios::out);
     }
 
     mrcpp::print::header(printLevel, "Starting geometry optimization using the SQNM method", 1, '=');
@@ -246,7 +255,7 @@ json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp) {
 
     if (mrcpp::mpi::grand_master()) {
         std::ofstream ofs;
-        ofs.open("geometry_optimization_summary.json", std::ios::out);
+        ofs.open(jsonOutFileName + "_optimization_summary.json", std::ios::out);
         ofs << summary.dump(2) << std::endl;
         ofs.close();
         xyzFile.close();
