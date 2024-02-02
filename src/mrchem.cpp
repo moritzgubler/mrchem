@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
     json json_out;
 
     if (geopt_inp["run"]) {
-        json_out = optimize_positions(scf_inp, mol_inp, geopt_inp);
+        json_out = optimize_positions(scf_inp, mol_inp, geopt_inp, json_inp["printer"]["file_name"]);
         mrcpp::mpi::barrier(mrcpp::mpi::comm_wrk);
     } else {
         Molecule mol;
