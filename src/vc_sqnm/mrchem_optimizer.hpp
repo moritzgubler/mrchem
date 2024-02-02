@@ -171,11 +171,8 @@ json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp) {
     double energy;
     
     std::tuple<json, json> results_tuple = getSCFResults(mol_inp, scf_inp);
-    std::cout<< "unpacking\n";
     json results = std::get<0>(results_tuple);
-    std::cout << "unpacked\n";
     energy = extractEnergy(results);
-    std::cout<< "extracted\n";
 
     double energyOld = energy;
     extractForcesInPlace(results, forces);
@@ -209,7 +206,6 @@ json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp) {
             scf_inp["initial_guess"]["file_phi_a"] = scf_inp["write_orbitals"]["file_phi_a"];
             scf_inp["initial_guess"]["file_phi_b"] = scf_inp["write_orbitals"]["file_phi_b"];
         }
-        std::cout<<"2nd\n";
         std::tuple<json, json> results_tuple = getSCFResults(mol_inp, scf_inp);
         json results = std::get<0>(results_tuple);
         energy = extractEnergy(results);
