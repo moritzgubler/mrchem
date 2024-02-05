@@ -13,6 +13,7 @@
 #include "version.h"
 
 #include "chemistry/Molecule.h"
+#include "chemistry/PhysicalConstants.h"
 #include "vc_sqnm/periodic_optimizer.hpp"
 
 #include <Eigen/Dense>
@@ -36,12 +37,14 @@ void writeXYZFile(std::ofstream& xyzFile, const Eigen::MatrixXd& atomicPositions
 
     int numAtoms = atomicPositions.rows();
 
+    double bohrToAng = 1.0 / PhysicalConstants::get("angstrom2bohrs");
+
     xyzFile << numAtoms << "\n";
     xyzFile << comment << std::endl;
 
     for (int i = 0; i < numAtoms; ++i) {
-        xyzFile << atomicLabels[i] << " " << atomicPositions(0, i) * 0.529177 << " " << atomicPositions(1, i) * 0.529177
-                << " " << atomicPositions(2, i) * 0.529177 << "\n";
+        xyzFile << atomicLabels[i] << " " << atomicPositions(0, i) * bohrToAng << " " << atomicPositions(1, i) * bohrToAng
+                << " " << atomicPositions(2, i) * bohrToAng << "\n";
     }
     xyzFile.flush();
 }
