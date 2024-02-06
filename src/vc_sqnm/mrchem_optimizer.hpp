@@ -35,7 +35,7 @@ void writeXYZFile(std::ofstream& xyzFile, const Eigen::MatrixXd& atomicPositions
         return;
     }
 
-    int numAtoms = atomicPositions.rows();
+    int numAtoms = atomicPositions.cols();
 
     double bohrToAng = 1.0 / PhysicalConstants::get("angstrom2bohrs");
 
