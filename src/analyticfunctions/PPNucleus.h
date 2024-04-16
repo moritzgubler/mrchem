@@ -44,7 +44,7 @@ public:
     double evalf(const mrcpp::Coord<3> &r) const override {
         double result = 0.0;
         double temp_exp;
-        double temp_square;
+        double temp_square; // contains (sqrt(2) * alpha * r) ** (2*i -2)
         // std::cerr << this->c1 << " " << this->c2 << " " << this->c3 << " " << this->c4 << std::endl;
         for (int i = 0; i < this->nuclei.size(); i++) {
             const auto &R = this->nuclei[i].getCoord();
