@@ -33,16 +33,13 @@ namespace mrchem {
 
 class PPNucleus : public NuclearFunction {
 public:
-    // constructor with arguments (all double) alpha_pp, c1, c2, c3, c4.
     // calls constructor of super class first.
-    PPNucleus(int z_eff, double r_loc, double c1, double c2, double c3, double c4) : NuclearFunction(){
+    PPNucleus(int z_eff, double r_loc, std::vector<double> c) : NuclearFunction(){
         // alpha_pp = 1 / (sqrt(2.0) * r_loc)
         this->z_eff = z_eff;
         this->alpha_pp = 1 / (std::sqrt(2.0) * r_loc);
-        this->c1 = c1;
-        this->c2 = c2;
-        this->c3 = c3;
-        this->c4 = c4;
+        this->c = c;
+        this->number_of_c = c.size();
     }
     
 
@@ -51,6 +48,7 @@ public:
         double result = 0.0;
         double temp_exp;
         double temp_square;
+        // std::cerr << this->c1 << " " << this->c2 << " " << this->c3 << " " << this->c4 << std::endl;
         for (int i = 0; i < this->nuclei.size(); i++) {
             const auto &R = this->nuclei[i].getCoord();
             auto R1 = math_utils::calc_distance(R, r);
@@ -58,18 +56,28 @@ public:
             temp_exp = std::exp(-this->alpha_pp * this->alpha_pp * R1 * R1);
 
             result -= this->z_eff / R1 * std::erf(this->alpha_pp * R1);
-            
-            result += c1 * temp_exp;
 
-            temp_square = 2.0 * R1 * R1 * this->alpha_pp * this->alpha_pp;
 
-            result += c2 * temp_exp * temp_square;
+            if (this->number_of_c > 0)
+            {
+                result += this->c[0] * temp_exp;
+            }
 
-            temp_square = temp_square * temp_square;
-            result += c3 * temp_exp * temp_square;
-
-            temp_square = temp_square * 2.0 * R1 * R1 * this->alpha_pp * this->alpha_pp;
-            result = c4 * temp_exp * temp_square;
+            if (this->number_of_c > 1)
+            {
+                temp_square = 2.0 * R1 * R1 * this->alpha_pp * this->alpha_pp;
+                result += this->c[1] * temp_exp * temp_square;
+            }
+            if (this->number_of_c > 2)
+            {
+                temp_square = temp_square * temp_square;
+                result += this->c[2] * temp_exp * temp_square;
+            }
+            if (this->number_of_c > 3)
+            {
+                temp_square = temp_square * 2.0 * R1 * R1 * this->alpha_pp * this->alpha_pp;
+                result += this->c[3] * temp_exp * temp_square;
+            }
             
         }
         return result;
@@ -86,10 +94,8 @@ public:
     protected:
     double z_eff;
     double alpha_pp;
-    double c1;
-    double c2;
-    double c3;
-    double c4;
+    std::vector<double> c;
+    int number_of_c;
 
 };
 
