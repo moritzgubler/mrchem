@@ -28,18 +28,15 @@
 #include "NuclearFunction.h"
 
 #include "utils/math_utils.h"
+#include "pseudopotential/HGH.hpp"
 
 namespace mrchem {
 
 class PPNucleus : public NuclearFunction {
 public:
-    // calls constructor of super class first.
-    PPNucleus(int z_eff, double r_loc, std::vector<double> c) : NuclearFunction(){
-        // alpha_pp = 1 / (sqrt(2.0) * r_loc)
-        this->z_eff = z_eff;
-        this->alpha_pp = 1 / (std::sqrt(2.0) * r_loc);
-        this->c = c;
-        this->number_of_c = c.size();
+
+    PPNucleus(std::vector<GoedeckerPseudopotential> pps) : NuclearFunction(){
+        this->pps = pps;
     }
     
 
@@ -53,30 +50,30 @@ public:
             const auto &R = this->nuclei[i].getCoord();
             auto R1 = math_utils::calc_distance(R, r);
 
-            temp_exp = std::exp(-this->alpha_pp * this->alpha_pp * R1 * R1);
+            temp_exp = std::exp(-this->pps[i].alpha_pp * this->pps[i].alpha_pp * R1 * R1);
 
-            result -= this->z_eff / R1 * std::erf(this->alpha_pp * R1);
+            result -= this->pps[i].zatom / R1 * std::erf(this->pps[i].alpha_pp * R1);
 
 
-            if (this->number_of_c > 0)
+            if (this->pps[i].c.size() > 0)
             {
-                result += this->c[0] * temp_exp;
+                result += this->pps[i].c[0] * temp_exp;
             }
 
-            if (this->number_of_c > 1)
+            if (this->pps[i].c.size() > 1)
             {
-                temp_square = 2.0 * R1 * R1 * this->alpha_pp * this->alpha_pp;
-                result += this->c[1] * temp_exp * temp_square;
+                temp_square = 2.0 * R1 * R1 * this->pps[i].alpha_pp * this->pps[i].alpha_pp;
+                result += this->pps[i].c[1] * temp_exp * temp_square;
             }
-            if (this->number_of_c > 2)
+            if (this->pps[i].c.size() > 2)
             {
                 temp_square = temp_square * temp_square;
-                result += this->c[2] * temp_exp * temp_square;
+                result += this->pps[i].c[2] * temp_exp * temp_square;
             }
-            if (this->number_of_c > 3)
+            if (this->pps[i].c.size() > 3)
             {
-                temp_square = temp_square * 2.0 * R1 * R1 * this->alpha_pp * this->alpha_pp;
-                result += this->c[3] * temp_exp * temp_square;
+                temp_square = temp_square * 2.0 * R1 * R1 * this->pps[i].alpha_pp * this->pps[i].alpha_pp;
+                result += this->pps[i].c[3] * temp_exp * temp_square;
             }
             
         }
@@ -92,10 +89,7 @@ public:
     }
 
     protected:
-    double z_eff;
-    double alpha_pp;
-    std::vector<double> c;
-    int number_of_c;
+    std::vector<GoedeckerPseudopotential> pps;
 
 };
 
