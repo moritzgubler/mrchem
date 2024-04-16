@@ -539,9 +539,6 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol) {
             }
 
             auto poisson_pointer = std::make_shared<mrcpp::PoissonOperator>(*MRA, prec);
-            CoulombOperator V(poisson_pointer, std::make_shared<OrbitalVector>(Phi));
-
-            V.setup(prec);
 
             int derivOrder = 1;
             auto mrcd = std::make_shared<mrcpp::BSOperator<3>>(*MRA, derivOrder);
@@ -549,16 +546,28 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol) {
             NablaOperator nabla(mrcd);
             nabla.setup(prec);
 
-            auto pot = V(Phi)[0];
-            auto e_field = nabla(V(Phi)[0]);
+            // mrcpp::ComplexFunction &rho;
+            Density rho(false);
 
-            double zmin = -.1;
-            double zmax = 1.1;
-            int n = 24;
+            density::compute(prec, rho, Phi, DensityType::Total);
+
+            // Adjust precision by system size
+            double abs_prec = prec / orbital::get_electron_number(Phi);
+
+            Timer timer;
+            mrcpp::ComplexFunction V(false);
+            V.alloc(NUMBER::Real);
+            mrcpp::apply(abs_prec, V.real(), *poisson_pointer, rho.real());
+
+            auto e_field = nabla(V);
+
+            double zmin = -.6;
+            double zmax = .6;
+            int n = 120;
             auto r = mol.getNuclei()[0].getCoord();
 
-            r[0] = 1.0;
-            r[1] = 1.0;
+            r[0] = 0.0;
+            r[1] = 0.0;
             int Z_k = 1;
             
             for (int i = 0; i < n + 1; i++)
@@ -571,7 +580,7 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol) {
                 auto e = h.trace(Phi).real();
                 // std::cerr << "e fielddd " << e[0] << " " << e[1] <<  " " << e[2] << std::endl;
                 // std::cerr << "nabla pot " << -o[0].real().evalf(r) << " " << -o[1].real().evalf(r) << " " << -o[2].real().evalf(r) << std::endl;
-                std:: cerr << r[2] << " " << e[2] << " " << e_field[2].real().evalf(r) << " " << pot.real().evalf(r) << std::endl;
+                std:: cerr << r[2] << " " << e[2] << " " << - e_field[2].real().evalf(r) << " " << V.real().evalf(r) << std::endl;
                 h.clear();
             }
         }
