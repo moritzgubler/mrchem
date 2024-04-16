@@ -69,6 +69,7 @@ NuclearOperator::NuclearOperator(const Nuclei &nucs, double proj_prec, double sm
     NuclearFunction *f_loc = nullptr;
 
     std::string model_copy = "pp";
+    // model_copy = model;
 
     if (model_copy == "point_like") {
         mrcpp::print::header(1, "Projecting nuclear potential (point-like HFYGB)");
@@ -90,16 +91,11 @@ NuclearOperator::NuclearOperator(const Nuclei &nucs, double proj_prec, double sm
         GoedeckerPseudopotential hgh;
         std::string fname = "psppar.H";
         bool succes = readGoedeckerPseudopotential(fname, hgh);
-        // copy vector hgh.c to array c
-        std::vector<double> c = hgh.c;
-        // pad c with zeros to length 4
-        // c.resize(4, 0.0);
-        // loop over c and print values to cerr:
-        for (int i = 0; i < c.size(); i++) {
-            std::cerr << "i and c " << i << " " <<  c[i] << std::endl;
-        }
 
-        f_loc = new PPNucleus(hgh.zatom, hgh.rloc[0], c[0], c[1], c[2], c[3]);
+        std::cerr << "hgh.zatom " << hgh.zatom << std::endl;
+        std::cerr << "hgh.rloc[0] " << hgh.rloc[0] << std::endl;
+
+        f_loc = new PPNucleus(hgh.zatom, hgh.rloc[0], hgh.c);
 
     } else {
         MSG_ABORT("Invalid nuclear model : " << model_copy);
