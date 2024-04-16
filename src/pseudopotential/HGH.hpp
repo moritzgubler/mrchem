@@ -1,3 +1,6 @@
+#ifndef GoedeckerPseudopotential_h
+#define GoedeckerPseudopotential_h
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -8,7 +11,8 @@ struct GoedeckerPseudopotential {
     std::string element_name;
     int zatom;
     int zion;
-    std::vector<double> rloc;
+    double rloc;
+    double alpha_pp;
     std::vector<double> nloc;
     std::vector<double> c;
     std::vector<double> rs;
@@ -63,7 +67,8 @@ bool readGoedeckerPseudopotential(const std::string& filename, GoedeckerPseudopo
         if (!(iss >> rloc_val >> nloc_val >> c_val)) {
             break; // End of the section
         }
-        pseudopotential.rloc.push_back(rloc_val);
+        pseudopotential.rloc = rloc_val;
+        pseudopotential.alpha_pp = 1.0 / (std::sqrt(2.0) * rloc_val);
         pseudopotential.nloc.push_back(nloc_val);
         pseudopotential.c.push_back(c_val);
     }
@@ -115,9 +120,7 @@ void buildCorePotential(const GoedeckerPseudopotential& pseudopotential) {
     std::cout << "Charge: " << pseudopotential.zion << std::endl;
 
     std::cout << "Core Potential:\n";
-    for (size_t i = 0; i < pseudopotential.rloc.size(); ++i) {
-        std::cout << "rloc: " << pseudopotential.rloc[i] << ", nloc: " << pseudopotential.nloc[i] << ", c: " << pseudopotential.c[i] << std::endl;
-    }
+    std::cout << "rloc: " << pseudopotential.rloc << ", nloc: " << pseudopotential.nloc[0] << ", c: " << pseudopotential.c[0] << std::endl;
 }
 
 void performCalculation(const GoedeckerPseudopotential& pseudopotential) {
@@ -151,3 +154,5 @@ cout << "rp: " << pseudopotential.rp[i] << ", np: " << pseudopotential.np[i] << 
 //     }
 //     return 0;
 // }
+
+#endif

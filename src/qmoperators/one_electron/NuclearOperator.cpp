@@ -93,9 +93,12 @@ NuclearOperator::NuclearOperator(const Nuclei &nucs, double proj_prec, double sm
         bool succes = readGoedeckerPseudopotential(fname, hgh);
 
         std::cerr << "hgh.zatom " << hgh.zatom << std::endl;
-        std::cerr << "hgh.rloc[0] " << hgh.rloc[0] << std::endl;
+        std::cerr << "hgh.rloc[0] " << hgh.rloc << std::endl;
 
-        f_loc = new PPNucleus(hgh.zatom, hgh.rloc[0], hgh.c);
+        std::vector<GoedeckerPseudopotential> pps;
+        pps.push_back(hgh);
+
+        f_loc = new PPNucleus(pps);
 
     } else {
         MSG_ABORT("Invalid nuclear model : " << model_copy);
