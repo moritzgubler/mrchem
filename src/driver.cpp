@@ -55,6 +55,7 @@
 #include "qmoperators/one_electron/NuclearGradientOperator.h"
 #include "qmoperators/one_electron/NuclearOperator.h"
 #include "qmoperators/one_electron/ZoraOperator.h"
+#include "qmoperators/one_electron/NablaOperator.h"
 
 #include "qmoperators/one_electron/H_BB_dia.h"
 #include "qmoperators/one_electron/H_BM_dia.h"
@@ -67,6 +68,7 @@
 #include "qmoperators/one_electron/H_M_pso.h"
 
 #include "qmoperators/two_electron/CoulombOperator.h"
+#include "qmoperators/two_electron/CoulombPotential.h"
 #include "qmoperators/two_electron/ExchangeOperator.h"
 #include "qmoperators/two_electron/FockBuilder.h"
 #include "qmoperators/two_electron/ReactionOperator.h"
@@ -533,6 +535,43 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol) {
                     nuc.row(k) -= Eigen::Map<Eigen::RowVector3d>(R_kl.data()) * (Z_k * Z_l / R_kl_3_2);
                 }
                 el.row(k) = h.trace(Phi).real();
+                h.clear();
+            }
+
+            auto poisson_pointer = std::make_shared<mrcpp::PoissonOperator>(*MRA, prec);
+            CoulombOperator V(poisson_pointer, std::make_shared<OrbitalVector>(Phi));
+
+            V.setup(prec);
+
+            int derivOrder = 1;
+            auto mrcd = std::make_shared<mrcpp::BSOperator<3>>(*MRA, derivOrder);
+            // auto mrcd = std::make_shared<mrcpp::ABGVOperator<3>>(*MRA, 0.5, 0.5);
+            NablaOperator nabla(mrcd);
+            nabla.setup(prec);
+
+            auto pot = V(Phi)[0];
+            auto e_field = nabla(V(Phi)[0]);
+
+            double zmin = -.1;
+            double zmax = 1.1;
+            int n = 24;
+            auto r = mol.getNuclei()[0].getCoord();
+
+            r[0] = 1.0;
+            r[1] = 1.0;
+            int Z_k = 1;
+            
+            for (int i = 0; i < n + 1; i++)
+            {
+                double z = zmin + i * (zmax - zmin) / (n);
+                r[2] = z;
+                double c = 0.0001;
+                NuclearGradientOperator h(Z_k, r, prec, c);
+                h.setup(prec);
+                auto e = h.trace(Phi).real();
+                // std::cerr << "e fielddd " << e[0] << " " << e[1] <<  " " << e[2] << std::endl;
+                // std::cerr << "nabla pot " << -o[0].real().evalf(r) << " " << -o[1].real().evalf(r) << " " << -o[2].real().evalf(r) << std::endl;
+                std:: cerr << r[2] << " " << e[2] << " " << e_field[2].real().evalf(r) << " " << pot.real().evalf(r) << std::endl;
                 h.clear();
             }
         }
