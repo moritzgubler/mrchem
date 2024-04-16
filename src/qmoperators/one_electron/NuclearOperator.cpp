@@ -39,6 +39,8 @@
 #include "analyticfunctions/PointNucleusMinimum.h"
 #include "analyticfunctions/FiniteNucleusSphere.h"
 #include "analyticfunctions/FiniteNucleusGaussian.h"
+#include "analyticfunctions/PPNucleus.h"
+#include "pseudopotential/HGH.hpp"
 #include "chemistry/chemistry_utils.h"
 #include "qmfunctions/Density.h"
 #include "qmoperators/QMPotential.h"
@@ -65,23 +67,42 @@ NuclearOperator::NuclearOperator(const Nuclei &nucs, double proj_prec, double sm
     // Setup local analytic function
     Timer t_loc;
     NuclearFunction *f_loc = nullptr;
-    if (model == "point_like") {
+
+    std::string model_copy = "pp";
+
+    if (model_copy == "point_like") {
         mrcpp::print::header(1, "Projecting nuclear potential (point-like HFYGB)");
         f_loc = new PointNucleusHFYGB();
-    } else if (model == "point_parabola") {
+    } else if (model_copy == "point_parabola") {
         mrcpp::print::header(1, "Projecting nuclear potential (point-like parabola)");
         f_loc = new PointNucleusParabola();
-    } else if (model == "point_minimum") {
+    } else if (model_copy == "point_minimum") {
         mrcpp::print::header(1, "Projecting nuclear potential (point-like minimum)");
         f_loc = new PointNucleusMinimum();
-    } else if (model == "finite_gaussian") {
+    } else if (model_copy == "finite_gaussian") {
         mrcpp::print::header(1, "Projecting nuclear potential (finite Gaussian)");
         f_loc = new FiniteNucleusGaussian();
-    } else if (model == "finite_sphere") {
+    } else if (model_copy == "finite_sphere") {
         mrcpp::print::header(1, "Projecting nuclear potential (finite homogeneous sphere)");
         f_loc = new FiniteNucleusSphere();
+    } else if (model_copy == "pp") {
+        mrcpp::print::header(1, "Projecting nuclear potential (Pseudo-potential)");
+        GoedeckerPseudopotential hgh;
+        std::string fname = "psppar.H";
+        bool succes = readGoedeckerPseudopotential(fname, hgh);
+        // copy vector hgh.c to array c
+        std::vector<double> c = hgh.c;
+        // pad c with zeros to length 4
+        // c.resize(4, 0.0);
+        // loop over c and print values to cerr:
+        for (int i = 0; i < c.size(); i++) {
+            std::cerr << "i and c " << i << " " <<  c[i] << std::endl;
+        }
+
+        f_loc = new PPNucleus(hgh.zatom, hgh.rloc[0], c[0], c[1], c[2], c[3]);
+
     } else {
-        MSG_ABORT("Invalid nuclear model : " << model);
+        MSG_ABORT("Invalid nuclear model : " << model_copy);
     }
     setupLocalPotential(*f_loc, nucs, smooth_prec);
 
