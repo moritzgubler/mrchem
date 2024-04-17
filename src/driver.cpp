@@ -83,6 +83,7 @@
 #include "environment/LPBESolver.h"
 #include "environment/PBESolver.h"
 #include "environment/Permittivity.h"
+#include "surface_forces/SurfaceForce.h"
 
 #include "mrdft/Factory.h"
 
@@ -538,51 +539,9 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol) {
                 h.clear();
             }
 
-            auto poisson_pointer = std::make_shared<mrcpp::PoissonOperator>(*MRA, prec);
+            surface_force::surface_forces(mol, Phi, prec);
 
-            int derivOrder = 1;
-            auto mrcd = std::make_shared<mrcpp::BSOperator<3>>(*MRA, derivOrder);
-            // auto mrcd = std::make_shared<mrcpp::ABGVOperator<3>>(*MRA, 0.5, 0.5);
-            NablaOperator nabla(mrcd);
-            nabla.setup(prec);
 
-            // mrcpp::ComplexFunction &rho;
-            Density rho(false);
-
-            density::compute(prec, rho, Phi, DensityType::Total);
-
-            // Adjust precision by system size
-            double abs_prec = prec / orbital::get_electron_number(Phi);
-
-            Timer timer;
-            mrcpp::ComplexFunction V(false);
-            V.alloc(NUMBER::Real);
-            mrcpp::apply(abs_prec, V.real(), *poisson_pointer, rho.real());
-
-            auto e_field = nabla(V);
-
-            double zmin = -.6;
-            double zmax = .6;
-            int n = 120;
-            auto r = mol.getNuclei()[0].getCoord();
-
-            r[0] = 0.0;
-            r[1] = 0.0;
-            int Z_k = 1;
-            
-            for (int i = 0; i < n + 1; i++)
-            {
-                double z = zmin + i * (zmax - zmin) / (n);
-                r[2] = z;
-                double c = 0.0001;
-                NuclearGradientOperator h(Z_k, r, prec, c);
-                h.setup(prec);
-                auto e = h.trace(Phi).real();
-                // std::cerr << "e fielddd " << e[0] << " " << e[1] <<  " " << e[2] << std::endl;
-                // std::cerr << "nabla pot " << -o[0].real().evalf(r) << " " << -o[1].real().evalf(r) << " " << -o[2].real().evalf(r) << std::endl;
-                std:: cerr << r[2] << " " << e[2] << " " << - e_field[2].real().evalf(r) << " " << V.real().evalf(r) << std::endl;
-                h.clear();
-            }
         }
         mrcpp::print::footer(2, t_lap, 2);
         if (plevel == 1) mrcpp::print::time(1, "Geometric derivative", t_lap);
