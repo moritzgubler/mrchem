@@ -21,12 +21,8 @@
 extern mrcpp::MultiResolutionAnalysis<3> *mrchem::MRA;
 namespace surface_force {
 
-// Function definition
-std::vector<double> surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec) {
-    std::cerr << "Surface force calculation" << std::endl;
-
-
-    auto poisson_pointer = std::make_shared<mrcpp::PoissonOperator>(*mrchem::MRA, prec);
+void plotRandomStuff(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec){
+        auto poisson_pointer = std::make_shared<mrcpp::PoissonOperator>(*mrchem::MRA, prec);
 
     int derivOrder = 1;
     auto mrcd = std::make_shared<mrcpp::BSOperator<3>>(*mrchem::MRA, derivOrder);
@@ -57,19 +53,19 @@ std::vector<double> surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector 
     r[1] = 0.0;
     int Z_k = 1;
     
-    // for (int i = 0; i < n + 1; i++)
-    // {
-    //     double z = zmin + i * (zmax - zmin) / (n);
-    //     r[2] = z;
-    //     double c = 0.0001;
-    //     NuclearGradientOperator h(Z_k, r, prec, c);
-    //     h.setup(prec);
-    //     auto e = h.trace(Phi).real();
-    //     // std::cerr << "e fielddd " << e[0] << " " << e[1] <<  " " << e[2] << std::endl;
-    //     // std::cerr << "nabla pot " << -o[0].real().evalf(r) << " " << -o[1].real().evalf(r) << " " << -o[2].real().evalf(r) << std::endl;
-    //     std:: cerr << r[2] << " " << e[2] << " " << - e_field[2].real().evalf(r) << " " << V.real().evalf(r) << std::endl;
-    //     h.clear();
-    // }
+    for (int i = 0; i < n + 1; i++)
+    {
+        double z = zmin + i * (zmax - zmin) / (n);
+        r[2] = z;
+        double c = 0.0001;
+        mrchem::NuclearGradientOperator h(Z_k, r, prec, c);
+        h.setup(prec);
+        auto e = h.trace(Phi).real();
+        // std::cerr << "e fielddd " << e[0] << " " << e[1] <<  " " << e[2] << std::endl;
+        // std::cerr << "nabla pot " << -o[0].real().evalf(r) << " " << -o[1].real().evalf(r) << " " << -o[2].real().evalf(r) << std::endl;
+        std:: cerr << r[2] << " " << e[2] << " " << - e_field[2].real().evalf(r) << " " << V.real().evalf(r) << std::endl;
+        h.clear();
+    }
     
     // loop over circle in yz plane with radius 0.4 and center at (0,0,0.5)
     double radius = 0.4;
@@ -91,10 +87,15 @@ std::vector<double> surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector 
     } else {
         std::cerr << "Unable to open file" << std::endl;
     }
+}
 
+// Function definition
+std::vector<double> surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec) {
+    std::cerr << "Surface force calculation" << std::endl;
+    plotRandomStuff(mol, Phi, prec);
     std::vector<double> forceValues = {0.0, 0.0, 0.0};
-
     return forceValues;
 }
+
 
 } // namespace surface_force
