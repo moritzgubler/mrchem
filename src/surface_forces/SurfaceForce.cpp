@@ -158,7 +158,7 @@ Eigen::Tensor<double, 3> maxwellStress(const Molecule &mol, mrcpp::ComplexFuncti
             }
         }
         for (int i1 = 0; i1 < 3; i1++){
-            stress(i, i1, i1) -= 0.5 * Efield(i, 0) * Efield(i, 0) + Efield(i, 1) * Efield(i, 1) + Efield(i, 2) * Efield(i, 2);
+            stress(i, i1, i1) = stress(i, i1, i1) - 0.5 * (Efield(i, 0) * Efield(i, 0) + Efield(i, 1) * Efield(i, 1) + Efield(i, 2) * Efield(i, 2));
         }
         for (int i1 = 0; i1 < 3; i1++){
             for (int i2 = 0; i2 < 3; i2++){
