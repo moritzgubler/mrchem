@@ -7,13 +7,25 @@
 #include <vector>
 #include <string>
 
+std::vector<std::string> splitStringToWords(const std::string& str) {
+    std::istringstream iss(str);
+    std::vector<std::string> words;
+    std::string word;
+
+    while (iss >> word) {
+        words.push_back(word);
+    }
+
+    return words;
+}
+
 struct GoedeckerPseudopotential {
     std::string element_name;
     int zatom;
     int zion;
     double rloc;
     double alpha_pp;
-    std::vector<double> nloc;
+    int nloc;
     std::vector<double> c;
     std::vector<double> rs;
     std::vector<double> ns;
@@ -61,16 +73,18 @@ bool readGoedeckerPseudopotential(const std::string& filename, GoedeckerPseudopo
     }
 
     // Read rloc, nloc, c
-    double rloc_val, nloc_val, c_val;
-    while (std::getline(file, line)) {
-        std::istringstream iss(line);
-        if (!(iss >> rloc_val >> nloc_val >> c_val)) {
-            break; // End of the section
-        }
-        pseudopotential.rloc = rloc_val;
-        pseudopotential.alpha_pp = 1.0 / (std::sqrt(2.0) * rloc_val);
-        pseudopotential.nloc.push_back(nloc_val);
-        pseudopotential.c.push_back(c_val);
+    double rloc_val, c_val;
+    int nloc_val;
+    std::getline(file, line);
+    // split line into words:
+    std::vector<std::string> words = splitStringToWords(line);
+
+    pseudopotential.rloc = std::stod(words[0]);
+    pseudopotential.alpha_pp = 1.0 / (std::sqrt(2.0) * pseudopotential.rloc);
+    pseudopotential.nloc = std::stoi(words[1]);
+    for (int i = 2; i < 2 + pseudopotential.nloc; i++)
+    {
+        pseudopotential.c.push_back(std::stod(words[i]));
     }
 
     // Read rs, ns, hs
@@ -120,7 +134,7 @@ void buildCorePotential(const GoedeckerPseudopotential& pseudopotential) {
     std::cout << "Charge: " << pseudopotential.zion << std::endl;
 
     std::cout << "Core Potential:\n";
-    std::cout << "rloc: " << pseudopotential.rloc << ", nloc: " << pseudopotential.nloc[0] << ", c: " << pseudopotential.c[0] << std::endl;
+    std::cout << "rloc: " << pseudopotential.rloc << ", nloc: " << pseudopotential.nloc << ", c: " << pseudopotential.c[0] << std::endl;
 }
 
 void performCalculation(const GoedeckerPseudopotential& pseudopotential) {
