@@ -116,7 +116,7 @@ namespace scf {
 bool guess_orbitals(const json &input, Molecule &mol);
 bool guess_energy(const json &input, Molecule &mol, FockBuilder &F);
 void write_orbitals(const json &input, Molecule &mol);
-void calc_properties(const json &input, Molecule &mol);
+void calc_properties(const json &input, Molecule &mol, const json &json_fock);
 void plot_quantities(const json &input, Molecule &mol);
 } // namespace scf
 
@@ -310,7 +310,7 @@ json driver::scf::run(const json &json_scf, Molecule &mol) {
 
     if (json_out["success"]) {
         if (json_scf.contains("write_orbitals")) scf::write_orbitals(json_scf["write_orbitals"], mol);
-        if (json_scf.contains("properties")) scf::calc_properties(json_scf["properties"], mol);
+        if (json_scf.contains("properties")) scf::calc_properties(json_scf["properties"], mol, json_fock);
         if (json_scf.contains("plots")) scf::plot_quantities(json_scf["plots"], mol);
     }
 
@@ -462,7 +462,7 @@ void driver::scf::write_orbitals(const json &json_orbs, Molecule &mol) {
  * input section, and will compute all properties which are present in this input.
  * This includes the diamagnetic contributions to the magnetic response properties.
  */
-void driver::scf::calc_properties(const json &json_prop, Molecule &mol) {
+void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const json &json_fock) {
     Timer t_tot, t_lap;
     auto plevel = Printer::getPrintLevel();
     if (plevel == 1) mrcpp::print::header(1, "Computing ground state properties");
@@ -539,7 +539,7 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol) {
                 h.clear();
             }
 
-            surface_force::surface_forces(mol, Phi, prec);
+            surface_force::surface_forces(mol, Phi, prec, json_fock);
 
 
         }
@@ -743,7 +743,7 @@ json driver::rsp::run(const json &json_rsp, Molecule &mol) {
     F_0.setup(unpert_prec);
     if (plevel == 1) mrcpp::print::footer(1, t_unpert, 2);
 
-    if (json_rsp.contains("properties")) scf::calc_properties(json_rsp["properties"], mol);
+    if (json_rsp.contains("properties")) scf::calc_properties(json_rsp["properties"], mol, unpert_fock);
 
     ///////////////////////////////////////////////////////////
     //////////////   Preparing Perturbed System   /////////////

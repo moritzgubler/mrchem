@@ -19,10 +19,17 @@
 #include <fstream>
 #include <unsupported/Eigen/CXX11/Tensor>
 
+#include "mrdft/Factory.h"
+#include "mrdft/MRDFT.h"
+#include "qmoperators/two_electron/XCOperator.h"
+#include "mrdft/Functional.h"
+
 extern mrcpp::MultiResolutionAnalysis<3> *mrchem::MRA;
 
 using namespace Eigen;
 using namespace mrchem;
+using nlohmann::json;
+
 namespace surface_force {
 
 void plotRandomStuff(const mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec){
@@ -169,6 +176,70 @@ Eigen::Tensor<double, 3> maxwellStress(const Molecule &mol, mrcpp::ComplexFuncti
     return stress;
 }
 
+std::vector<Matrix3d> xcStress(const Molecule &mol, const Density &rho, const MatrixXd &gridPos, const json &json_fock, double prec){
+    int nGrid = gridPos.rows();
+
+    int order = 0;
+
+
+    std::vector<Matrix3d> stress(nGrid);
+
+    Eigen::MatrixXd rhoGrid(nGrid, 1);
+    std::array<double, 3> pos;
+    for (int i = 0; i < nGrid; i++)
+    {
+        pos[0] = gridPos(i, 0);
+        pos[1] = gridPos(i, 1);
+        pos[2] = gridPos(i, 2);
+        rhoGrid(i, 0) = rho.real().evalf(pos);
+
+    }
+    std::cerr << "rhoGrid" << std::endl;
+    
+    bool shared_memory = json_fock["xc_operator"]["shared_memory"];
+    auto json_xcfunc = json_fock["xc_operator"]["xc_functional"];
+    auto xc_spin = json_xcfunc["spin"];
+    auto xc_cutoff = json_xcfunc["cutoff"];
+    auto xc_funcs = json_xcfunc["functionals"];
+    auto xc_order = order + 1;
+
+    auto Phi_p = mol.getOrbitals_p();
+
+    mrdft::Factory xc_factory(*MRA);
+    xc_factory.setSpin(xc_spin);
+    xc_factory.setOrder(xc_order);
+    xc_factory.setDensityCutoff(xc_cutoff);
+    for (const auto &f : xc_funcs) {
+        auto name = f["name"];
+        auto coef = f["coef"];
+        xc_factory.setFunctional(name, coef);
+    }
+
+    std::unique_ptr<mrdft::MRDFT> mrdft_p = xc_factory.build();
+    auto XC_p = std::make_shared<XCOperator>(mrdft_p, Phi_p, shared_memory);
+
+    XC_p->potential->setup(prec);
+    VectorXd xcGrid(nGrid);
+    VectorXd vxcGrid(nGrid);
+    // open file:
+    std::ofstream outfile("toto_xc");
+    for (int i = 0; i < nGrid; i++){
+        pos[0] = gridPos(i, 0);
+        pos[1] = gridPos(i, 1);
+        pos[2] = gridPos(i, 2);
+        xcGrid(i) = std::get<1>(XC_p->potential->xc_vec[0])->evalf(pos);
+        vxcGrid(i) = std::get<1>(XC_p->potential->xc_vec[1])->evalf(pos);
+        std::cerr << pos[2] << " " << rhoGrid(i) << " " << xcGrid(i) << " " << vxcGrid(i) << std::endl;
+        outfile << pos[2] << " " << rhoGrid(i) << " " << xcGrid(i) << " " << vxcGrid(i) << std::endl;
+    }
+    outfile.close();
+
+    
+    XC_p->potential->clear();
+
+    return stress;
+}
+
 
 void testMaxwell(const mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec) {
     auto poisson_op = mrcpp::PoissonOperator(*mrchem::MRA, prec);
@@ -207,10 +278,23 @@ void testMaxwell(const mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double
 }
 
 // Function definition
-std::vector<double> surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec) {
+std::vector<double> surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const json &json_fock) {
     std::cerr << "Surface force calculation" << std::endl;
+    mrchem::Density rho(false);
+    mrchem::density::compute(prec, rho, Phi, DensityType::Total);
     // plotRandomStuff(mol, Phi, prec);
-    testMaxwell(mol, Phi, prec);
+    // testMaxwell(mol, Phi, prec);
+    int n = 60;
+    MatrixXd gridPos(n, 3);
+        double zmin = -.6;
+    double zmax = .6;
+    for (int i = 0; i < n; i++) {
+        double z = zmin + i * (zmax - zmin) / (n);
+        gridPos(i, 0) = 0.2;
+        gridPos(i, 1) = 0.2;
+        gridPos(i, 2) = z;
+    }
+    xcStress(mol, rho, gridPos, json_fock, prec);
     std::vector<double> forceValues = {0.0, 0.0, 0.0};
     return forceValues;
 }
