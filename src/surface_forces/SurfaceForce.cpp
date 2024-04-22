@@ -143,7 +143,7 @@ MatrixXd electronicEfield(mrcpp::ComplexFunction &pot, NablaOperator &nabla, con
     return Efield;
 }
 
-Eigen::Tensor<double, 3> maxwellStress(const Molecule &mol, mrcpp::ComplexFunction &pot, NablaOperator &nabla, const MatrixXd &gridPos){
+std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrcpp::ComplexFunction &pot, NablaOperator &nabla, const MatrixXd &gridPos){
     int nGrid = gridPos.rows();
     int nNuc = mol.getNNuclei();
 
@@ -160,19 +160,19 @@ Eigen::Tensor<double, 3> maxwellStress(const Molecule &mol, mrcpp::ComplexFuncti
 
     MatrixXd Efield = electronicEfield(pot, nabla, gridPos) + nuclearEfield(nucPos, nucCharge, gridPos);
 
-    Eigen::Tensor<double, 3> stress(nGrid, 3, 3);
+    std::vector<Eigen::Matrix3d> stress(nGrid);
     for (int i = 0; i < nGrid; i++) {
         for (int i1 = 0; i1 < 3; i1++) {
             for (int i2 = 0; i2 < 3; i2++) {
-                stress(i, i1, i2) = Efield(i, i1) * Efield(i, i2);
+                stress[i](i1, i2) = Efield(i, i1) * Efield(i, i2);
             }
         }
         for (int i1 = 0; i1 < 3; i1++){
-            stress(i, i1, i1) = stress(i, i1, i1) - 0.5 * (Efield(i, 0) * Efield(i, 0) + Efield(i, 1) * Efield(i, 1) + Efield(i, 2) * Efield(i, 2));
+            stress[i](i1, i1) = stress[i](i1, i1) - 0.5 * (Efield(i, 0) * Efield(i, 0) + Efield(i, 1) * Efield(i, 1) + Efield(i, 2) * Efield(i, 2));
         }
         for (int i1 = 0; i1 < 3; i1++){
             for (int i2 = 0; i2 < 3; i2++){
-                stress(i, i1, i2) *= 1.0 / (4 * M_PI);
+                stress[i](i1, i2) *= 1.0 / (4 * M_PI);
             }
         }
     }
@@ -278,7 +278,7 @@ void kineticStress(const mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, doub
             stress[i](1, 0) = stress[i](0, 1);
             stress[i](2, 0) = stress[i](0, 2);
             stress[i](2, 1) = stress[i](1, 2);
-            outfile << pos[2] << " " << orbVal << " " << stress[i](0, 0) << " " << stress[i](1, 1) << " " << stress[i](2, 2) << " " << stress[i](0, 1) << " " << stress[i](0, 2) << " " << stress[i](1, 2) << std::endl;
+            outfile << pos[2] << " " << stress[i](0, 0) << " " << stress[i](1, 1) << " " << stress[i](2, 2) << " " << stress[i](0, 1) << " " << stress[i](0, 2) << " " << stress[i](1, 2) << std::endl;
         }
     }
 
@@ -307,13 +307,13 @@ void testMaxwell(const mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double
         gridPos(i, 1) = 0.2;
         gridPos(i, 2) = z;
     }
-    Tensor<double, 3> stress = maxwellStress(mol, pot, nabla, gridPos);
+    std::vector<Eigen::Matrix3d> stress = maxwellStress(mol, pot, nabla, gridPos);
 
     std::ofstream outfile("toto_stress");
     for (int i = 0; i < n; i++)
     {
-        outfile << gridPos(i, 2) << " " << stress(i, 0, 0) << " " << stress(i, 1, 1) << " " << stress(i, 2, 2) << " " << stress(i, 0, 1) << " " << stress(i, 0, 2) << " " << stress(i, 1, 2) << std::endl;
-        std::cerr << gridPos(i, 2) << " " << stress(i, 0, 0) << " " << stress(i, 1, 1) << " " << stress(i, 2, 2) << " " << stress(i, 0, 1) << " " << stress(i, 0, 2) << " " << stress(i, 1, 2) << std::endl;
+        outfile << gridPos(i, 2) << " " << stress[i](0, 0) << " " << stress[i](1, 1) << " " << stress[i](2, 2) << " " << stress[i](0, 1) << " " << stress[i](0, 2) << " " << stress[i](1, 2) << std::endl;
+        // std::cerr << gridPos(i, 2) << " " << stress(i, 0, 0) << " " << stress(i, 1, 1) << " " << stress(i, 2, 2) << " " << stress(i, 0, 1) << " " << stress(i, 0, 2) << " " << stress(i, 1, 2) << std::endl;
     
     }
     outfile.close();
