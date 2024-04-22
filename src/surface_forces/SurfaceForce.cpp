@@ -27,6 +27,9 @@
 #include "qmoperators/one_electron/HessianOperator.h"
 #include "tensor/RankOneOperator.h"
 
+#include "surface_forces/lebvedev.h"
+#include <string>
+
 extern mrcpp::MultiResolutionAnalysis<3> *mrchem::MRA;
 
 using namespace Eigen;
@@ -197,8 +200,8 @@ std::vector<Matrix3d> xcStress(const Molecule &mol, const Density &rho, const Ma
         rhoGrid(i, 0) = rho.real().evalf(pos);
 
     }
-    std::cerr << "rhoGrid" << std::endl;
-    
+    // std::cerr << "rhoGrid" << std::endl;
+
     bool shared_memory = json_fock["xc_operator"]["shared_memory"];
     auto json_xcfunc = json_fock["xc_operator"]["xc_functional"];
     auto xc_spin = json_xcfunc["spin"];
@@ -225,25 +228,34 @@ std::vector<Matrix3d> xcStress(const Molecule &mol, const Density &rho, const Ma
     VectorXd xcGrid(nGrid);
     VectorXd vxcGrid(nGrid);
     // open file:
-    std::ofstream outfile("toto_xc");
+    // std::ofstream outfile("toto_xc");
     for (int i = 0; i < nGrid; i++){
         pos[0] = gridPos(i, 0);
         pos[1] = gridPos(i, 1);
         pos[2] = gridPos(i, 2);
         xcGrid(i) = std::get<1>(XC_p->potential->xc_vec[0])->evalf(pos);
         vxcGrid(i) = std::get<1>(XC_p->potential->xc_vec[1])->evalf(pos);
-        std::cerr << pos[2] << " " << rhoGrid(i) << " " << xcGrid(i) << " " << vxcGrid(i) << std::endl;
-        outfile << pos[2] << " " << rhoGrid(i) << " " << xcGrid(i) << " " << vxcGrid(i) << std::endl;
+        // std::cerr << pos[2] << " " << rhoGrid(i) << " " << xcGrid(i) << " " << vxcGrid(i) << std::endl;
+        // outfile << pos[2] << " " << rhoGrid(i) << " " << xcGrid(i) << " " << vxcGrid(i) << std::endl;
+        for (int i1 = 0; i1 < 3; i1++) {
+            for (int i2 = 0; i2 < 3; i2++) {
+                stress[i](i1, i2) = 0.0;
+            }
+        }
+        for (int i1 = 0; i1 < 3; i1++)
+        {
+            stress[i](i1, i1) = xcGrid(i) - vxcGrid(i) * rhoGrid(i);
+        }
+        
     }
-    outfile.close();
-
+    // outfile.close();
     
     XC_p->potential->clear();
 
     return stress;
 }
 
-void kineticStress(const mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const MatrixXd &gridPos){
+std::vector<Matrix3d> kineticStress(const mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const MatrixXd &gridPos){
 
     int nGrid = gridPos.rows();
     int nOrbs = Phi.size();
@@ -261,7 +273,7 @@ void kineticStress(const mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, doub
     std::vector<Matrix3d> stress(nGrid);
     std::array<double, 3> pos;
     // open output file
-    std::ofstream outfile("toto_kin");
+    // std::ofstream outfile("toto_kin");
     for (int i = 0; i < nGrid; i++) {
         stress[i] = Matrix3d::Zero();
         pos[0] = gridPos(i, 0);
@@ -278,10 +290,10 @@ void kineticStress(const mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, doub
             stress[i](1, 0) = stress[i](0, 1);
             stress[i](2, 0) = stress[i](0, 2);
             stress[i](2, 1) = stress[i](1, 2);
-            outfile << pos[2] << " " << stress[i](0, 0) << " " << stress[i](1, 1) << " " << stress[i](2, 2) << " " << stress[i](0, 1) << " " << stress[i](0, 2) << " " << stress[i](1, 2) << std::endl;
+            // outfile << pos[2] << " " << stress[i](0, 0) << " " << stress[i](1, 1) << " " << stress[i](2, 2) << " " << stress[i](0, 1) << " " << stress[i](0, 2) << " " << stress[i](1, 2) << std::endl;
         }
     }
-
+    return stress;
 }
 
 void testMaxwell(const mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec) {
@@ -328,17 +340,44 @@ std::vector<double> surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector 
     // plotRandomStuff(mol, Phi, prec);
     // testMaxwell(mol, Phi, prec);
     int n = 60;
-    MatrixXd gridPos(n, 3);
-        double zmin = -.6;
-    double zmax = .6;
-    for (int i = 0; i < n; i++) {
-        double z = zmin + i * (zmax - zmin) / (n);
-        gridPos(i, 0) = 0.2;
-        gridPos(i, 1) = 0.2;
-        gridPos(i, 2) = z;
+
+    auto poisson_op = mrcpp::PoissonOperator(*mrchem::MRA, prec);
+    int derivOrder = 1;
+    auto mrcd = std::make_shared<mrcpp::BSOperator<3>>(*mrchem::MRA, derivOrder);
+    mrchem::NablaOperator nabla(mrcd);
+    nabla.setup(prec);
+    double abs_prec = prec / mrchem::orbital::get_electron_number(Phi);
+    mrcpp::ComplexFunction pot = calcPotential(rho, poisson_op, abs_prec);
+
+    Vector3d center(0.0, 0.0, -0.5);
+    std::string filename = "/Users/moritzgubler/Documents/py_play/lebvedev.txt";
+    double radius = 0.01;
+    LebedevIntegrator integrator(filename, radius, center);
+    MatrixXd gridPos = integrator.getPoints();
+    VectorXd weights = integrator.getWeights();
+    MatrixXd normals = integrator.getNormals();
+
+    // MatrixXd gridPos(n, 3);
+    //     double zmin = -.6;
+    // double zmax = .6;
+    // for (int i = 0; i < n; i++) {
+    //     double z = zmin + i * (zmax - zmin) / (n);
+    //     gridPos(i, 0) = 0.2;
+    //     gridPos(i, 1) = 0.2;
+    //     gridPos(i, 2) = z;
+    // }
+    std::vector<Matrix3d> xStres = xcStress(mol, rho, gridPos, json_fock, prec);
+    std::vector<Matrix3d> kstress = kineticStress(mol, Phi, prec, gridPos);
+    std::vector<Matrix3d> mstress = maxwellStress(mol, pot, nabla, gridPos);
+    std::vector<Matrix3d> stress(integrator.n);
+
+    Vector3d f = Vector3d::Zero();
+    for (int i = 0; i < integrator.n; i++){
+        stress[i] = xStres[i] + kstress[i] + mstress[i];
+        f += stress[i] * normals.row(i).transpose() * weights(i);
     }
-    xcStress(mol, rho, gridPos, json_fock, prec);
-    kineticStress(mol, Phi, prec, gridPos);
+    std::cerr << "Force " << f << std::endl;
+    
     std::vector<double> forceValues = {0.0, 0.0, 0.0};
     return forceValues;
 }

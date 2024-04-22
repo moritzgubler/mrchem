@@ -3,6 +3,7 @@
  * @brief Implementation of the LebedevIntegrator class for surface integration calculations.
  */
 
+#include "lebvedev.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -10,16 +11,6 @@
 #include <cmath>
 #include <Eigen/Dense>
 
-/**
- * @class LebedevIntegrator
- * @brief Class for integrating over a Lebedev grid on a sphere surface.
- */
-class LebedevIntegrator {
-public:
-    Eigen::MatrixXd points; /**< Matrix storing the Cartesian coordinates of the Lebedev grid points. */
-    Eigen::VectorXd weights; /**< Vector storing the weights associated with each Lebedev grid point. */
-    Eigen::MatrixXd normals; /**< Matrix storing the normal vectors (to the integration sphere) at each Lebedev grid point. */
-    int n; /**< Number of Lebedev grid points. */
 
     /**
      * @brief Constructor for the LebedevIntegrator class.
@@ -27,7 +18,7 @@ public:
      * @param radius The radius of the sphere.
      * @param center Center of the sphere.
      */
-    LebedevIntegrator(const std::string& filename, double radius, const Eigen::Vector3d& center) {
+    LebedevIntegrator::LebedevIntegrator(const std::string& filename, double radius, const Eigen::Vector3d& center) {
         readLebedevFile(filename);
         calculateCartesianPoints(radius, center);
     }
@@ -36,27 +27,26 @@ public:
      * @brief Get the Cartesian coordinates of the Lebedev grid points.
      * @return A matrix containing the Cartesian coordinates of the Lebedev grid points.
      */
-    Eigen::MatrixXd getPoints() const { return points; }
+    Eigen::MatrixXd LebedevIntegrator::getPoints() const { return points; }
 
     /**
      * @brief Get the weights associated with each Lebedev grid point.
      * @return A vector containing the weights associated with each Lebedev grid point.
      */
-    Eigen::VectorXd getWeights() const { return weights; }
+    Eigen::VectorXd LebedevIntegrator::getWeights() const { return weights; }
 
     /**
      * @brief Get the normal vectors at each Lebedev grid point.
      * @return A matrix containing the normal vectors at each Lebedev grid point.
      */
-    Eigen::MatrixXd getNormals() const { return normals; }
+    Eigen::MatrixXd LebedevIntegrator::getNormals() const { return normals; }
 
-private:
     /**
      * @brief Read the Lebedev grid data from a file.
      * @param filename The name of the file containing the Lebedev grid data.
      * @throw std::runtime_error if the file cannot be opened.
      */
-    void readLebedevFile(const std::string& filename) {
+    void LebedevIntegrator::readLebedevFile(const std::string& filename) {
         std::ifstream file(filename);
         if (!file.is_open()) {
             throw std::runtime_error("Could not open the file.");
@@ -90,13 +80,13 @@ private:
      * @param radius The radius of the sphere.
      * @param center Center of the sphere.
      */
-    void calculateCartesianPoints(double radius, Eigen::Vector3d center) {
+    void LebedevIntegrator::calculateCartesianPoints(double radius, const Eigen::Vector3d &center) {
         for (int i = 0; i < n; ++i) {
             points.row(i) = radius * normals.row(i) + center.transpose();
         }
         weights *= 4.0 * M_PI * radius * radius;
     }
-};
+
 
 /*
 This can be used for testing the LebedevIntegrator class.
