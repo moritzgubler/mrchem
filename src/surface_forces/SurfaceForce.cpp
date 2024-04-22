@@ -1,4 +1,4 @@
-#include "SurfaceForce.h"
+#include "surface_forces/SurfaceForce.h"
 
 #include <MRCPP/MWOperators>
 #include <MRCPP/Printer>
@@ -23,6 +23,9 @@
 #include "mrdft/MRDFT.h"
 #include "qmoperators/two_electron/XCOperator.h"
 #include "mrdft/Functional.h"
+
+#include "qmoperators/one_electron/HessianOperator.h"
+#include "tensor/RankOneOperator.h"
 
 extern mrcpp::MultiResolutionAnalysis<3> *mrchem::MRA;
 
@@ -240,6 +243,46 @@ std::vector<Matrix3d> xcStress(const Molecule &mol, const Density &rho, const Ma
     return stress;
 }
 
+void kineticStress(const mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const MatrixXd &gridPos){
+
+    int nGrid = gridPos.rows();
+    int nOrbs = Phi.size();
+
+    int derivOrder1 = 1;
+    auto D1 = std::make_shared<mrcpp::BSOperator<3>>(*mrchem::MRA, derivOrder1);
+    int derivOrder2 = 2;
+    auto D2 = std::make_shared<mrcpp::BSOperator<3>>(*mrchem::MRA, derivOrder2);
+    mrchem::HessianOperator hess(D1, D2, prec);
+    hess.setup(prec);
+    mrcpp::ComplexFunction orb = Phi[0];
+    auto hessPhi = hess(orb);
+
+    double orbVal;
+    std::vector<Matrix3d> stress(nGrid);
+    std::array<double, 3> pos;
+    // open output file
+    std::ofstream outfile("toto_kin");
+    for (int i = 0; i < nGrid; i++) {
+        stress[i] = Matrix3d::Zero();
+        pos[0] = gridPos(i, 0);
+        pos[1] = gridPos(i, 1);
+        pos[2] = gridPos(i, 2);
+        for (int j = 0; j < nOrbs; j++) {
+            orbVal = Phi[j].real().evalf(pos);
+            stress[i](0, 0) = orbVal * hessPhi[0].real().evalf(pos);
+            stress[i](1, 1) = orbVal * hessPhi[1].real().evalf(pos);
+            stress[i](2, 2) = orbVal * hessPhi[2].real().evalf(pos);
+            stress[i](0, 1) = orbVal * hessPhi[3].real().evalf(pos);
+            stress[i](0, 2) = orbVal * hessPhi[4].real().evalf(pos);
+            stress[i](1, 2) = orbVal * hessPhi[5].real().evalf(pos);
+            stress[i](1, 0) = stress[i](0, 1);
+            stress[i](2, 0) = stress[i](0, 2);
+            stress[i](2, 1) = stress[i](1, 2);
+            outfile << pos[2] << " " << orbVal << " " << stress[i](0, 0) << " " << stress[i](1, 1) << " " << stress[i](2, 2) << " " << stress[i](0, 1) << " " << stress[i](0, 2) << " " << stress[i](1, 2) << std::endl;
+        }
+    }
+
+}
 
 void testMaxwell(const mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec) {
     auto poisson_op = mrcpp::PoissonOperator(*mrchem::MRA, prec);
@@ -295,6 +338,7 @@ std::vector<double> surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector 
         gridPos(i, 2) = z;
     }
     xcStress(mol, rho, gridPos, json_fock, prec);
+    kineticStress(mol, Phi, prec, gridPos);
     std::vector<double> forceValues = {0.0, 0.0, 0.0};
     return forceValues;
 }
