@@ -5,11 +5,12 @@
 #include "qmfunctions/Orbital.h"
 #include "chemistry/Molecule.h"
 #include <nlohmann/json.hpp>
+#include <Eigen/Dense>
 
 namespace surface_force {
 
 // Function declaration
-std::vector<double> surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const json &json_fock);
+Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const json &json_fock);
 
 } // namespace surface_force
 

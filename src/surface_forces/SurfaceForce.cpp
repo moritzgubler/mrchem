@@ -340,14 +340,13 @@ void testMaxwell(const mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double
 }
 
 // Function definition
-std::vector<double> surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const json &json_fock) {
-    std::cerr << "Surface force calculation" << std::endl;
+Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const json &json_fock) {
+
+    // setup density
     mrchem::Density rho(false);
     mrchem::density::compute(prec, rho, Phi, DensityType::Total);
-    // plotRandomStuff(mol, Phi, prec);
-    // testMaxwell(mol, Phi, prec);
-    int n = 60;
 
+    // setup operators and potentials
     auto poisson_op = mrcpp::PoissonOperator(*mrchem::MRA, prec);
     int derivOrder = 1;
     auto mrcd = std::make_shared<mrcpp::BSOperator<3>>(*mrchem::MRA, derivOrder);
@@ -356,37 +355,34 @@ std::vector<double> surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector 
     double abs_prec = prec / mrchem::orbital::get_electron_number(Phi);
     mrcpp::ComplexFunction pot = calcPotential(rho, poisson_op, abs_prec);
 
-    Vector3d center(0.0, 0.0, -0.5);
+    int numAtoms = mol.getNNuclei();
+    int numOrbitals = Phi.size();
+
+    Eigen::MatrixXd forces = Eigen::MatrixXd::Zero(numAtoms, 3);
+    Vector3d center;
+    std::array<double, 3> coord;
     std::string filename = "/Users/moritzgubler/Documents/py_play/lebvedev.txt";
-    double radius = 0.01;
-    LebedevIntegrator integrator(filename, radius, center);
-    MatrixXd gridPos = integrator.getPoints();
-    VectorXd weights = integrator.getWeights();
-    MatrixXd normals = integrator.getNormals();
 
-    // MatrixXd gridPos(n, 3);
-    //     double zmin = -.6;
-    // double zmax = .6;
-    // for (int i = 0; i < n; i++) {
-    //     double z = zmin + i * (zmax - zmin) / (n);
-    //     gridPos(i, 0) = 0.2;
-    //     gridPos(i, 1) = 0.2;
-    //     gridPos(i, 2) = z;
-    // }
-    std::vector<Matrix3d> xStres = xcStress(mol, rho, gridPos, json_fock, prec);
-    std::vector<Matrix3d> kstress = kineticStress(mol, Phi, prec, gridPos);
-    std::vector<Matrix3d> mstress = maxwellStress(mol, pot, nabla, gridPos);
-    std::vector<Matrix3d> stress(integrator.n);
-
-    Vector3d f = Vector3d::Zero();
-    for (int i = 0; i < integrator.n; i++){
-        stress[i] = xStres[i] + kstress[i] + mstress[i];
-        f += stress[i] * normals.row(i).transpose() * weights(i);
+    double radius = 0.3;
+    for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
+        coord = mol.getNuclei()[iAtom].getCoord();
+        center << coord[0], coord[1], coord[2];
+        LebedevIntegrator integrator(filename, radius, center);
+        MatrixXd gridPos = integrator.getPoints();
+        VectorXd weights = integrator.getWeights();
+        MatrixXd normals = integrator.getNormals();
+        std::vector<Matrix3d> xStres = xcStress(mol, rho, gridPos, json_fock, prec);
+        std::vector<Matrix3d> kstress = kineticStress(mol, Phi, prec, gridPos);
+        std::vector<Matrix3d> mstress = maxwellStress(mol, pot, nabla, gridPos);
+        std::vector<Matrix3d> stress(integrator.n);
+        for (int i = 0; i < integrator.n; i++){
+            stress[i] = xStres[i] + kstress[i] + mstress[i];
+            forces.row(iAtom) -= stress[i] * normals.row(i).transpose() * weights(i);
+        }
+        std::cerr << "forces " << forces(iAtom, 0) << " " << forces(iAtom, 1) << " " << forces(iAtom, 2) << std::endl;
     }
-    std::cerr << "Force " << f << std::endl;
     
-    std::vector<double> forceValues = {0.0, 0.0, 0.0};
-    return forceValues;
+    return forces;
 }
 
 
