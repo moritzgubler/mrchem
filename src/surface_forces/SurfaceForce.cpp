@@ -266,12 +266,16 @@ std::vector<Matrix3d> kineticStress(const mrchem::Molecule &mol, mrchem::Orbital
     auto D2 = std::make_shared<mrcpp::BSOperator<3>>(*mrchem::MRA, derivOrder2);
     mrchem::HessianOperator hess(D1, D2, prec);
     hess.setup(prec);
+    mrchem::NablaOperator nabla(D1);
+    nabla.setup(prec);
     mrcpp::ComplexFunction orb = Phi[0];
     auto hessPhi = hess(orb);
+    auto nablaPhi = nabla(orb);
 
     double orbVal;
     std::vector<Matrix3d> stress(nGrid);
     std::array<double, 3> pos;
+    double n1, n2, n3;
     // open output file
     // std::ofstream outfile("toto_kin");
     for (int i = 0; i < nGrid; i++) {
@@ -281,12 +285,15 @@ std::vector<Matrix3d> kineticStress(const mrchem::Molecule &mol, mrchem::Orbital
         pos[2] = gridPos(i, 2);
         for (int j = 0; j < nOrbs; j++) {
             orbVal = Phi[j].real().evalf(pos);
-            stress[i](0, 0) = orbVal * hessPhi[0].real().evalf(pos);
-            stress[i](1, 1) = orbVal * hessPhi[1].real().evalf(pos);
-            stress[i](2, 2) = orbVal * hessPhi[2].real().evalf(pos);
-            stress[i](0, 1) = orbVal * hessPhi[3].real().evalf(pos);
-            stress[i](0, 2) = orbVal * hessPhi[4].real().evalf(pos);
-            stress[i](1, 2) = orbVal * hessPhi[5].real().evalf(pos);
+            n1 = nablaPhi[0].real().evalf(pos);
+            n2 = nablaPhi[1].real().evalf(pos);
+            n3 = nablaPhi[2].real().evalf(pos);
+            stress[i](0, 0) = orbVal * hessPhi[0].real().evalf(pos) - n1 * n1;
+            stress[i](1, 1) = orbVal * hessPhi[1].real().evalf(pos) - n2 * n2;
+            stress[i](2, 2) = orbVal * hessPhi[2].real().evalf(pos) - n3 * n3;
+            stress[i](0, 1) = orbVal * hessPhi[3].real().evalf(pos) - n1 * n2;
+            stress[i](0, 2) = orbVal * hessPhi[4].real().evalf(pos) - n1 * n3;
+            stress[i](1, 2) = orbVal * hessPhi[5].real().evalf(pos) - n2 * n3;
             stress[i](1, 0) = stress[i](0, 1);
             stress[i](2, 0) = stress[i](0, 2);
             stress[i](2, 1) = stress[i](1, 2);
