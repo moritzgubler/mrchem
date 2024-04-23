@@ -85,6 +85,8 @@
 #include "environment/Permittivity.h"
 #include "surface_forces/SurfaceForce.h"
 
+#include <fstream>
+
 #include "mrdft/Factory.h"
 
 using mrcpp::ABGVOperator;
@@ -539,8 +541,26 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
                 h.clear();
             }
 
-            Eigen::MatrixXd forces = surface_force::surface_forces(mol, Phi, prec, json_fock);
-
+            Eigen::MatrixXd surfaceForces = surface_force::surface_forces(mol, Phi, prec, json_fock);
+            Eigen::MatrixXd classicForces = G.getTensor();
+            // open file "mrtemp" for writing
+            std::ofstream file("mrtemp_classicForces.txt");
+            for (int i = 0; i < classicForces.rows(); i++) {
+                for (int j = 0; j < classicForces.cols(); j++) {
+                    file << classicForces(i, j) << " ";
+                }
+                file << std::endl;
+            }
+            file.close();
+            // open file "mrtemp" for writing
+            std::ofstream file2("mrtemp_surfaceForces.txt");
+            for (int i = 0; i < surfaceForces.rows(); i++) {
+                for (int j = 0; j < surfaceForces.cols(); j++) {
+                    file2 << surfaceForces(i, j) << " ";
+                }
+                file2 << std::endl;
+            }
+            file2.close();
 
         }
         mrcpp::print::footer(2, t_lap, 2);
