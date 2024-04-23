@@ -268,78 +268,54 @@ std::vector<Matrix3d> kineticStress(const mrchem::Molecule &mol, mrchem::Orbital
     hess.setup(prec);
     mrchem::NablaOperator nabla(D1);
     nabla.setup(prec);
-    mrcpp::ComplexFunction orb = Phi[0];
-    auto hessPhi = hess(orb);
-    auto nablaPhi = nabla(orb);
 
     double orbVal;
     std::vector<Matrix3d> stress(nGrid);
-    std::array<double, 3> pos;
-    double n1, n2, n3;
-    // open output file
-    // std::ofstream outfile("toto_kin");
     for (int i = 0; i < nGrid; i++) {
         stress[i] = Matrix3d::Zero();
-        pos[0] = gridPos(i, 0);
-        pos[1] = gridPos(i, 1);
-        pos[2] = gridPos(i, 2);
-        for (int j = 0; j < nOrbs; j++) {
-            orbVal = Phi[j].real().evalf(pos);
+    }
+    std::array<double, 3> pos;
+    double n1, n2, n3;
+    for (int iOrb = 0; iOrb < Phi.size(); iOrb++) {
+    
+        mrcpp::ComplexFunction orb = Phi[iOrb];
+        auto hessPhi = hess(orb);
+        auto nablaPhi = nabla(orb);
+
+        for (int i = 0; i < nGrid; i++) {
+            pos[0] = gridPos(i, 0);
+            pos[1] = gridPos(i, 1);
+            pos[2] = gridPos(i, 2);
+            orbVal = Phi[iOrb].real().evalf(pos);
             n1 = nablaPhi[0].real().evalf(pos);
             n2 = nablaPhi[1].real().evalf(pos);
             n3 = nablaPhi[2].real().evalf(pos);
-            stress[i](0, 0) = orbVal * hessPhi[0].real().evalf(pos) - n1 * n1;
-            stress[i](1, 1) = orbVal * hessPhi[1].real().evalf(pos) - n2 * n2;
-            stress[i](2, 2) = orbVal * hessPhi[2].real().evalf(pos) - n3 * n3;
-            stress[i](0, 1) = orbVal * hessPhi[3].real().evalf(pos) - n1 * n2;
-            stress[i](0, 2) = orbVal * hessPhi[4].real().evalf(pos) - n1 * n3;
-            stress[i](1, 2) = orbVal * hessPhi[5].real().evalf(pos) - n2 * n3;
+            stress[i](0, 0) += orbVal * hessPhi[0].real().evalf(pos) - n1 * n1;
+            stress[i](1, 1) += orbVal * hessPhi[1].real().evalf(pos) - n2 * n2;
+            stress[i](2, 2) += orbVal * hessPhi[2].real().evalf(pos) - n3 * n3;
+            stress[i](0, 1) += orbVal * hessPhi[3].real().evalf(pos) - n1 * n2;
+            stress[i](0, 2) += orbVal * hessPhi[4].real().evalf(pos) - n1 * n3;
+            stress[i](1, 2) += orbVal * hessPhi[5].real().evalf(pos) - n2 * n3;
             stress[i](1, 0) = stress[i](0, 1);
             stress[i](2, 0) = stress[i](0, 2);
             stress[i](2, 1) = stress[i](1, 2);
-            // outfile << pos[2] << " " << stress[i](0, 0) << " " << stress[i](1, 1) << " " << stress[i](2, 2) << " " << stress[i](0, 1) << " " << stress[i](0, 2) << " " << stress[i](1, 2) << std::endl;
         }
     }
+    nabla.clear();
+    hess.clear();
     return stress;
 }
 
-void testMaxwell(const mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec) {
-    auto poisson_op = mrcpp::PoissonOperator(*mrchem::MRA, prec);
-    int derivOrder = 1;
-    auto mrcd = std::make_shared<mrcpp::BSOperator<3>>(*mrchem::MRA, derivOrder);
-    mrchem::NablaOperator nabla(mrcd);
-    nabla.setup(prec);
-    mrchem::Density rho(false);
-    mrchem::density::compute(prec, rho, Phi, DensityType::Total);
-    double abs_prec = prec / mrchem::orbital::get_electron_number(Phi);
-    mrcpp::ComplexFunction pot = calcPotential(rho, poisson_op, abs_prec);
 
-
-
-    double zmin = -.6;
-    double zmax = .6;
-    int n = 60;
-    MatrixXd gridPos = MatrixXd::Zero(n , 3);
-    for (int i = 0; i < n; i++) {
-        double z = zmin + i * (zmax - zmin) / (n);
-        gridPos(i, 0) = 0.2;
-        gridPos(i, 1) = 0.2;
-        gridPos(i, 2) = z;
-    }
-    std::vector<Eigen::Matrix3d> stress = maxwellStress(mol, pot, nabla, gridPos);
-
-    std::ofstream outfile("toto_stress");
-    for (int i = 0; i < n; i++)
-    {
-        outfile << gridPos(i, 2) << " " << stress[i](0, 0) << " " << stress[i](1, 1) << " " << stress[i](2, 2) << " " << stress[i](0, 1) << " " << stress[i](0, 2) << " " << stress[i](1, 2) << std::endl;
-        // std::cerr << gridPos(i, 2) << " " << stress(i, 0, 0) << " " << stress(i, 1, 1) << " " << stress(i, 2, 2) << " " << stress(i, 0, 1) << " " << stress(i, 0, 2) << " " << stress(i, 1, 2) << std::endl;
-    
-    }
-    outfile.close();
-    
-}
-
-// Function definition
+/**
+ * Calculates the forces using surface integrals for a given molecule and orbital vector.
+ *
+ * @param mol The molecule for which to calculate the forces.
+ * @param Phi The orbital vector obtained from the SCF calculation.
+ * @param prec The precision value used in the calculation.
+ * @param json_fock The JSON object containing the Fock matrix settings.
+ * @return The matrix of forces, shape (nAtoms, 3).
+ */
 Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const json &json_fock) {
 
     // setup density
@@ -354,6 +330,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     nabla.setup(prec);
     double abs_prec = prec / mrchem::orbital::get_electron_number(Phi);
     mrcpp::ComplexFunction pot = calcPotential(rho, poisson_op, abs_prec);
+    nabla.clear();
 
     int numAtoms = mol.getNNuclei();
     int numOrbitals = Phi.size();
