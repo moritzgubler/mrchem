@@ -275,7 +275,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     std::filesystem::path parent_dir = p.parent_path();
     std::string filename = parent_dir.string() + "/lebvedev.txt";
 
-    double radius = 0.3;
+    double radius = 0.5;
     for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
         coord = mol.getNuclei()[iAtom].getCoord();
         center << coord[0], coord[1], coord[2];

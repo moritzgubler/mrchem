@@ -545,6 +545,7 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
             Eigen::MatrixXd classicForces = G.getTensor();
             // open file "mrtemp" for writing
             std::ofstream file("mrtemp_classicForces.txt");
+            file << std::fixed << std::setprecision(10);
             for (int i = 0; i < classicForces.rows(); i++) {
                 for (int j = 0; j < classicForces.cols(); j++) {
                     file << classicForces(i, j) << " ";
@@ -554,6 +555,7 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
             file.close();
             // open file "mrtemp" for writing
             std::ofstream file2("mrtemp_surfaceForces.txt");
+            file2 << std::fixed << std::setprecision(10);
             for (int i = 0; i < surfaceForces.rows(); i++) {
                 for (int j = 0; j < surfaceForces.cols(); j++) {
                     file2 << surfaceForces(i, j) << " ";
@@ -561,6 +563,21 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
                 file2 << std::endl;
             }
             file2.close();
+            // open file "mrenergy" for writing
+            std::ofstream file3("mrenergy.txt");
+            double energy = mol.getSCFEnergy().getTotalEnergy();
+            // write energy to file with 10 decimal places:
+            file3 << std::fixed << std::setprecision(10) << energy << std::endl;
+            
+            // file3 << mol.getSCFEnergy().getTotalEnergy() << std::endl;
+            file3.close();
+
+            for (int k = 0; k < mol.getNNuclei(); k++) {
+                // set row of nuclear gradient zero
+                nuc.row(k) = Eigen::RowVector3d::Zero();
+                // set row of electronic gradient to row of surface forces
+                el.row(k) = surfaceForces.row(k);
+            }
 
         }
         mrcpp::print::footer(2, t_lap, 2);
