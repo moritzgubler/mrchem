@@ -262,8 +262,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     nabla.setup(prec);
     double abs_prec = prec / mrchem::orbital::get_electron_number(Phi);
     mrcpp::ComplexFunction pot = calcPotential(rho, poisson_op, abs_prec);
-    nabla.clear();
-
+    
     int numAtoms = mol.getNNuclei();
     int numOrbitals = Phi.size();
 
@@ -293,7 +292,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         }
         std::cerr << "forces " << forces(iAtom, 0) << " " << forces(iAtom, 1) << " " << forces(iAtom, 2) << std::endl;
     }
-    
+    nabla.clear();
     return forces;
 }
 
