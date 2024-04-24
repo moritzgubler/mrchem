@@ -86,6 +86,7 @@
 #include "surface_forces/SurfaceForce.h"
 
 #include <fstream>
+#include <filesystem>
 
 #include "mrdft/Factory.h"
 
@@ -572,11 +573,15 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
             // file3 << mol.getSCFEnergy().getTotalEnergy() << std::endl;
             file3.close();
 
-            for (int k = 0; k < mol.getNNuclei(); k++) {
-                // set row of nuclear gradient zero
-                nuc.row(k) = Eigen::RowVector3d::Zero();
-                // set row of electronic gradient to row of surface forces
-                el.row(k) = surfaceForces.row(k);
+            // check if file "surforces" exists
+            bool exists = std::filesystem::exists("surforces");
+            if (exists) {
+                for (int k = 0; k < mol.getNNuclei(); k++) {
+                    // set row of nuclear gradient zero
+                    nuc.row(k) = Eigen::RowVector3d::Zero();
+                    // set row of electronic gradient to row of surface forces
+                    el.row(k) = surfaceForces.row(k);
+                }
             }
 
         }
