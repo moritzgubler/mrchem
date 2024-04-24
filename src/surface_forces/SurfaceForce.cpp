@@ -275,11 +275,11 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     std::string filename = parent_dir.string() + "/lebvedev.txt";
 
     double radius = 0.8;
-    VectorXd radii(3);
-    radii << 0.6, 0.7, 0.8;
+    VectorXd radii(8);
+    radii << .5, .55, 0.6, 65, 0.7, .75, 0.8, .85;
 
     // loop over radii:
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < radii.size(); i++) {
         radius = radii(i);
 
         for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
@@ -299,7 +299,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
             }
         }
     }
-    forces = forces / 3.0;
+    forces = forces / radii.size();
 
     for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
         std::cerr << "forces " << forces(iAtom, 0) << " " << forces(iAtom, 1) << " " << forces(iAtom, 2) << std::endl;
