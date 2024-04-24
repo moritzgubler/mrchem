@@ -274,24 +274,38 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     std::filesystem::path parent_dir = p.parent_path();
     std::string filename = parent_dir.string() + "/lebvedev.txt";
 
-    double radius = 0.5;
-    for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
-        coord = mol.getNuclei()[iAtom].getCoord();
-        center << coord[0], coord[1], coord[2];
-        LebedevIntegrator integrator(filename, radius, center);
-        MatrixXd gridPos = integrator.getPoints();
-        VectorXd weights = integrator.getWeights();
-        MatrixXd normals = integrator.getNormals();
-        std::vector<Matrix3d> xStres = xcStress(mol, rho, gridPos, json_fock, prec);
-        std::vector<Matrix3d> kstress = kineticStress(mol, Phi, prec, gridPos);
-        std::vector<Matrix3d> mstress = maxwellStress(mol, pot, nabla, gridPos);
-        std::vector<Matrix3d> stress(integrator.n);
-        for (int i = 0; i < integrator.n; i++){
-            stress[i] = xStres[i] + kstress[i] + mstress[i];
-            forces.row(iAtom) -= stress[i] * normals.row(i).transpose() * weights(i);
+    double radius = 0.8;
+    VectorXd radii(3);
+    radii << 0.6, 0.7, 0.8;
+
+    // loop over radii:
+    for (int i = 0; i < 3; i++) {
+        radius = radii(i);
+
+        for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
+            coord = mol.getNuclei()[iAtom].getCoord();
+            center << coord[0], coord[1], coord[2];
+            LebedevIntegrator integrator(filename, radius, center);
+            MatrixXd gridPos = integrator.getPoints();
+            VectorXd weights = integrator.getWeights();
+            MatrixXd normals = integrator.getNormals();
+            std::vector<Matrix3d> xStres = xcStress(mol, rho, gridPos, json_fock, prec);
+            std::vector<Matrix3d> kstress = kineticStress(mol, Phi, prec, gridPos);
+            std::vector<Matrix3d> mstress = maxwellStress(mol, pot, nabla, gridPos);
+            std::vector<Matrix3d> stress(integrator.n);
+            for (int i = 0; i < integrator.n; i++){
+                stress[i] = xStres[i] + kstress[i] + mstress[i];
+                forces.row(iAtom) -= stress[i] * normals.row(i).transpose() * weights(i);
+            }
         }
+    }
+    forces = forces / 3.0;
+
+    for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
         std::cerr << "forces " << forces(iAtom, 0) << " " << forces(iAtom, 1) << " " << forces(iAtom, 2) << std::endl;
     }
+    
+
     nabla.clear();
     return forces;
 }
