@@ -65,21 +65,20 @@ mrcpp::ComplexFunction calcPotential(Density &rho, mrcpp::PoissonOperator &poiss
     return V;
 }
 
-MatrixXd electronicEfield(mrcpp::ComplexFunction &pot, NablaOperator &nabla, const MatrixXd &gridPos) {
+MatrixXd electronicEfield(mrchem::OrbitalVector &negEfield, const MatrixXd &gridPos) {
     int nGrid = gridPos.rows();
     MatrixXd Efield = MatrixXd::Zero(nGrid, 3);
-    auto e_field = nabla(pot);
     for (int i = 0; i < nGrid; i++)
     {
         std::array<double, 3> pos = {gridPos(i, 0), gridPos(i, 1), gridPos(i, 2)};
-        Efield(i, 0) = -e_field[0].real().evalf(pos);
-        Efield(i, 1) = -e_field[1].real().evalf(pos);
-        Efield(i, 2) = -e_field[2].real().evalf(pos);
+        Efield(i, 0) = -negEfield[0].real().evalf(pos);
+        Efield(i, 1) = -negEfield[1].real().evalf(pos);
+        Efield(i, 2) = -negEfield[2].real().evalf(pos);
     }
     return Efield;
 }
 
-std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrcpp::ComplexFunction &pot, NablaOperator &nabla, const MatrixXd &gridPos){
+std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrchem::OrbitalVector &negEfield, const MatrixXd &gridPos){
     int nGrid = gridPos.rows();
     int nNuc = mol.getNNuclei();
 
@@ -94,7 +93,7 @@ std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrcpp::ComplexFu
         nucCharge(i) = mol.getNuclei()[i].getCharge();
     }
 
-    MatrixXd Efield = electronicEfield(pot, nabla, gridPos) + nuclearEfield(nucPos, nucCharge, gridPos);
+    MatrixXd Efield = electronicEfield(negEfield, gridPos) + nuclearEfield(nucPos, nucCharge, gridPos);
 
     std::vector<Eigen::Matrix3d> stress(nGrid);
     for (int i = 0; i < nGrid; i++) {
@@ -115,11 +114,8 @@ std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrcpp::ComplexFu
     return stress;
 }
 
-std::vector<Matrix3d> xcStress(const Molecule &mol, const Density &rho, const MatrixXd &gridPos, const json &json_fock, double prec){
+std::vector<Matrix3d> xcStress(const Molecule &mol, const Density &rho, std::shared_ptr<XCOperator> XC_p, const MatrixXd &gridPos, double prec){
     int nGrid = gridPos.rows();
-
-    int order = 0;
-
 
     std::vector<Matrix3d> stress(nGrid);
 
@@ -131,45 +127,17 @@ std::vector<Matrix3d> xcStress(const Molecule &mol, const Density &rho, const Ma
         pos[1] = gridPos(i, 1);
         pos[2] = gridPos(i, 2);
         rhoGrid(i, 0) = rho.real().evalf(pos);
-
-    }
-    // std::cerr << "rhoGrid" << std::endl;
-
-    bool shared_memory = json_fock["xc_operator"]["shared_memory"];
-    auto json_xcfunc = json_fock["xc_operator"]["xc_functional"];
-    auto xc_spin = json_xcfunc["spin"];
-    auto xc_cutoff = json_xcfunc["cutoff"];
-    auto xc_funcs = json_xcfunc["functionals"];
-    auto xc_order = order + 1;
-
-    auto Phi_p = mol.getOrbitals_p();
-
-    mrdft::Factory xc_factory(*MRA);
-    xc_factory.setSpin(xc_spin);
-    xc_factory.setOrder(xc_order);
-    xc_factory.setDensityCutoff(xc_cutoff);
-    for (const auto &f : xc_funcs) {
-        auto name = f["name"];
-        auto coef = f["coef"];
-        xc_factory.setFunctional(name, coef);
     }
 
-    std::unique_ptr<mrdft::MRDFT> mrdft_p = xc_factory.build();
-    auto XC_p = std::make_shared<XCOperator>(mrdft_p, Phi_p, shared_memory);
-
-    XC_p->potential->setup(prec);
     VectorXd xcGrid(nGrid);
     VectorXd vxcGrid(nGrid);
-    // open file:
-    // std::ofstream outfile("toto_xc");
+
     for (int i = 0; i < nGrid; i++){
         pos[0] = gridPos(i, 0);
         pos[1] = gridPos(i, 1);
         pos[2] = gridPos(i, 2);
         xcGrid(i) = std::get<1>(XC_p->potential->xc_vec[0])->evalf(pos);
         vxcGrid(i) = std::get<1>(XC_p->potential->xc_vec[1])->evalf(pos);
-        // std::cerr << pos[2] << " " << rhoGrid(i) << " " << xcGrid(i) << " " << vxcGrid(i) << std::endl;
-        // outfile << pos[2] << " " << rhoGrid(i) << " " << xcGrid(i) << " " << vxcGrid(i) << std::endl;
         for (int i1 = 0; i1 < 3; i1++) {
             for (int i2 = 0; i2 < 3; i2++) {
                 stress[i](i1, i2) = 0.0;
@@ -181,26 +149,14 @@ std::vector<Matrix3d> xcStress(const Molecule &mol, const Density &rho, const Ma
         }
         
     }
-    // outfile.close();
-    
-    XC_p->potential->clear();
 
     return stress;
 }
 
-std::vector<Matrix3d> kineticStress(const mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const MatrixXd &gridPos){
+std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std::vector<OrbitalVector> &nablaPhi, std::vector<OrbitalVector> &hessPhi, double prec, const MatrixXd &gridPos){
 
     int nGrid = gridPos.rows();
     int nOrbs = Phi.size();
-
-    int derivOrder1 = 1;
-    auto D1 = std::make_shared<mrcpp::BSOperator<3>>(*mrchem::MRA, derivOrder1);
-    int derivOrder2 = 2;
-    auto D2 = std::make_shared<mrcpp::BSOperator<3>>(*mrchem::MRA, derivOrder2);
-    mrchem::HessianOperator hess(D1, D2, prec);
-    hess.setup(prec);
-    mrchem::NablaOperator nabla(D1);
-    nabla.setup(prec);
 
     double orbVal;
     std::vector<Matrix3d> stress(nGrid);
@@ -211,31 +167,25 @@ std::vector<Matrix3d> kineticStress(const mrchem::Molecule &mol, mrchem::Orbital
     double n1, n2, n3;
     for (int iOrb = 0; iOrb < Phi.size(); iOrb++) {
     
-        mrcpp::ComplexFunction orb = Phi[iOrb];
-        auto hessPhi = hess(orb);
-        auto nablaPhi = nabla(orb);
-
         for (int i = 0; i < nGrid; i++) {
             pos[0] = gridPos(i, 0);
             pos[1] = gridPos(i, 1);
             pos[2] = gridPos(i, 2);
             orbVal = Phi[iOrb].real().evalf(pos);
-            n1 = nablaPhi[0].real().evalf(pos);
-            n2 = nablaPhi[1].real().evalf(pos);
-            n3 = nablaPhi[2].real().evalf(pos);
-            stress[i](0, 0) += orbVal * hessPhi[0].real().evalf(pos) - n1 * n1;
-            stress[i](1, 1) += orbVal * hessPhi[1].real().evalf(pos) - n2 * n2;
-            stress[i](2, 2) += orbVal * hessPhi[2].real().evalf(pos) - n3 * n3;
-            stress[i](0, 1) += orbVal * hessPhi[3].real().evalf(pos) - n1 * n2;
-            stress[i](0, 2) += orbVal * hessPhi[4].real().evalf(pos) - n1 * n3;
-            stress[i](1, 2) += orbVal * hessPhi[5].real().evalf(pos) - n2 * n3;
+            n1 = nablaPhi[iOrb][0].real().evalf(pos);
+            n2 = nablaPhi[iOrb][1].real().evalf(pos);
+            n3 = nablaPhi[iOrb][2].real().evalf(pos);
+            stress[i](0, 0) += orbVal * hessPhi[iOrb][0].real().evalf(pos) - n1 * n1;
+            stress[i](1, 1) += orbVal * hessPhi[iOrb][1].real().evalf(pos) - n2 * n2;
+            stress[i](2, 2) += orbVal * hessPhi[iOrb][2].real().evalf(pos) - n3 * n3;
+            stress[i](0, 1) += orbVal * hessPhi[iOrb][3].real().evalf(pos) - n1 * n2;
+            stress[i](0, 2) += orbVal * hessPhi[iOrb][4].real().evalf(pos) - n1 * n3;
+            stress[i](1, 2) += orbVal * hessPhi[iOrb][5].real().evalf(pos) - n2 * n3;
             stress[i](1, 0) = stress[i](0, 1);
             stress[i](2, 0) = stress[i](0, 2);
             stress[i](2, 1) = stress[i](1, 2);
         }
     }
-    nabla.clear();
-    hess.clear();
     return stress;
 }
 
@@ -262,6 +212,46 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     nabla.setup(prec);
     double abs_prec = prec / mrchem::orbital::get_electron_number(Phi);
     mrcpp::ComplexFunction pot = calcPotential(rho, poisson_op, abs_prec);
+    mrchem::OrbitalVector negEfield = nabla(pot);
+
+    // set up operators for kinetic stress:
+    int derivOrder1 = 1;
+    auto D1 = std::make_shared<mrcpp::BSOperator<3>>(*mrchem::MRA, derivOrder1);
+    int derivOrder2 = 2;
+    auto D2 = std::make_shared<mrcpp::BSOperator<3>>(*mrchem::MRA, derivOrder2);
+    mrchem::HessianOperator hess(D1, D2, prec);
+    hess.setup(prec);
+
+    std::vector<mrchem::OrbitalVector> nablaPhi;
+    std::vector<mrchem::OrbitalVector> hessPhi;
+    for (int i = 0; i < Phi.size(); i++) {
+        nablaPhi.push_back(nabla(Phi[i]));
+        hessPhi.push_back(hess(Phi[i]));
+    }
+
+    // setup xc stuff:
+    int order = 0;
+    bool shared_memory = json_fock["xc_operator"]["shared_memory"];
+    auto json_xcfunc = json_fock["xc_operator"]["xc_functional"];
+    auto xc_spin = json_xcfunc["spin"];
+    auto xc_cutoff = json_xcfunc["cutoff"];
+    auto xc_funcs = json_xcfunc["functionals"];
+    auto xc_order = order + 1;
+    auto funcVectorShared = std::make_shared<mrcpp::MPI_FuncVector>(Phi);
+
+    mrdft::Factory xc_factory(*MRA);
+    xc_factory.setSpin(xc_spin);
+    xc_factory.setOrder(xc_order);
+    xc_factory.setDensityCutoff(xc_cutoff);
+    for (const auto &f : xc_funcs) {
+        auto name = f["name"];
+        auto coef = f["coef"];
+        xc_factory.setFunctional(name, coef);
+    }
+    std::unique_ptr<mrdft::MRDFT> mrdft_p = xc_factory.build();
+    std::shared_ptr<XCOperator> XC_p = std::make_shared<XCOperator>(mrdft_p, funcVectorShared, shared_memory);
+    XC_p->potential->setup(prec);
+
     
     int numAtoms = mol.getNNuclei();
     int numOrbitals = Phi.size();
@@ -289,12 +279,12 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
             MatrixXd gridPos = integrator.getPoints();
             VectorXd weights = integrator.getWeights();
             MatrixXd normals = integrator.getNormals();
-            std::vector<Matrix3d> xStres = xcStress(mol, rho, gridPos, json_fock, prec);
-            std::vector<Matrix3d> kstress = kineticStress(mol, Phi, prec, gridPos);
-            std::vector<Matrix3d> mstress = maxwellStress(mol, pot, nabla, gridPos);
+            std::vector<Matrix3d> xStress = xcStress(mol, rho, XC_p, gridPos, prec);
+            std::vector<Matrix3d> kstress = kineticStress(mol, Phi, nablaPhi, hessPhi, prec, gridPos);
+            std::vector<Matrix3d> mstress = maxwellStress(mol, negEfield, gridPos);
             std::vector<Matrix3d> stress(integrator.n);
             for (int i = 0; i < integrator.n; i++){
-                stress[i] = xStres[i] + kstress[i] + mstress[i];
+                stress[i] = xStress[i] + kstress[i] + mstress[i];
                 forces.row(iAtom) -= stress[i] * normals.row(i).transpose() * weights(i);
             }
         }
@@ -305,8 +295,9 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         std::cerr << "forces " << forces(iAtom, 0) << " " << forces(iAtom, 1) << " " << forces(iAtom, 2) << std::endl;
     }
     
-
+    hess.clear();
     nabla.clear();
+    XC_p->potential->clear();
     return forces;
 }
 
