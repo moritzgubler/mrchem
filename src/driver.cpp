@@ -512,6 +512,9 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
 
     if (json_prop.contains("geometric_derivative")) {
         t_lap.start();
+        // time the calculation of forces:
+        Timer t_classic;
+        t_classic.start();
         mrcpp::print::header(2, "Computing geometric derivative");
         for (const auto &item : json_prop["geometric_derivative"].items()) {
             const auto &id = item.key();
@@ -541,8 +544,16 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
                 el.row(k) = h.trace(Phi).real();
                 h.clear();
             }
+            t_classic.stop();
+            std::cerr << "Elapsed classic time: " << t_classic.elapsed() << " seconds" << std::endl;
 
+            // time the calculation of surface forces
+            Timer t_surface;
+            t_surface.start();
             Eigen::MatrixXd surfaceForces = surface_force::surface_forces(mol, Phi, prec, json_fock);
+            t_surface.stop();
+            std::cerr << "Elapsed surface time: " << t_surface.elapsed() << " seconds" << std::endl;
+
             Eigen::MatrixXd classicForces = G.getTensor();
             // open file "mrtemp" for writing
             std::ofstream file("mrtemp_classicForces.txt");
