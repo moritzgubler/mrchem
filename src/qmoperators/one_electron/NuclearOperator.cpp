@@ -40,7 +40,7 @@
 #include "analyticfunctions/FiniteNucleusSphere.h"
 #include "analyticfunctions/FiniteNucleusGaussian.h"
 #include "analyticfunctions/PPNucleus.h"
-#include "pseudopotential/HGH.hpp"
+#include "pseudopotential/pseudopotential.h"
 #include "chemistry/chemistry_utils.h"
 #include "qmfunctions/Density.h"
 #include "qmoperators/QMPotential.h"
@@ -88,14 +88,10 @@ NuclearOperator::NuclearOperator(const Nuclei &nucs, double proj_prec, double sm
         f_loc = new FiniteNucleusSphere();
     } else if (model_copy == "pp") {
         mrcpp::print::header(1, "Projecting nuclear potential (Pseudo-potential)");
-        GoedeckerPseudopotential hgh;
         std::string fname = "psppar.H";
-        bool succes = readGoedeckerPseudopotential(fname, hgh);
+        PseudopotentialData hgh(fname);
 
-        std::cerr << "hgh.zatom " << hgh.zatom << std::endl;
-        std::cerr << "hgh.rloc[0] " << hgh.rloc << std::endl;
-
-        std::vector<GoedeckerPseudopotential> pps;
+        std::vector<PseudopotentialData> pps;
         pps.push_back(hgh);
 
         f_loc = new PPNucleus(pps);

@@ -19,7 +19,7 @@ std::vector<std::string> splitStringToWords(const std::string& str) {
     return words;
 }
 
-class GoedeckerPseudopotential {
+class PseudopotentialData {
 
 public:
     int zeff;
@@ -34,7 +34,7 @@ public:
     std::vector<Eigen::MatrixXd> h;
     int nsep;
 
-    GoedeckerPseudopotential(std::string filename) {
+    PseudopotentialData(std::string filename) {
         std::ifstream file(filename);
         if (!file.is_open()) {
             std::cerr << "Error: Could not open file " << filename << std::endl;
