@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include "NuclearFunction.h"
+#include "analyticfunctions/NuclearFunction.h"
 
 #include "utils/math_utils.h"
 // #include "pseudopotential/HGH.hpp"
