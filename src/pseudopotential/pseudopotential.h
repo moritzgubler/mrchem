@@ -5,7 +5,7 @@
 #include <sstream>
 #include <vector>
 #include <string>
-#include <Eigen/dense>
+#include <Eigen/Dense>
 
 std::vector<std::string> splitStringToWords(const std::string& str) {
     std::istringstream iss(str);
@@ -22,7 +22,6 @@ std::vector<std::string> splitStringToWords(const std::string& str) {
 class GoedeckerPseudopotential {
 
 public:
-    std::string element_name;
     int zeff;
     int zion;
     double rloc;
@@ -32,7 +31,7 @@ public:
     std::vector<double> rl;
     int lmax;
     std::vector<Eigen::MatrixXd> h;
-    int nsep
+    int nsep;
 
     GoedeckerPseudopotential(std::string filename) {
         std::ifstream file(filename);
@@ -40,6 +39,7 @@ public:
             std::cerr << "Error: Could not open file " << filename << std::endl;
             return;
         }
+
         std::string line;
         std::vector<std::string> words;
         // first line is irrelevant
@@ -47,78 +47,74 @@ public:
         // read zatom and zeff
         std::getline(file, line);
         words = splitStringToWords(line);
-        zion = words[0];
-        zeff = words[1];
+        zion = std::stoi(words[0]);
+        zeff = std::stoi(words[1]);
+
+        // third position is lmax
+        std::getline(file, line);
+        words = splitStringToWords(line);
+        lmax = std::stoi(words[2]);
+
         // read rloc, nloc, and the c coefficients
         std::getline(file, line);
         words = splitStringToWords(line);
-        rloc = words[0];
-        nloc = words[1];
+        rloc = std::stod(words[0]);
+        nloc = std::stoi(words[1]);
+        alpha_pp = 1.0 / (std::sqrt(2.0) * rloc);
+
         c = Eigen::VectorXd::Zero(nloc);
         for (int i = 0; i < nloc; i++) {
-            c[i] = words[2 + i];
+            c[i] = std::stod(words[2 + i]);
         }
         // read nsep
         std::getline(file, line);
         words = splitStringToWords(line);
-        nsep = words[0];
+        nsep = std::stoi(words[0]);
         // check if nsep is between 1 and 3
-        if (nsep < 1 || nsep > 3) {
+        if (nsep < 0 || nsep > 3) {
             std::cerr << "Error: nsep must be between 1 and 3" << std::endl;
             return;
         }
-        
-        // read s projector if file not over yet:
-        if (!std::getline(file, line)) return;
-        words = splitStringToWords(line);
-        rl.push_back(words[0]);
-        h.push_back(Eigen::MatrixXd::Zero(nsep, nsep));
-        for (int i = 0; i < nsep; i++) {
-            h[0](0, i) = words[1 + i];
-            h[0](i, 0) = h[0](0, i);
-        }
-        for (int i = 1; i < nsep; i++) {
-            std::getline(file, line);
-            words = splitStringToWords(line);
-            for (int j = i; j < nsep; j++){
-                h[0](i, j) = words[j];
-                h[0](j, i) = h[0](i, j);
+
+        for (int l = 0; l < lmax; l++) {
+            if (!std::getline(file, line)) {
+                std::cerr << "Error: Could not read projector" << std::endl;
+                return;
             }
-        }
-        // read p projector if file not over yet:
-        if (!std::getline(file, line)) return;
-        words = splitStringToWords(line);
-        rl.push_back(words[0]);
-        h.push_back(Eigen::MatrixXd::Zero(nsep, nsep));
-        for (int i = 0; i < nsep; i++) {
-            h[0](0, i) = words[1 + i];
-            h[0](i, 0) = h[0](0, i);
-        }
-        for (int i = 1; i < nsep; i++) {
-            std::getline(file, line);
             words = splitStringToWords(line);
-            for (int j = i; j < nsep; j++){
-                h[0](i, j) = words[j];
-                h[0](j, i) = h[0](i, j);
+            rl.push_back(std::stod(words[0]));
+            h.push_back(Eigen::MatrixXd::Zero(nsep, nsep));
+            for (int i = 0; i < nsep; i++) {
+                h[l](0, i) = std::stod(words[1 + i]);
+                h[l](i, 0) = h[l](0, i);
             }
-        }
-        // read d projector if file not over yet:
-        if (!std::getline(file, line)) return;
-        words = splitStringToWords(line);
-        rl.push_back(words[0]);
-        h.push_back(Eigen::MatrixXd::Zero(nsep, nsep));
-        for (int i = 0; i < nsep; i++) {
-            h[0](0, i) = words[1 + i];
-            h[0](i, 0) = h[0](0, i);
-        }
-        for (int i = 1; i < nsep; i++) {
-            std::getline(file, line);
-            words = splitStringToWords(line);
-            for (int j = i; j < nsep; j++){
-                h[0](i, j) = words[j];
-                h[0](j, i) = h[0](i, j);
+            for (int i = 1; i < nsep; i++) {
+                std::getline(file, line);
+                words = splitStringToWords(line);
+                for (int j = i; j < nsep; j++){
+                    h[l](i, j) = std::stod(words[j-i]);
+                    h[l](j, i) = h[l](i, j);
+                }
             }
         }
     }
+
+    void print() {
+        std::cout << "Zeff: " << zeff << std::endl;
+        std::cout << "Zion: " << zion << std::endl;
+        std::cout << "rloc: " << rloc << std::endl;
+        std::cout << "alpha_pp: " << alpha_pp << std::endl;
+        std::cout << "nloc: " << nloc << std::endl;
+        std::cout << "c: " << c.transpose() << std::endl;
+        std::cout << "nsep: " << nsep << std::endl;
+
+        for (int l = 0; l < lmax; l++)
+        {
+            std::cout << "l: " << l << std::endl;
+            std::cout << "rl: " << rl[l] << std::endl;
+            std::cout << "h: " << h[l] << std::endl;
+        }
+    }
+
 };
 
