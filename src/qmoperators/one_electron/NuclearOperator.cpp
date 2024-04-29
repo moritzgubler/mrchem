@@ -88,14 +88,14 @@ NuclearOperator::NuclearOperator(const Nuclei &nucs, double proj_prec, double sm
         f_loc = new FiniteNucleusSphere();
     } else if (model_copy == "pp") {
         mrcpp::print::header(1, "Projecting nuclear potential (Pseudo-potential)");
-        std::string fname = "psppar.H";
-        PseudopotentialData hgh(fname);
-
         std::vector<PseudopotentialData> pps;
-        pps.push_back(hgh);
-
+        for(const Nucleus &nuc : nucs){
+            std::string symb = nuc.getElement().getSymbol();
+            std::string fname = "psppar." + symb;
+            PseudopotentialData hgh(fname);
+            pps.push_back(hgh);
+        }
         f_loc = new PPNucleus(pps);
-
     } else {
         MSG_ABORT("Invalid nuclear model : " << model_copy);
     }
