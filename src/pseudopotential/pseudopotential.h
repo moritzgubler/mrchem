@@ -30,6 +30,7 @@ public:
     Eigen::VectorXd c;
     std::vector<double> rl;
     int lmax;
+    int nProjectors;
     std::vector<Eigen::MatrixXd> h;
     int nsep;
 
@@ -54,6 +55,7 @@ public:
         std::getline(file, line);
         words = splitStringToWords(line);
         lmax = std::stoi(words[2]);
+        nProjectors = lmax + 1;
 
         // read rloc, nloc, and the c coefficients
         std::getline(file, line);
@@ -76,7 +78,7 @@ public:
             return;
         }
 
-        for (int l = 0; l < lmax; l++) {
+        for (int l = 0; l < nProjectors; l++) {
             if (!std::getline(file, line)) {
                 std::cerr << "Error: Could not read projector" << std::endl;
                 return;
@@ -107,8 +109,9 @@ public:
         std::cout << "nloc: " << nloc << std::endl;
         std::cout << "c: " << c.transpose() << std::endl;
         std::cout << "nsep: " << nsep << std::endl;
+        std::cout << "lmax " << lmax << std::endl;
 
-        for (int l = 0; l < lmax; l++)
+        for (int l = 0; l < nProjectors; l++)
         {
             std::cout << "l: " << l << std::endl;
             std::cout << "rl: " << rl[l] << std::endl;
