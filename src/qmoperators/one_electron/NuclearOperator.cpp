@@ -39,7 +39,7 @@
 #include "analyticfunctions/PointNucleusMinimum.h"
 #include "analyticfunctions/FiniteNucleusSphere.h"
 #include "analyticfunctions/FiniteNucleusGaussian.h"
-#include "analyticfunctions/PPNucleus.h"
+#include "pseudopotential/PPNucleus.h"
 #include "pseudopotential/pseudopotential.h"
 #include "chemistry/chemistry_utils.h"
 #include "qmfunctions/Density.h"
