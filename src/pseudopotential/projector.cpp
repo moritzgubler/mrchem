@@ -13,7 +13,7 @@ Projector::Projector(Vector3d pos, double rl, int i, int l, int m) {
 
     auto project_analytic = [this, prefactor](const Eigen::Vector3d &r) {
         double normr = r.norm();
-        return prefactor * std::pow(normr, this->l + 2 * (this->i - 1)) * this->s(r, normr);
+        return prefactor * std::pow(normr, this->l + 2 * (this->i - 1)) * std::exp(- normr * normr / (this->rl * this-> rl) ) * this->s(r, normr);
     };
     auto op = (*this);
     
