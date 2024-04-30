@@ -8,7 +8,7 @@
  *
  * This constructor initializes a Projector object with the given parameters.
  *
- * @param pos The position vector of the projector.
+ * @param pos The position vector of the corresponding atom.
  * @param rl The radial length of the projector.
  * @param i Vector index of the projector.
  * @param l The angular momentum quantum number of the projector.
@@ -26,8 +26,9 @@ Projector::Projector(Eigen::Vector3d pos, double rl, int i, int l, int m, double
     double prefactor = std::sqrt(2.0) / (std::pow(rl, l + (4 * i - 2) / 2) * std::sqrt(tgamma( l + (4 * i - 2) / 2 )) );
 
     auto project_analytic = [this, prefactor](const std::array<double, 3> &r) -> double {
-        double normr = std::sqrt( r[0] * r[0] + r[1] * r[1] + r[2] * r[2] );
-        return prefactor * std::pow(normr, this->l + 2 * (this->i - 1)) * std::exp(- normr * normr / (this->rl * this-> rl) ) * this->s(r, normr);
+        std::array<double, 3> rprime = {r[0] - this->pos[0], r[1] - this->pos[1], r[2] - this->pos[2]};
+        double normr = std::sqrt( rprime[0] * rprime[0] + rprime[1] * rprime[1] + rprime[2] * rprime[2]);
+        return prefactor * std::pow(normr, this->l + 2 * (this->i - 1)) * std::exp(- normr * normr / (this->rl * this-> rl) ) * this->s(rprime, normr);
     };
     auto op = (*this);
     mrcpp::cplxfunc::project(op, project_analytic, mrcpp::NUMBER::Real, prec);
