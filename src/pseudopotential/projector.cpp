@@ -1,22 +1,24 @@
 
 #include "pseudopotential/projector.h"
 #include <math.h>
+#include "mrchem.h"
 
-Projector::Projector(Vector3d pos, double rl, int i, int l, int m) {
+Projector::Projector(Eigen::Vector3d pos, double rl, int i, int l, int m, double prec) {
     this->pos = pos;
     this->rl = rl;
     this->i = i;
     this->l = l;
     this->m = m;
-    // switch_sperics(l, m);
+    this->prec = prec;
+    switch_sperics(l, m);
     double prefactor = std::sqrt(2.0) / (std::pow(rl, l + (4 * i - 2) / 2) * std::sqrt(tgamma( l + (4 * i - 2) / 2 )) );
 
-    auto project_analytic = [this, prefactor](const Eigen::Vector3d &r) {
-        double normr = r.norm();
+    auto project_analytic = [this, prefactor](const std::array<double, 3> &r) -> double {
+        double normr = std::sqrt( r[0] * r[0] + r[1] * r[1] + r[2] * r[2] );
         return prefactor * std::pow(normr, this->l + 2 * (this->i - 1)) * std::exp(- normr * normr / (this->rl * this-> rl) ) * this->s(r, normr);
     };
     auto op = (*this);
-    
+    mrcpp::cplxfunc::project(op, project_analytic, mrcpp::NUMBER::Real, prec);
 
 }
 
