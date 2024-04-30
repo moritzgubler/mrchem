@@ -7,7 +7,7 @@
 #include <string>
 #include <Eigen/Dense>
 
-std::vector<std::string> splitStringToWords(const std::string& str) {
+inline std::vector<std::string> splitStringToWords(const std::string& str) {
     std::istringstream iss(str);
     std::vector<std::string> words;
     std::string word;
