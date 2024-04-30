@@ -22,6 +22,7 @@ Projector::Projector(Eigen::Vector3d pos, double rl, int i, int l, int m, double
     this->l = l;
     this->m = m;
     this->prec = prec;
+    // select the spherical harmonic function based on the angular momentum and magnetic quantum number
     switch_sperics(l, m);
     double prefactor = std::sqrt(2.0) / (std::pow(rl, l + (4 * i - 2) / 2) * std::sqrt(tgamma( l + (4 * i - 2) / 2 )) );
 
