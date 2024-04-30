@@ -47,6 +47,8 @@
 #include "qmoperators/qmoperator_utils.h"
 #include "utils/math_utils.h"
 
+#include "pseudopotential/projectorOperator.h"
+
 using mrcpp::Printer;
 using mrcpp::Timer;
 

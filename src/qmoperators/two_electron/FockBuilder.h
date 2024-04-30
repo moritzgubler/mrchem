@@ -52,6 +52,7 @@ class ExchangeOperator;
 class XCOperator;
 class ElectricFieldOperator;
 class ReactionOperator;
+class ProjectorOperator;
 
 class FockBuilder final {
 public:
@@ -107,6 +108,8 @@ private:
     std::shared_ptr<ElectricFieldOperator> ext{nullptr}; // Total external potential
     std::shared_ptr<ZoraOperator> kappa{nullptr};
     std::shared_ptr<ZoraOperator> kappa_inv{nullptr};
+    std::shared_ptr<ProjectorOperator> proj{nullptr};
+
 
     std::shared_ptr<QMPotential> collectZoraBasePotential();
     OrbitalVector buildHelmholtzArgumentZORA(OrbitalVector &Phi, OrbitalVector &Psi, DoubleVector eps, double prec);
