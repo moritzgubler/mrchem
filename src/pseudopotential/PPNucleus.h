@@ -33,18 +33,32 @@
 
 namespace mrchem {
 
+/**
+ * @class PPNucleus
+ * @brief Represents a pseudopotential nucleus. (local part of the pseudopotential)
+ * 
+ * The PPNucleus class is a derived class of the NuclearFunction class. It represents a pseudopotential nucleus
+ * and provides methods for evaluating the nuclear function and calculating parameters.
+ */
 class PPNucleus : public NuclearFunction {
 public:
 
+    /**
+     * @brief Constructs a PPNucleus object with the given pseudopotential data.
+     * @param pps The pseudopotential data. (One for each nucleus)
+     */
     PPNucleus(std::vector<PseudopotentialData> pps) : NuclearFunction(){
         this->pps = pps;
     }
 
-    // zero order, just take constant
+    /**
+     * @brief Evaluates the localized potential at the given coordinate.
+     * @param r The coordinate at which to evaluate the nuclear function.
+     * @return The value of the localized function at the given coordinate.
+     */
     double evalf(const mrcpp::Coord<3> &r) const override {
         double result = 0.0;
         double temp_exp;
-        // std::cerr << this->c1 << " " << this->c2 << " " << this->c3 << " " << this->c4 << std::endl;
         for (int i = 0; i < this->nuclei.size(); i++) {
             const auto &R = this->nuclei[i].getCoord();
             auto R1 = math_utils::calc_distance(R, r);
@@ -60,12 +74,11 @@ public:
                 result += this->pps[i].c[iloc] * temp_exp * temp;
                 temp *= temp_square;
             }
-            
-            
         }
         return result;
     }
 
+    // I had to implement this functions, thez return not meaningful values.
     std::string getParamName1() const { return "Precision"; }
     std::string getParamName2() const { return "Smoothing"; }
     double calcParam1(double prec, const Nucleus &nuc) const { return prec; }
@@ -74,7 +87,7 @@ public:
         return prec;
     }
 
-    protected:
+protected:
     std::vector<PseudopotentialData> pps;
 
 };
