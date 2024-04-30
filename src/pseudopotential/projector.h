@@ -1,12 +1,13 @@
+#pragma once
 #include <mrchem.h>
 #include "pseudopotential/sphericalHarmonics.h"
 
-class Projector: mrcpp::ComplexFunction {
+class ProjectorFunction: mrcpp::ComplexFunction {
 
 public:
-    Projector(Vector3d pos, double rl, int i, int l, int m, double prec);
+    ProjectorFunction(mrcpp::Coord<3> pos, double rl, int i, int l, int m, double prec);
 
-    Vector3d pos;
+    mrcpp::Coord<3> pos;
     int i;
     int l;
     int m;

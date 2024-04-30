@@ -1,7 +1,7 @@
 
 #include "pseudopotential/projector.h"
 #include <math.h>
-#include "mrchem.h"
+// #include "mrchem.h"
 
 /**
  * @brief Constructs a Projector object.
@@ -15,7 +15,7 @@
  * @param m The magnetic quantum number of the projector.
  * @param prec The precision of the projector.
  */
-Projector::Projector(Eigen::Vector3d pos, double rl, int i, int l, int m, double prec) {
+ProjectorFunction::ProjectorFunction(mrcpp::Coord<3> pos, double rl, int i, int l, int m, double prec) {
     this->pos = pos;
     this->rl = rl;
     this->i = i;
@@ -36,7 +36,7 @@ Projector::Projector(Eigen::Vector3d pos, double rl, int i, int l, int m, double
 
 }
 
-void Projector::switch_sperics(int l, int m){
+void ProjectorFunction::switch_sperics(int l, int m){
     switch (l) {
         case 0:
             switch (m) {

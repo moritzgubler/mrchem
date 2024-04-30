@@ -46,43 +46,9 @@ public:
     int nloc; /** Number of local functions */
     Eigen::VectorXd c; /** Coefficienst of local functions */
     std::vector<double> rl; /** Radii of projectors (one for each angular momentum) */
-    int lmax; /** Maximum angular momentum */
     int nProjectors; /** Number of projectors */
     std::vector<Eigen::MatrixXd> h; /** Projector matrices */
-    int nsep; /** Number of separable components */
-
-    
-    /**
-     * @brief Constructor for PseudopotentialData.
-     * @param filename The name of the file containing the pseudopotential data.
-     */
-    PseudopotentialData(std::string filename) {
-        // Implementation of the constructor
-    }
-
-    /**
-     * @brief Print the pseudopotential data.
-     */
-    void print() {
-        // Implementation of the print function
-    }
-
-};
-class PseudopotentialData {
-
-public:
-
-    int zeff; /** Effective charge of nucleus */
-    int zion; /** Atomic number of nucleus */
-    double rloc; /** Radius of local part of pseudopotential */
-    double alpha_pp;
-    int nloc; /** Number of local functions */
-    Eigen::VectorXd c; /** Coefficienst of local functions */
-    std::vector<double> rl; /** Radii of projectors (one for each angular momentum) */
-    int lmax; /** Maximum angular momentum */
-    int nProjectors; /** Number of projectors */
-    std::vector<Eigen::MatrixXd> h; /** Projector matrices */
-    int nsep; /** Number of separable components */
+    int nsep; /** Number of different angular momenta from 0 to nsep - 1*/
 
     
     PseudopotentialData(std::string filename) {
@@ -102,11 +68,8 @@ public:
         zion = std::stoi(words[0]);
         zeff = std::stoi(words[1]);
 
-        // third position is lmax
+        // ignore this line.
         std::getline(file, line);
-        words = splitStringToWords(line);
-        lmax = std::stoi(words[2]);
-        nProjectors = lmax + 1;
 
         // read rloc, nloc, and the c coefficients
         std::getline(file, line);
@@ -163,7 +126,6 @@ public:
         std::cout << "nloc: " << nloc << std::endl;
         std::cout << "c: " << c.transpose() << std::endl;
         std::cout << "nsep: " << nsep << std::endl;
-        std::cout << "lmax " << lmax << std::endl;
 
         for (int l = 0; l < nProjectors; l++)
         {
