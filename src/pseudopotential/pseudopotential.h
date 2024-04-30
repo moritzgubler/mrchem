@@ -7,6 +7,12 @@
 #include <string>
 #include <Eigen/Dense>
 
+/**
+ * Splits a given string into a vector of words.
+ *
+ * @param str The string to be split.
+ * @return A vector of words obtained from the input string.
+ */
 inline std::vector<std::string> splitStringToWords(const std::string& str) {
     std::istringstream iss(str);
     std::vector<std::string> words;
@@ -19,21 +25,66 @@ inline std::vector<std::string> splitStringToWords(const std::string& str) {
     return words;
 }
 
+
+/**
+ * @class PseudopotentialData
+ * @brief Class representing pseudopotential data.
+ * 
+ * This class stores the data related to a pseudopotential, including the effective charge of the nucleus,
+ * the atomic number of the nucleus, the radius of the local part of the pseudopotential, the coefficients
+ * of the local functions, the radii of the projectors, the maximum angular momentum, the number of projectors,
+ * the projector matrices, and the number of separable components.
+ */
 class PseudopotentialData {
 
 public:
-    int zeff;
-    int zion;
-    double rloc;
-    double alpha_pp;
-    int nloc;
-    Eigen::VectorXd c;
-    std::vector<double> rl;
-    int lmax;
-    int nProjectors;
-    std::vector<Eigen::MatrixXd> h;
-    int nsep;
 
+    int zeff; /** Effective charge of nucleus */
+    int zion; /** Atomic number of nucleus */
+    double rloc; /** Radius of local part of pseudopotential */
+    double alpha_pp;
+    int nloc; /** Number of local functions */
+    Eigen::VectorXd c; /** Coefficienst of local functions */
+    std::vector<double> rl; /** Radii of projectors (one for each angular momentum) */
+    int lmax; /** Maximum angular momentum */
+    int nProjectors; /** Number of projectors */
+    std::vector<Eigen::MatrixXd> h; /** Projector matrices */
+    int nsep; /** Number of separable components */
+
+    
+    /**
+     * @brief Constructor for PseudopotentialData.
+     * @param filename The name of the file containing the pseudopotential data.
+     */
+    PseudopotentialData(std::string filename) {
+        // Implementation of the constructor
+    }
+
+    /**
+     * @brief Print the pseudopotential data.
+     */
+    void print() {
+        // Implementation of the print function
+    }
+
+};
+class PseudopotentialData {
+
+public:
+
+    int zeff; /** Effective charge of nucleus */
+    int zion; /** Atomic number of nucleus */
+    double rloc; /** Radius of local part of pseudopotential */
+    double alpha_pp;
+    int nloc; /** Number of local functions */
+    Eigen::VectorXd c; /** Coefficienst of local functions */
+    std::vector<double> rl; /** Radii of projectors (one for each angular momentum) */
+    int lmax; /** Maximum angular momentum */
+    int nProjectors; /** Number of projectors */
+    std::vector<Eigen::MatrixXd> h; /** Projector matrices */
+    int nsep; /** Number of separable components */
+
+    
     PseudopotentialData(std::string filename) {
         std::ifstream file(filename);
         if (!file.is_open()) {
@@ -101,6 +152,9 @@ public:
         }
     }
 
+    /**
+     * Prints the pseudopotential.
+     */
     void print() {
         std::cout << "Zeff: " << zeff << std::endl;
         std::cout << "Zion: " << zion << std::endl;
