@@ -51,6 +51,8 @@
 
 #include <filesystem>
 
+#include "pseudopotential/projectorOperator.h"
+
 using mrcpp::Printer;
 using mrcpp::Timer;
 
