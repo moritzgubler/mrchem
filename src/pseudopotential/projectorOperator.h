@@ -22,7 +22,7 @@ public:
         // loop over all atoms and create projectors
         for (int i = 0; i < molecule.getNNuclei(); i++) {
             mrcpp::Coord<3> pos = molecule.getNuclei()[i].getCoord();
-            for (int l = 0; l < pp[i].nProjectors; l++) {
+            for (int l = 0; l < pp[i].nsep; l++) {
                 for (int m = -l; m <= l; m++) {
                     for (int isep = 0; isep < pp[i].nsep; isep++){
                         proj.push_back(ProjectorFunction(pos, pp[i].rl[l], isep, l, m, prec));

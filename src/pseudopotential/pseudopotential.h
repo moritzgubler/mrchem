@@ -46,8 +46,8 @@ public:
     int nloc; /** Number of local functions */
     Eigen::VectorXd c; /** Coefficienst of local functions */
     std::vector<double> rl; /** Radii of projectors (one for each angular momentum) */
-    int nProjectors; /** Number of projectors */
     std::vector<Eigen::MatrixXd> h; /** Projector matrices */
+    std::vector<int> dim_h; /** Dimension of projector matrices */
     int nsep; /** Number of different angular momenta from 0 to nsep - 1*/
 
     
@@ -92,24 +92,31 @@ public:
             return;
         }
 
-        for (int l = 0; l < nProjectors; l++) {
+        for (int l = 0; l < nsep; l++) {
             if (!std::getline(file, line)) {
                 std::cerr << "Error: Could not read projector" << std::endl;
                 return;
             }
             words = splitStringToWords(line);
             rl.push_back(std::stod(words[0]));
+            dim_h.push_back(std::stoi(words[1]));
             h.push_back(Eigen::MatrixXd::Zero(nsep, nsep));
-            for (int i = 0; i < nsep; i++) {
-                h[l](0, i) = std::stod(words[1 + i]);
+            for (int i = 0; i < dim_h[l]; i++) {
+                h[l](0, i) = std::stod(words[2 + i]);
                 h[l](i, 0) = h[l](0, i);
             }
-            for (int i = 1; i < nsep; i++) {
+            for (int i = 1; i < dim_h[l]; i++) {
                 std::getline(file, line);
                 words = splitStringToWords(line);
                 for (int j = i; j < nsep; j++){
                     h[l](i, j) = std::stod(words[j-i]);
                     h[l](j, i) = h[l](i, j);
+                }
+            }
+            // and now read the irrelevant soc lines if l > 0
+            if (l > 0) {
+                for (int i = 0; i < dim_h[l]; i++) {
+                    std::getline(file, line);
                 }
             }
         }
@@ -127,7 +134,7 @@ public:
         std::cout << "c: " << c.transpose() << std::endl;
         std::cout << "nsep: " << nsep << std::endl;
 
-        for (int l = 0; l < nProjectors; l++)
+        for (int l = 0; l < nsep; l++)
         {
             std::cout << "l: " << l << std::endl;
             std::cout << "rl: " << rl[l] << std::endl;
