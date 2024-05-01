@@ -301,7 +301,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     VectorXd radii(3);
     radii << -0.1, 0.0, 0.1;
     for (int i = 0; i < radii.size(); i++) {
-        radius = dist(i) / 2.0 + radii(i);
+        radius = dist(i) *.52 + radii(i);
 
         for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
             coord = mol.getNuclei()[iAtom].getCoord();
