@@ -190,6 +190,30 @@ std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std
 }
 
 /**
+ * Calculates the distance to the nearest neighbor for each point in the given position matrix.
+ *
+ * @param pos The matrix containing the positions of the points. Shape (nPoints, 3).
+ * @return A vector containing the distances to the nearest neighbor for each point.
+ */
+VectorXd distanceToNearestNeighbour(MatrixXd pos){
+    int n = pos.rows();
+    VectorXd dist(n);
+    double temp;
+    for (int i = 0; i < n; i++){
+        dist(i) = (pos.row(i) - pos.row((i + 1) % n)).norm();
+        for (int j = 0; j < n; j++){
+            if (i != j){
+                temp = (pos.row(i) - pos.row(j)).norm();
+                if (temp < dist(i)){
+                    dist(i) = temp;
+                }
+            }
+        }
+    }
+    return dist;
+}
+
+/**
  * Calculates the forces using surface integrals for a given molecule and orbital vector.
  *
  * @param mol The molecule for which to calculate the forces.
@@ -260,19 +284,24 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     Vector3d center;
     std::array<double, 3> coord;
 
+    Eigen::MatrixXd posmatrix = Eigen::MatrixXd::Zero(numAtoms, 3);
+    for (int i = 0; i < numAtoms; i++) {
+        coord = mol.getNuclei()[i].getCoord();
+        posmatrix(i, 0) = coord[0];
+        posmatrix(i, 1) = coord[1];
+        posmatrix(i, 2) = coord[2];
+    }
+    VectorXd dist = distanceToNearestNeighbour(posmatrix);
+
     std::filesystem::path p = __FILE__;
     std::filesystem::path parent_dir = p.parent_path();
     std::string filename = parent_dir.string() + "/lebvedev.txt";
 
     double radius = 0.8;
-    VectorXd radii(2);
-    radii << 0.5, 0.6;
-    // VectorXd radii(1);
-    // radii << 0.6;
-
-    // loop over radii:
+    VectorXd radii(3);
+    radii << -0.1, 0.0, 0.1;
     for (int i = 0; i < radii.size(); i++) {
-        radius = radii(i);
+        radius = dist(i) / 2.0 + radii(i);
 
         for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
             coord = mol.getNuclei()[iAtom].getCoord();
