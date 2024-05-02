@@ -298,13 +298,23 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     std::string filename = parent_dir.string() + "/lebvedev.txt";
 
     double radius = 0.8;
-    VectorXd radii(6);
-    radii << -0.15, -0.1, -0.05, 0.0, 0.05, 0.1;
+    int nRad = 19;
+    VectorXd radii(nRad);
+    double step;
+    for (int i = 0; i < nRad; i++) {
+        step = (1.0 * i) / (1.0 * nRad);
+        radii(i) = -0.2 + 0.4 * step;
+    }
+
     for (int i = 0; i < radii.size(); i++) {
+        // Get random 3d vector with magnitue 0.1:
+        Vector3d randomVec = Vector3d::Random();
+        randomVec = randomVec / randomVec.norm() * 0.1;
         for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
             radius = dist(iAtom) *.5 + radii(i);
             coord = mol.getNuclei()[iAtom].getCoord();
             center << coord[0], coord[1], coord[2];
+            center += randomVec;
             LebedevIntegrator integrator(filename, radius, center);
             MatrixXd gridPos = integrator.getPoints();
             VectorXd weights = integrator.getWeights();
