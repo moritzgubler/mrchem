@@ -63,8 +63,26 @@ public:
 
 mrchem::Orbital apply(mrchem::Orbital phi) {
     // loop over all atoms
+    ComplexDouble dotComplex;
+
+    std::vector<ComplexDouble> complexCoefficients;
+
     for (int iat = 0; iat < proj.size(); iat++) {
         // loop over all angular momenta
+        for (int l = 0; l < pp[iat].nsep; l++){
+            // loop over all magnetic quantum numbers
+            for (int m = -l; m <= l; m++){
+                // loop over all projectors
+                Eigen::VectorXd dot_products(pp[iat].dim_h[l]);
+                for (int ip = 0; ip < pp[iat].dim_h[l]; ip++){
+                    dotComplex = mrchem::qmfunction::dot(phi, proj[iat].lProj[l].mProj[m].iProj[ip]);
+                    dot_products(ip) = dotComplex.real();
+                    complexCoefficients.push_back(pp[iat].h[l] * dot_products(ip));
+                }
+
+            }
+        }
+        
     }
     
     return phi;
