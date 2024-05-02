@@ -2,7 +2,7 @@
 #include <mrchem.h>
 #include "pseudopotential/sphericalHarmonics.h"
 
-class ProjectorFunction: mrcpp::ComplexFunction {
+class ProjectorFunction: public mrcpp::ComplexFunction {
 
 public:
     ProjectorFunction(mrcpp::Coord<3> pos, double rl, int i, int l, int m, double prec);
