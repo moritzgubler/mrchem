@@ -66,6 +66,7 @@ mrchem::Orbital apply(mrchem::Orbital phi) {
     ComplexDouble dotComplex;
 
     std::vector<ComplexDouble> complexCoefficients;
+    mrchem::ComplexFunctionVector complexFunctionVector;
 
     for (int iat = 0; iat < proj.size(); iat++) {
         // loop over all angular momenta
@@ -77,15 +78,23 @@ mrchem::Orbital apply(mrchem::Orbital phi) {
                 for (int ip = 0; ip < pp[iat].dim_h[l]; ip++){
                     dotComplex = mrchem::qmfunction::dot(phi, proj[iat].lProj[l].mProj[m].iProj[ip]);
                     dot_products(ip) = dotComplex.real();
-                    complexCoefficients.push_back(pp[iat].h[l] * dot_products(ip));
                 }
-
+                dot_products = pp[iat].h[l] * dot_products;
+                // loop over all projectors
+                for (int ip = 0; ip < pp[iat].dim_h[l]; ip++){
+                    complexCoefficients.push_back(dot_products(ip));
+                    complexFunctionVector.push_back(proj[iat].lProj[l].mProj[m].iProj[ip]);
+                }
             }
         }
         
     }
-    
-    return phi;
+    // convert complexCoefficients to Eigen Vector:
+    mrchem::ComplexVector complexCoefficientsEigen = Eigen::Map<Eigen::VectorXcd>(complexCoefficients.data(), complexCoefficients.size());
+
+    mrchem::Orbital result;
+    mrchem::qmfunction::linear_combination(result, complexCoefficientsEigen, complexFunctionVector, prec);
+    return result;
 }
 
 mrchem::Orbital dagger(mrchem::Orbital phi) {
