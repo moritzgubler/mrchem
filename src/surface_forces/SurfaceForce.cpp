@@ -298,7 +298,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     std::string filename = parent_dir.string() + "/lebvedev.txt";
     std::string tinyPoints = parent_dir.string() + "/lebvedev_tiny.txt";
 
-    double tinyRadius = 0.05;
+    double tinyRadius = 0.3;
     double radius = 0.6;
     int nRad = 11;
     VectorXd radii(nRad);
@@ -320,7 +320,6 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
             // std::cerr << "x " << x(0) << " " << x(1) << " " << x(2) << "\n";
             // std::cerr << "center " << center << "\n";
             // std::cerr << "tinyPos " << tinyPos.row(iTiny) << "\n";
-            std::cerr << "tinyWeights " << tinyWeights(iTiny) << "\n";
             LebedevIntegrator integrator(filename, radius, tinyPos.row(iTiny).transpose());
             MatrixXd gridPos = integrator.getPoints();
             VectorXd weights = integrator.getWeights();
