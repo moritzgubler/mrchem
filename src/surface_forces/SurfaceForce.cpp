@@ -296,8 +296,10 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     std::filesystem::path p = __FILE__;
     std::filesystem::path parent_dir = p.parent_path();
     std::string filename = parent_dir.string() + "/lebvedev.txt";
+    std::string tinyPoints = parent_dir.string() + "/lebvedev_tiny.txt";
 
-    double radius = 0.8;
+    double tinyRadius = 0.05;
+    double radius = 0.6;
     int nRad = 11;
     VectorXd radii(nRad);
     double step;
@@ -306,16 +308,20 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         radii(i) = -0.2 + 0.4 * step;
     }
 
-    for (int i = 0; i < radii.size(); i++) {
-        // Get random 3d vector with magnitue 0.1:
-        Vector3d randomVec = Vector3d::Random();
-        randomVec = randomVec / randomVec.norm() * 0.1;
-        for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
-            radius = dist(iAtom) *.5 + radii(i);
-            coord = mol.getNuclei()[iAtom].getCoord();
-            center << coord[0], coord[1], coord[2];
-            center += randomVec;
-            LebedevIntegrator integrator(filename, radius, center);
+    for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
+        radius = dist(iAtom) *.5;
+        coord = mol.getNuclei()[iAtom].getCoord();
+        center << coord[0], coord[1], coord[2];
+        LebedevIntegrator tintegrator(tinyPoints, tinyRadius, center);
+        MatrixXd tinyPos = tintegrator.getPoints();
+        VectorXd tinyWeights = tintegrator.getWeights();
+        for (int iTiny = 0; iTiny < tintegrator.n; iTiny++){
+            // Vector3d x = center + tinyPos.row(iTiny).transpose();
+            // std::cerr << "x " << x(0) << " " << x(1) << " " << x(2) << "\n";
+            // std::cerr << "center " << center << "\n";
+            // std::cerr << "tinyPos " << tinyPos.row(iTiny) << "\n";
+            std::cerr << "tinyWeights " << tinyWeights(iTiny) << "\n";
+            LebedevIntegrator integrator(filename, radius, tinyPos.row(iTiny).transpose());
             MatrixXd gridPos = integrator.getPoints();
             VectorXd weights = integrator.getWeights();
             MatrixXd normals = integrator.getNormals();
@@ -325,12 +331,10 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
             std::vector<Matrix3d> stress(integrator.n);
             for (int i = 0; i < integrator.n; i++){
                 stress[i] = xStress[i] + kstress[i] + mstress[i];
-                forces.row(iAtom) -= stress[i] * normals.row(i).transpose() * weights(i);
+                forces.row(iAtom) -= stress[i] * normals.row(i).transpose() * weights(i) * tinyWeights(iTiny) / (4.0 * M_PI * tinyRadius * tinyRadius);
             }
         }
     }
-    double size_of_radii = radii.size();
-    forces = forces / size_of_radii;
 
     for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
         std::cerr << "forces " << forces(iAtom, 0) << " " << forces(iAtom, 1) << " " << forces(iAtom, 2) << std::endl;
