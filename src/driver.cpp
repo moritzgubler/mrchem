@@ -529,6 +529,7 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
                 auto Z_k = nuc_k.getCharge();
                 auto R_k = nuc_k.getCoord();
                 double c = detail::nuclear_gradient_smoothing(smoothing, Z_k, mol.getNNuclei());
+                std::cerr << "Smoothing parameter: " << c << std::endl;
                 NuclearGradientOperator h(Z_k, R_k, prec, c);
                 h.setup(prec);
                 nuc.row(k) = Eigen::RowVector3d::Zero();
