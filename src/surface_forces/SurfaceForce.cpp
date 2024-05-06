@@ -298,7 +298,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     std::string filename = parent_dir.string() + "/lebvedev.txt";
     std::string tinyPoints = parent_dir.string() + "/lebvedev_tiny.txt";
 
-    double tinyRadius = 0.3;
+    double tinyRadius = 0.15;
     double radius = 0.6;
     int nRad = 11;
     VectorXd radii(nRad);
