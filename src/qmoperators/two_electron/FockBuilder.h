@@ -45,8 +45,6 @@ class SCFEnergy;
 class MomentumOperator;
 class KineticOperator;
 class ZoraKineticOperator;
-class ZoraOperator;
-class AZoraKineticOperator;
 class AZoraPotential;
 class NuclearOperator;
 class CoulombOperator;

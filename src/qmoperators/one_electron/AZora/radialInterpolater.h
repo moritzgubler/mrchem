@@ -52,6 +52,7 @@ void readZoraPotential(const std::string path, Eigen::VectorXd &rGrid, Eigen::Ve
     rGrid = Eigen::Map<Eigen::VectorXd>(r.data(), r.size());
     vZora = Eigen::Map<Eigen::VectorXd>(v.data(), v.size());
     kappa = Eigen::Map<Eigen::VectorXd>(k.data(), k.size());
+    kappa = kappa * 2.0;
 }
 
 
