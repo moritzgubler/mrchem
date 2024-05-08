@@ -9,33 +9,6 @@
 typedef Eigen::Spline<double, 1, 3> Spline1D;
 typedef Eigen::SplineFitting<Spline1D> SplineFitting1D;
 
-class RadInterpolater {
-
-    public:
-    RadInterpolater(const std::string element){
-        Eigen::VectorXd rGrid;
-        Eigen::VectorXd vZora;
-        Eigen::VectorXd kappa;
-
-        std::filesystem::path p = __FILE__;
-        std::filesystem::path parent_dir = p.parent_path();
-        std::string filename = parent_dir.string() + element + ".txt";
-
-        readZoraPotential(filename, rGrid, vZora, kappa);
-        const auto fitV = SplineFitting1D::Interpolate(kappa.transpose(), 3, rGrid.transpose());
-        spline_kappa(fitV);
-    }
-
-    double evalf(const double &r){
-        return spline_kappa(r).coeff(0);
-    }
-
-    protected:
-    Spline1D spline_kappa;
-
-}
-
-
 void readZoraPotential(const std::string path, Eigen::VectorXd &rGrid, Eigen::VectorXd &vZora, Eigen::VectorXd &kappa){
     std::vector<double> r, v, k;
     std::ifstream file(path);
@@ -52,30 +25,45 @@ void readZoraPotential(const std::string path, Eigen::VectorXd &rGrid, Eigen::Ve
     rGrid = Eigen::Map<Eigen::VectorXd>(r.data(), r.size());
     vZora = Eigen::Map<Eigen::VectorXd>(v.data(), v.size());
     kappa = Eigen::Map<Eigen::VectorXd>(k.data(), k.size());
+    // Add factor of 2 to kappa to be consistent with Lucas paper.
     kappa = kappa * 2.0;
 }
 
+class RadInterpolater {
+
+    public:
+    RadInterpolater(const std::string element){
+        Eigen::VectorXd rGrid;
+        Eigen::VectorXd vZora;
+        Eigen::VectorXd kappa;
+
+        std::filesystem::path p = __FILE__;
+        std::filesystem::path parent_dir = p.parent_path();
+        std::string filename = parent_dir.string() + element + ".txt";
+
+        readZoraPotential(filename, rGrid, vZora, kappa);
+        const auto fitV = SplineFitting1D::Interpolate(vZora.transpose(), 3, rGrid.transpose());
+        Spline1D temp (fitV);
+        splineAZora = temp;
+    }
+
+    double evalf(const double &r){
+        return splineAZora(r).coeff(0);
+    }
+
+    protected:
+    Spline1D splineAZora;
+
+};
 
 // int main() {
-//     Eigen::VectorXd rGrid;
-//     Eigen::VectorXd vZora;
-//     Eigen::VectorXd kappa;
-//     std::cout << "Reading Zora potential for He" << std::endl;
-//     readZoraPotential("He", rGrid, vZora, kappa);
-//     std::cout << "Done reading Zora potential for He" << std::endl;
-//     std::cout << "size of rGrid: " << rGrid.size() << std::endl;
-//     std::cout << "size of vZora: " << vZora.size() << std::endl;
 
+//     RadInterpolater spline_V("Ar");
 
-//     const auto fitV = SplineFitting1D::Interpolate(kappa.transpose(), 3, rGrid.transpose());
-//     std::cout << "Fitting V" << std::endl;
-//     Spline1D spline_V(fitV);
-//     std::cout << "Done fitting V" << std::endl;
-//     // xgrid is equivalent to np.linspace(0, 10, 10000)
-//     Eigen::VectorXd xgrid = Eigen::VectorXd::LinSpaced(100000, 30, 60);
+//     Eigen::VectorXd xgrid = Eigen::VectorXd::LinSpaced(100000, 00, 1);
 //     Eigen::VectorXd ygrid(xgrid.size());
 //     for (int i = 0; i < xgrid.size(); i++) {
-//         ygrid(i) = spline_V(xgrid(i)).coeff(0);
+//         ygrid(i) = spline_V.evalf(xgrid(i));
 //     }
 
 //     // open interpol.txt for writing spline

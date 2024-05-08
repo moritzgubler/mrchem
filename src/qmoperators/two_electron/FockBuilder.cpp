@@ -47,6 +47,8 @@
 #include "qmoperators/qmoperator_utils.h"
 #include "utils/math_utils.h"
 
+#include "qmoperators/one_electron/AZoraPotential.h"
+
 using mrcpp::Printer;
 using mrcpp::Timer;
 
@@ -332,35 +334,36 @@ void FockBuilder::setZoraType(bool has_nuc, bool has_coul, bool has_xc) {
 std::shared_ptr<QMPotential> FockBuilder::collectZoraBasePotential() {
     Timer timer;
     auto vz = std::make_shared<QMPotential>(1, false);
-    if (zora_has_nuc) {
-        if (getNuclearOperator() != nullptr) {
-            auto &vnuc = static_cast<QMPotential &>(getNuclearOperator()->getRaw(0, 0));
-            if (not vnuc.hasReal()) MSG_ERROR("ZORA: Adding empty nuclear potential");
-            vz->add(1.0, vnuc);
-        } else {
-            MSG_ERROR("ZORA: Nuclear requested but not available");
-        }
-    }
-    if (zora_has_coul) {
-        if (getCoulombOperator() != nullptr) {
-            auto &coul = static_cast<QMPotential &>(getCoulombOperator()->getRaw(0, 0));
-            if (not coul.hasReal()) MSG_INFO("ZORA: Adding empty Coulomb potential");
-            vz->add(1.0, coul);
-        } else {
-            MSG_ERROR("ZORA: Coulomb requested but not available");
-        }
-    }
-    if (zora_has_xc) {
-        if (getXCOperator() != nullptr) {
-            getXCOperator()->setSpin(SPIN::Alpha);
-            auto &xc = static_cast<QMPotential &>(getXCOperator()->getRaw(0, 0));
-            if (not xc.hasReal()) MSG_ERROR("ZORA: Adding empty XC potential");
-            vz->add(1.0, xc);
-            getXCOperator()->clearSpin();
-        } else {
-            MSG_ERROR("ZORA: XC requested but not available");
-        }
-    }
+    // if (zora_has_nuc) {
+    //     if (getNuclearOperator() != nullptr) {
+    //         auto &vnuc = static_cast<QMPotential &>(getNuclearOperator()->getRaw(0, 0));
+    //         if (not vnuc.hasReal()) MSG_ERROR("ZORA: Adding empty nuclear potential");
+    //         vz->add(1.0, vnuc);
+    //     } else {
+    //         MSG_ERROR("ZORA: Nuclear requested but not available");
+    //     }
+    // }
+    // if (zora_has_coul) {
+    //     if (getCoulombOperator() != nullptr) {
+    //         auto &coul = static_cast<QMPotential &>(getCoulombOperator()->getRaw(0, 0));
+    //         if (not coul.hasReal()) MSG_INFO("ZORA: Adding empty Coulomb potential");
+    //         vz->add(1.0, coul);
+    //     } else {
+    //         MSG_ERROR("ZORA: Coulomb requested but not available");
+    //     }
+    // }
+    // if (zora_has_xc) {
+    //     if (getXCOperator() != nullptr) {
+    //         getXCOperator()->setSpin(SPIN::Alpha);
+    //         auto &xc = static_cast<QMPotential &>(getXCOperator()->getRaw(0, 0));
+    //         if (not xc.hasReal()) MSG_ERROR("ZORA: Adding empty XC potential");
+    //         vz->add(1.0, xc);
+    //         getXCOperator()->clearSpin();
+    //     } else {
+    //         MSG_ERROR("ZORA: XC requested but not available");
+    //     }
+    // }
+
     print_utils::qmfunction(2, "ZORA operator (base)", *vz, timer);
     return vz;
 }
