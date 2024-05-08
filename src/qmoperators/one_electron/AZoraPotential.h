@@ -20,7 +20,7 @@ namespace mrchem {
  * for constructing the potential.
  *
  */
-class AZora : public QMPotential {
+class AZoraPotential : public QMPotential {
 public:
     /**
      * Constructor that takes a molecule and initializes the azora potential.
@@ -29,7 +29,7 @@ public:
      * @param prec Precision parameter from base class.
      * @param shared Determines if the base potential is shared.
      */
-    AZora(const Molecule& molecule, int adap, double prec, bool shared = false) 
+    AZoraPotential(const Molecule& molecule, int adap, double prec, bool shared = false) 
         : QMPotential(adap, shared), mol(molecule), prec(prec) {
         initAzoraPotential();
     }
@@ -38,7 +38,7 @@ public:
      * Copy constructor.
      * @param other The other instance to copy from.
      */
-    AZora(const AZora& other) 
+    AZoraPotential(const AZoraPotential& other) 
         : QMPotential(other), mol(other.mol), prec(other.prec) {
         initAzoraPotential();
     }
@@ -46,10 +46,10 @@ public:
     /**
      * Destructor.
      */
-    virtual ~AZora() override = default;
+    virtual ~AZoraPotential() override = default;
 
     // Delete copy assignment to prevent copying
-    AZora& operator=(const AZora&) = delete;
+    AZoraPotential& operator=(const AZoraPotential&) = delete;
 
 protected:
     Molecule mol; // The molecule representing the potential

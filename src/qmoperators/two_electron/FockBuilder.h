@@ -46,6 +46,8 @@ class MomentumOperator;
 class KineticOperator;
 class ZoraKineticOperator;
 class ZoraOperator;
+class AZoraOperator;
+class AZoraPotential;
 class NuclearOperator;
 class CoulombOperator;
 class ExchangeOperator;
