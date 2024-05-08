@@ -44,10 +44,10 @@
 
 namespace mrchem {
 
-class AZoraOperator final : public RankZeroOperator {
+class AZoraKineticOperator final : public RankZeroOperator {
 public:
 
-    explicit AZoraOperator(MomentumOperator p, mrchem::QMPotential& vAZora) {
+    explicit AZoraKineticOperator(MomentumOperator p, mrchem::QMPotential& vAZora) {
         // Invoke operator= to assign *this operator
         RankZeroOperator &t = (*this);
         t = (p[0] * vAZora * p[0] + p[1] * vAZora * p[1] + p[2] * vAZora * p[2]);
