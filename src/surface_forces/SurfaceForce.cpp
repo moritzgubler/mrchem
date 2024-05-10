@@ -32,6 +32,8 @@
 #include <iostream>
 #include <filesystem>
 
+#include <MRCPP/Timer>
+
 extern mrcpp::MultiResolutionAnalysis<3> *mrchem::MRA;
 
 using namespace Eigen;
@@ -153,7 +155,13 @@ std::vector<Matrix3d> xcStress(const Molecule &mol, const Density &rho, std::sha
     return stress;
 }
 
-std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std::vector<OrbitalVector> &nablaPhi, std::vector<OrbitalVector> &hessPhi, double prec, const MatrixXd &gridPos){
+std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std::vector<OrbitalVector> &nablaPhi, OrbitalVector &hessRho, double prec, const MatrixXd &gridPos){
+
+    // original formula for kinetic stress:
+    // sigma_ij = 0.5 \sum_k phi_k del_i del_j phi_k - (del_i phi_k) (del_j phi_k)
+    // using the product rule for the first term:
+    // sigma_ij = 0.5 * del_i del_j rho - 2 * \sum_k (del_i phi_k) (del_j phi_k)
+    // That way, only second derivatives of density is needed which speeds things up. quite a lot.
 
     int nGrid = gridPos.rows();
     int nOrbs = Phi.size();
@@ -165,26 +173,40 @@ std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std
     }
     std::array<double, 3> pos;
     double n1, n2, n3;
+    int occ;
     for (int iOrb = 0; iOrb < Phi.size(); iOrb++) {
+        occ = Phi[iOrb].occ();
     
         for (int i = 0; i < nGrid; i++) {
             pos[0] = gridPos(i, 0);
             pos[1] = gridPos(i, 1);
             pos[2] = gridPos(i, 2);
-            orbVal = Phi[iOrb].real().evalf(pos);
             n1 = nablaPhi[iOrb][0].real().evalf(pos);
             n2 = nablaPhi[iOrb][1].real().evalf(pos);
             n3 = nablaPhi[iOrb][2].real().evalf(pos);
-            stress[i](0, 0) += orbVal * hessPhi[iOrb][0].real().evalf(pos) - n1 * n1;
-            stress[i](1, 1) += orbVal * hessPhi[iOrb][1].real().evalf(pos) - n2 * n2;
-            stress[i](2, 2) += orbVal * hessPhi[iOrb][2].real().evalf(pos) - n3 * n3;
-            stress[i](0, 1) += orbVal * hessPhi[iOrb][3].real().evalf(pos) - n1 * n2;
-            stress[i](0, 2) += orbVal * hessPhi[iOrb][4].real().evalf(pos) - n1 * n3;
-            stress[i](1, 2) += orbVal * hessPhi[iOrb][5].real().evalf(pos) - n2 * n3;
-            stress[i](1, 0) = stress[i](0, 1);
-            stress[i](2, 0) = stress[i](0, 2);
-            stress[i](2, 1) = stress[i](1, 2);
+            stress[i](0, 0) -= occ * n1 * n1;
+            stress[i](1, 1) -= occ * n2 * n2;
+            stress[i](2, 2) -= occ * n3 * n3;
+            stress[i](0, 1) -= occ * n1 * n2;
+            stress[i](0, 2) -= occ * n1 * n3;
+            stress[i](1, 2) -= occ * n2 * n3;
         }
+    }
+    // loop over grid
+    for (int i = 0; i < nGrid; i++) {
+        pos[0] = gridPos(i, 0);
+        pos[1] = gridPos(i, 1);
+        pos[2] = gridPos(i, 2);
+        stress[i](0, 0) += 0.25 * hessRho[0].real().evalf(pos);
+        stress[i](1, 1) += 0.25 * hessRho[1].real().evalf(pos);
+        stress[i](2, 2) += 0.25 * hessRho[2].real().evalf(pos);
+        stress[i](0, 1) += 0.25 * hessRho[3].real().evalf(pos);
+        stress[i](0, 2) += 0.25 * hessRho[4].real().evalf(pos);
+        stress[i](1, 2) += 0.25 * hessRho[5].real().evalf(pos);
+        // symmetrize stress tensor
+        stress[i](1, 0) = stress[i](0, 1);
+        stress[i](2, 0) = stress[i](0, 2);
+        stress[i](2, 1) = stress[i](1, 2);
     }
     return stress;
 }
@@ -247,10 +269,9 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     hess.setup(prec);
 
     std::vector<mrchem::OrbitalVector> nablaPhi;
-    std::vector<mrchem::OrbitalVector> hessPhi;
+    mrchem::OrbitalVector hessRho = hess(rho);
     for (int i = 0; i < Phi.size(); i++) {
         nablaPhi.push_back(nabla(Phi[i]));
-        hessPhi.push_back(hess(Phi[i]));
     }
 
     // setup xc stuff:
@@ -325,7 +346,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
             VectorXd weights = integrator.getWeights();
             MatrixXd normals = integrator.getNormals();
             std::vector<Matrix3d> xStress = xcStress(mol, rho, XC_p, gridPos, prec);
-            std::vector<Matrix3d> kstress = kineticStress(mol, Phi, nablaPhi, hessPhi, prec, gridPos);
+            std::vector<Matrix3d> kstress = kineticStress(mol, Phi, nablaPhi, hessRho, prec, gridPos);
             std::vector<Matrix3d> mstress = maxwellStress(mol, negEfield, gridPos);
             std::vector<Matrix3d> stress(integrator.n);
             for (int i = 0; i < integrator.n; i++){
@@ -338,7 +359,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
         std::cerr << "forces " << forces(iAtom, 0) << " " << forces(iAtom, 1) << " " << forces(iAtom, 2) << std::endl;
     }
-    
+
     hess.clear();
     nabla.clear();
     XC_p->potential->clear();
