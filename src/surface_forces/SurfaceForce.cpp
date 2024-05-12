@@ -42,7 +42,7 @@ using nlohmann::json;
 
 namespace surface_force {
 
-MatrixXd nuclearEfield(const MatrixXd &nucPos, const VectorXd &nucCharge, const MatrixXd gridPos) {
+MatrixXd nuclearEfield(const MatrixXd &nucPos, const VectorXd &nucCharge, const VectorXd &nucSmoothing, const MatrixXd gridPos) {
     int nGrid = gridPos.rows();
     int nNuc = nucPos.rows();
     MatrixXd Efield = MatrixXd::Zero(nGrid, 3);
@@ -80,12 +80,13 @@ MatrixXd electronicEfield(mrchem::OrbitalVector &negEfield, const MatrixXd &grid
     return Efield;
 }
 
-std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrchem::OrbitalVector &negEfield, const MatrixXd &gridPos){
+std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrchem::OrbitalVector &negEfield, const MatrixXd &gridPos, double prec){
     int nGrid = gridPos.rows();
     int nNuc = mol.getNNuclei();
 
     Eigen::MatrixXd nucPos(nNuc, 3);
     Eigen::VectorXd nucCharge(nNuc);
+    Einge::VectorXd nucSmoothing(nNuc);
     for (int i = 0; i < nNuc; i++)
     {
         std::array<double, 3> coord = mol.getNuclei()[i].getCoord();
@@ -93,9 +94,11 @@ std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrchem::OrbitalV
         nucPos(i, 1) = coord[1];
         nucPos(i, 2) = coord[2];
         nucCharge(i) = mol.getNuclei()[i].getCharge();
+        double tmp = 0.00435 * prec / std::pow(nucCharge(i), 5.0);
+        nucSmoothing(i) =  std::cbrt(tmp);
     }
 
-    MatrixXd Efield = electronicEfield(negEfield, gridPos) + nuclearEfield(nucPos, nucCharge, gridPos);
+    MatrixXd Efield = electronicEfield(negEfield, gridPos) + nuclearEfield(nucPos, nucCharge, gridPos, nucSmoothing);
 
     std::vector<Eigen::Matrix3d> stress(nGrid);
     for (int i = 0; i < nGrid; i++) {
@@ -347,7 +350,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
             MatrixXd normals = integrator.getNormals();
             std::vector<Matrix3d> xStress = xcStress(mol, rho, XC_p, gridPos, prec);
             std::vector<Matrix3d> kstress = kineticStress(mol, Phi, nablaPhi, hessRho, prec, gridPos);
-            std::vector<Matrix3d> mstress = maxwellStress(mol, negEfield, gridPos);
+            std::vector<Matrix3d> mstress = maxwellStress(mol, negEfield, gridPos, prec);
             std::vector<Matrix3d> stress(integrator.n);
             for (int i = 0; i < integrator.n; i++){
                 stress[i] = xStress[i] + kstress[i] + mstress[i];
