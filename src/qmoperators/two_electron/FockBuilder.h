@@ -28,6 +28,7 @@
 #include "qmoperators/QMPotential.h"
 #include "tensor/RankOneOperator.h"
 #include "tensor/RankZeroOperator.h"
+#include "chemistry/Nucleus.h"
 
 /** @class FockOperator
  *
@@ -79,6 +80,7 @@ public:
 
     bool isZora() const { return (zora_has_nuc || zora_has_coul || zora_has_xc); }
     void setZoraType(bool has_nuc, bool has_coul, bool has_xc);
+    void setNucs(const Nuclei &nucs) { this->nucs = nucs;}
 
     SCFEnergy trace(OrbitalVector &Phi, const Nuclei &nucs);
     ComplexMatrix operator()(OrbitalVector &bra, OrbitalVector &ket);
@@ -95,6 +97,7 @@ private:
     RankZeroOperator zora_base;
 
     double prec;
+    Nuclei nucs;
 
     RankZeroOperator V;   ///< Total potential energy operator
     RankZeroOperator H_1; ///< Perturbation operators

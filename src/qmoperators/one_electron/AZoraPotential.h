@@ -29,9 +29,9 @@ public:
      * @param prec Precision parameter from base class.
      * @param shared Determines if the base potential is shared.
      */
-    AZoraPotential(const std::shared_ptr<Molecule> molecule, int adap, double prec, bool shared = false) 
+    AZoraPotential(Nuclei nucs, int adap, double prec, bool shared = false) 
         : QMPotential(adap, shared) {
-        this->mol = molecule;
+        this->nucs = nucs;
         this->prec = prec;
         initAzoraPotential();
     }
@@ -42,7 +42,7 @@ public:
      */
     AZoraPotential(const AZoraPotential& other) 
         : QMPotential(other) {
-        this->mol = other.mol;
+        this->nucs = other.nucs;
         this->prec = other.prec;
         initAzoraPotential();
     }
@@ -56,7 +56,7 @@ public:
     AZoraPotential& operator=(const AZoraPotential&) = delete;
 
 protected:
-    std::shared_ptr<const Molecule> mol; // The molecule representing the potential
+    Nuclei nucs; // The nuclei of the molecule
     double prec; // The precision parameter
 
     /**
@@ -66,8 +66,7 @@ protected:
      */
     void initAzoraPotential() {
 
-        int n = mol->getNNuclei();
-        Nuclei nucs = mol->getNuclei();
+        int n = nucs.size();
         Eigen::VectorXd rGrid, vZora, kappa;
 
         std::vector<RadInterpolater> aZoraPotentialSplines;
@@ -79,7 +78,7 @@ protected:
         }
 
         // Create lambda function that sums up all the atomic dampening functions
-        auto k = [aZoraPotentialSplines, nucs](const mrcpp::Coord<3>& r) {
+        auto k = [aZoraPotentialSplines, this](const mrcpp::Coord<3>& r) {
             double V = 1.0;
             // Loop over all atoms:
             for (int i = 0; i < aZoraPotentialSplines.size(); i++) {

@@ -97,8 +97,10 @@ void FockBuilder::setup(double prec) {
         mrcpp::print::value(3, "Precision", prec, "(rel)", 5);
         mrcpp::print::value(3, "Light speed", c, "(au)", 5);
         mrcpp::print::separator(3, '-');
-        auto vz = collectZoraBasePotential();
-        this->kappa = std::make_shared<ZoraOperator>(*vz, c, prec, false);
+        // auto vz = AcollectZoraBasePotential();
+        int adap = 10;
+        bool share = false;
+        std::shared_ptr<QMPotential> vz = std::make_shared<AZoraPotential>(nucs, adap, prec, share);
         this->kappa_inv = std::make_shared<ZoraOperator>(*vz, c, prec, true);
         this->zora_base = RankZeroOperator(vz);
         this->kappa->setup(prec);
@@ -333,7 +335,7 @@ void FockBuilder::setZoraType(bool has_nuc, bool has_coul, bool has_xc) {
 
 std::shared_ptr<QMPotential> FockBuilder::collectZoraBasePotential() {
     Timer timer;
-    auto vz = std::make_shared<QMPotential>(1, false);
+    std::shared_ptr<QMPotential> vz = std::make_shared<QMPotential>(1, false);
     if (zora_has_nuc) {
         if (getNuclearOperator() != nullptr) {
             auto &vnuc = static_cast<QMPotential &>(getNuclearOperator()->getRaw(0, 0));

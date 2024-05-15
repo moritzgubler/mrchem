@@ -241,6 +241,7 @@ json driver::scf::run(const json &json_scf, Molecule &mol) {
     FockBuilder F;
     const auto &json_fock = json_scf["fock_operator"];
     driver::build_fock_operator(json_fock, mol, F, 0);
+    F.setNucs(mol.getNuclei());
 
     // Pre-compute internal exchange contributions
     if (F.getExchangeOperator()) F.getExchangeOperator()->setPreCompute();
