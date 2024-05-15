@@ -47,7 +47,7 @@ class RadInterpolater {
         splineAZora = temp;
     }
 
-    double evalf(const double &r){
+    double evalf(const double &r) const {
         return splineAZora(r).coeff(0);
     }
 
