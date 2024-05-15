@@ -25,7 +25,7 @@ public:
     /**
      * Constructor that takes a molecule and initializes the azora potential.
      * @param molecule The molecule used to construct the potential.
-     * @param adap Adaptive parameter from base class.
+     * @param adap Adaptive parameter from QMPotential.
      * @param prec Precision parameter from base class.
      * @param shared Determines if the base potential is shared.
      */
