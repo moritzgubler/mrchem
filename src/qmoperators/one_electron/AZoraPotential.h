@@ -29,12 +29,11 @@ public:
      * @param prec Precision parameter from base class.
      * @param shared Determines if the base potential is shared.
      */
-    AZoraPotential(const std::shared_ptr<Molecule> molecule, int adap, double prec, bool inverse, bool shared = false) 
+    AZoraPotential(const std::shared_ptr<Molecule> molecule, int adap, double prec, bool shared = false) 
         : QMPotential(adap, shared) {
         this->mol = molecule;
         this->prec = prec;
-        this->inverse = inverse;
-        initAzoraPotential(inverse);
+        initAzoraPotential();
     }
 
     /**
@@ -45,8 +44,7 @@ public:
         : QMPotential(other) {
         this->mol = other.mol;
         this->prec = other.prec;
-        this->inverse = other.inverse;
-        initAzoraPotential(other.inverse);
+        initAzoraPotential();
     }
 
     /**
@@ -60,15 +58,13 @@ public:
 protected:
     std::shared_ptr<const Molecule> mol; // The molecule representing the potential
     double prec; // The precision parameter
-    bool inverse; // Determines if the potential is inverted or not
 
     /**
      * Initialize the azora potential based on the molecule.
      * This method would typically setup the real and imaginary function trees
      * representing the potential.
-     * @param inverse Determines if the kapppa function is inverted or not.
      */
-    void initAzoraPotential(bool inverse = false) {
+    void initAzoraPotential() {
 
         int n = mol->getNNuclei();
         Nuclei nucs = mol->getNuclei();
@@ -83,7 +79,7 @@ protected:
         }
 
         // Create lambda function that sums up all the atomic dampening functions
-        auto k = [aZoraPotentialSplines, inverse, nucs](const mrcpp::Coord<3>& r) {
+        auto k = [aZoraPotentialSplines, nucs](const mrcpp::Coord<3>& r) {
             double V = 1.0;
             // Loop over all atoms:
             for (int i = 0; i < aZoraPotentialSplines.size(); i++) {
@@ -91,7 +87,6 @@ protected:
                 double rr = std::sqrt((r[0] - r_i[0]) * (r[0] - r_i[0]) + (r[1] - r_i[1]) * (r[1] - r_i[1]) + (r[2] - r_i[2]) * (r[2] - r_i[2]));
                 V += aZoraPotentialSplines[i].evalf(rr) - 1.0;
             }
-            if (inverse) V = 1.0 / V;
             return V;
         };
 
