@@ -47,6 +47,8 @@
 #include "qmoperators/qmoperator_utils.h"
 #include "utils/math_utils.h"
 
+#include "qmoperators/one_electron/AZoraPotential.h"
+
 using mrcpp::Printer;
 using mrcpp::Timer;
 
