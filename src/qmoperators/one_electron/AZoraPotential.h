@@ -74,22 +74,22 @@ protected:
         Nuclei nucs = mol->getNuclei();
         Eigen::VectorXd rGrid, vZora, kappa;
 
-        std::vector<RadInterpolater> kappaSplines;
+        std::vector<RadInterpolater> aZoraPotentialSplines;
 
 
         for (int i = 0; i < n; i++) {
             RadInterpolater kappaSpline(nucs[i].getElement().getSymbol());
-            kappaSplines.push_back(kappaSpline);
+            aZoraPotentialSplines.push_back(kappaSpline);
         }
 
         // Create lambda function that sums up all the atomic dampening functions
-        auto k = [kappaSplines, inverse, nucs](const mrcpp::Coord<3>& r) {
+        auto k = [aZoraPotentialSplines, inverse, nucs](const mrcpp::Coord<3>& r) {
             double V = 1.0;
             // Loop over all atoms:
-            for (int i = 0; i < kappaSplines.size(); i++) {
+            for (int i = 0; i < aZoraPotentialSplines.size(); i++) {
                 mrcpp::Coord<3> r_i = nucs[i].getCoord();
                 double rr = std::sqrt((r[0] - r_i[0]) * (r[0] - r_i[0]) + (r[1] - r_i[1]) * (r[1] - r_i[1]) + (r[2] - r_i[2]) * (r[2] - r_i[2]));
-                V += kappaSplines[i].evalf(rr) - 1.0;
+                V += aZoraPotentialSplines[i].evalf(rr) - 1.0;
             }
             if (inverse) V = 1.0 / V;
             return V;
