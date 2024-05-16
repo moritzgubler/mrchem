@@ -101,6 +101,7 @@ void FockBuilder::setup(double prec) {
         int adap = 10;
         bool share = false;
         std::shared_ptr<QMPotential> vz = std::make_shared<AZoraPotential>(nucs, adap, prec, share);
+        this->kappa = std::make_shared<ZoraOperator>(*vz, c, prec, false);
         this->kappa_inv = std::make_shared<ZoraOperator>(*vz, c, prec, true);
         this->zora_base = RankZeroOperator(vz);
         this->kappa->setup(prec);
