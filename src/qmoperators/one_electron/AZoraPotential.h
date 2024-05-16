@@ -34,7 +34,6 @@ public:
         this->nucs = nucs;
         this->prec = prec;
         initAzoraPotential();
-        this->setup(prec);
     }
 
     /**
