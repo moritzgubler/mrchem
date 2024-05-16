@@ -40,7 +40,7 @@ ZoraOperator::ZoraOperator(QMPotential &vz, double c, double proj_prec, bool inv
     Timer timer;
     double two_cc = 2.0 * c * c;
 
-    auto k = std::make_shared<QMPotential>(1);
+    std::shared_ptr<QMPotential> k = std::make_shared<QMPotential>(1);
     mrcpp::cplxfunc::deep_copy(*k, vz);
 
     if (k->hasImag()) MSG_ERROR("Inverse of complex function");
@@ -63,6 +63,12 @@ ZoraOperator::ZoraOperator(QMPotential &vz, double c, double proj_prec, bool inv
     }
     auto plevel = Printer::getPrintLevel();
     print_utils::qmfunction(2, "ZORA operator (" + kappa.name() + ")", *k, timer);
+}
+
+ZoraOperator::ZoraOperator(QMPotential &relativisticDampening) {
+    RankZeroOperator &kappa = (*this);
+    kappa = std::make_shared<QMPotential>(relativisticDampening);
+    kappa.name() = "kappa";
 }
 
 } // namespace mrchem

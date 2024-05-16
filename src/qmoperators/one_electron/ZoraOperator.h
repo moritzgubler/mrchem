@@ -34,6 +34,9 @@ class QMPotential;
 class ZoraOperator final : public RankZeroOperator {
 public:
     ZoraOperator(QMPotential &vz, double c, double proj_prec, bool inverse = false);
+
+    ZoraOperator(QMPotential &vz);
+
 };
 
 } // namespace mrchem
