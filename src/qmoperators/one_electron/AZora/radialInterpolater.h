@@ -39,7 +39,7 @@ class RadInterpolater {
 
         std::filesystem::path p = __FILE__;
         std::filesystem::path parent_dir = p.parent_path();
-        std::string filename = parent_dir.string() + element + ".txt";
+        std::string filename = parent_dir.string() + '/' + element + ".txt";
 
         readZoraPotential(filename, rGrid, vZora, kappa);
         const auto fitV = SplineFitting1D::Interpolate(vZora.transpose(), 3, rGrid.transpose());
