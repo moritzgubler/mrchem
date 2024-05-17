@@ -98,16 +98,67 @@ void FockBuilder::setup(double prec) {
         mrcpp::print::value(3, "Light speed", c, "(au)", 5);
         mrcpp::print::separator(3, '-');
         // auto vz = AcollectZoraBasePotential();
-        int adap = 10;
+        std::cout << "creating zora stuff\n";
+        std::cerr << "creating zora stuff\n";
+        int adap = 3;
         bool share = false;
-        std::shared_ptr<QMPotential> vz = std::make_shared<AZoraPotential>(nucs, adap, prec, share);
-        this->kappa = std::make_shared<ZoraOperator>(*vz, c, prec, false);
-        this->kappa_inv = std::make_shared<ZoraOperator>(*vz, c, prec, true);
+        bool inverse = false;
+        std::string mode = "kappa";
+        double zprec = 1.0e-5;
+        std::shared_ptr<QMPotential> kappaPot = std::make_shared<AZoraPotential>(nucs, adap, zprec, inverse, mode, share);
+        mode = "potential";
+        zprec = 1.0e-5;
+        std::shared_ptr<QMPotential> vz = std::make_shared<AZoraPotential>(nucs, adap, zprec, inverse, mode, share);
+
+        std::shared_ptr<QMPotential> k = std::make_shared<QMPotential>(1);
+        mrcpp::cplxfunc::deep_copy(*k, *vz);
+        double two_cc = 2.0 * c * c;
+        std::cerr<< "prec = " << prec << "\n";
+
+        // mrcpp::refine_grid(k->real(), 1);
+        k->real().map([two_cc, c](double val) { return c * c / (two_cc - val); });
+        // k->real().crop(zprec);
+
+        std::shared_ptr<QMPotential> kk = std::make_shared<QMPotential>(1);
+        mrcpp::cplxfunc::deep_copy(*kk, *vz);
+        // mrcpp::refine_grid(kk->real(), 1);
+        kk->real().map([two_cc, c](double val) { return (two_cc - val) / (c * c);  });
+        // kk->real().crop(zprec);
+
+        inverse = true;
+        mode = "kappa";
+        zprec = 1.0e-5;
+        std::shared_ptr<QMPotential> kappaInvPot = std::make_shared<AZoraPotential>(nucs, adap, zprec, inverse, mode, share);
+        this->kappa = std::make_shared<ZoraOperator>(*kappaPot);
+        this->kappa_inv = std::make_shared<ZoraOperator>(*kappaInvPot);
         this->zora_base = RankZeroOperator(vz);
         this->kappa->setup(prec);
         this->kappa_inv->setup(prec);
         this->zora_base.setup(prec);
+
+        // open file toto for writing:
+        std::ofstream toto;
+        toto.open("toto");
+        // set precision of toto to 10
+        toto.precision(10);
+        mrcpp::Coord<3> r;
+        r[1] = 0.0;
+        r[2] = 0.0;
+        // rgrid = np.linspace(0.0, 1.0, 1000)
+        Eigen::VectorXd rgrid = Eigen::VectorXd::LinSpaced(1000, 0.0, 1.0);
+        for (int i = 0; i < rgrid.size(); i++) {
+            r[0] = rgrid(i);
+            toto << rgrid(i) << " " << kappaPot->real().evalf(r) << " " << kappaInvPot->real().evalf(r) << " " << vz->real().evalf(r) << " " << k->real().evalf(r) << " " << kk->real().evalf(r) << "\n";
+        }
+        toto.close();
+
+        // quit the program:
+        exit(0);
+        
+
         mrcpp::print::footer(3, t_zora, 2);
+        std::cout << "created zora stuff\n";
+        std::cerr << "created zora stuff\n";
     };
 
     t_tot.stop();

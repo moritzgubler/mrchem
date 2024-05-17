@@ -26,25 +26,33 @@ void readZoraPotential(const std::string path, Eigen::VectorXd &rGrid, Eigen::Ve
     vZora = Eigen::Map<Eigen::VectorXd>(v.data(), v.size());
     kappa = Eigen::Map<Eigen::VectorXd>(k.data(), k.size());
     // Add factor of 2 to kappa to be consistent with Lucas paper.
-    kappa = kappa * 2.0;
+    // kappa = kappa * 2.0;
 }
 
 class RadInterpolater {
 
     public:
-    RadInterpolater(const std::string element){
+    RadInterpolater(const std::string element, const std::string mode){
         Eigen::VectorXd rGrid;
         Eigen::VectorXd vZora;
         Eigen::VectorXd kappa;
 
+        this->mode = mode;
         std::filesystem::path p = __FILE__;
         std::filesystem::path parent_dir = p.parent_path();
         std::string filename = parent_dir.string() + '/' + element + ".txt";
 
         readZoraPotential(filename, rGrid, vZora, kappa);
-        const auto fitV = SplineFitting1D::Interpolate(vZora.transpose(), 3, rGrid.transpose());
-        Spline1D temp (fitV);
-        splineAZora = temp;
+        if (mode == "kappa") {
+            const auto fitV = SplineFitting1D::Interpolate(kappa.transpose(), 3, rGrid.transpose());
+            Spline1D temp (fitV);
+            splineAZora = temp;
+        } else if (mode == "potential") {
+            const auto fitV = SplineFitting1D::Interpolate(vZora.transpose(), 3, rGrid.transpose());
+            Spline1D temp (fitV);
+            splineAZora = temp;
+        }
+
     }
 
     double evalf(const double &r) const {
@@ -53,6 +61,7 @@ class RadInterpolater {
 
     protected:
     Spline1D splineAZora;
+    std::string mode;
 
 };
 

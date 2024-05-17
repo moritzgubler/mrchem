@@ -29,10 +29,12 @@ public:
      * @param prec Precision parameter from base class.
      * @param shared Determines if the base potential is shared.
      */
-    AZoraPotential(Nuclei nucs, int adap, double prec, bool shared = false) 
+    AZoraPotential(Nuclei nucs, int adap, double prec, bool inverse, std::string mode, bool shared = false) 
         : QMPotential(adap, shared) {
         this->nucs = nucs;
         this->prec = prec;
+        this->inverse = inverse;
+        this->mode = mode;
         initAzoraPotential();
     }
 
@@ -44,6 +46,8 @@ public:
         : QMPotential(other) {
         this->nucs = other.nucs;
         this->prec = other.prec;
+        this->inverse = other.inverse;
+        this->mode = other.mode;
         initAzoraPotential();
     }
 
@@ -58,6 +62,8 @@ public:
 protected:
     Nuclei nucs; // The nuclei of the molecule
     double prec; // The precision parameter
+    bool inverse; // Whether to use the inverse of the damping function
+    std::string mode; // The mode of the potential, either 'kappa' or 'potential'
 
     /**
      * Initialize the azora potential based on the molecule.
@@ -69,34 +75,47 @@ protected:
         int n = nucs.size();
         Eigen::VectorXd rGrid, vZora, kappa;
 
-        std::vector<RadInterpolater> aZoraPotentialSplines;
+        std::vector<RadInterpolater> dampRel;
 
 
         for (int i = 0; i < n; i++) {
-            RadInterpolater kappaSpline(nucs[i].getElement().getSymbol());
-            aZoraPotentialSplines.push_back(kappaSpline);
+            RadInterpolater kappaSpline(nucs[i].getElement().getSymbol(), this->mode);
+            dampRel.push_back(kappaSpline);
         }
 
-        // Create lambda function that sums up all the atomic dampening functions
-        auto k = [aZoraPotentialSplines, this](const mrcpp::Coord<3>& r) {
-            double V = 1.0;
+        std::cerr << " Sizs of dampRel: " << dampRel.size() << "\n";
+
+        mrcpp::ComplexFunction vtot;
+        if (mode == "kappa") {
+        auto k = [dampRel, this](const mrcpp::Coord<3>& r) {
+            double V = 0.0;
             // Loop over all atoms:
-            for (int i = 0; i < aZoraPotentialSplines.size(); i++) {
+            for (int i = 0; i < dampRel.size(); i++) {
                 mrcpp::Coord<3> r_i = nucs[i].getCoord();
                 double rr = std::sqrt((r[0] - r_i[0]) * (r[0] - r_i[0]) + (r[1] - r_i[1]) * (r[1] - r_i[1]) + (r[2] - r_i[2]) * (r[2] - r_i[2]));
-                V += aZoraPotentialSplines[i].evalf(rr) - 1.0;
+                V += dampRel[i].evalf(rr) - .5;
+            }
+            V += .5;
+            if (this->inverse) V = 1.0 / V;
+            return V;
+        };
+        mrcpp::cplxfunc::project(vtot, k, mrcpp::NUMBER::Real, prec);
+        } else if (mode == "potential") {
+        auto k = [dampRel, this](const mrcpp::Coord<3>& r) {
+            double V = 0.0;
+            // Loop over all atoms:
+            for (int i = 0; i < dampRel.size(); i++) {
+                mrcpp::Coord<3> r_i = nucs[i].getCoord();
+                double rr = std::sqrt((r[0] - r_i[0]) * (r[0] - r_i[0]) + (r[1] - r_i[1]) * (r[1] - r_i[1]) + (r[2] - r_i[2]) * (r[2] - r_i[2]));
+                V += dampRel[i].evalf(rr);
             }
             return V;
         };
-
-        mrcpp::ComplexFunction vtot;
         mrcpp::cplxfunc::project(vtot, k, mrcpp::NUMBER::Real, prec);
+        }
         this->add(1.0, vtot);
 
     }
-
-
-    // Override the base class methods if needed to adapt them for the AZora potential
 };
 
 } // namespace mrchem
