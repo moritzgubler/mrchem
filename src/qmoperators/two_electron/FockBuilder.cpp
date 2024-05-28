@@ -97,8 +97,6 @@ void FockBuilder::setup(double prec) {
         mrcpp::print::value(3, "Precision", prec, "(rel)", 5);
         mrcpp::print::value(3, "Light speed", c, "(au)", 5);
         mrcpp::print::separator(3, '-');
-        // auto vz = AcollectZoraBasePotential();
-        std::cerr << "creating zora stuff\n";
         int adap = 1;
         bool share = false;
         kappaPot = std::make_shared<AZoraPotential>(nucs, adap, prec);
@@ -114,34 +112,12 @@ void FockBuilder::setup(double prec) {
         this->kappa->setup(prec);
         this->kappa_inv->setup(prec);
 
-        // open file toto for writing:
-        std::ofstream toto;
-        toto.open("toto");
-        // set precision of toto to 10
-        toto.precision(10);
-        mrcpp::Coord<3> r;
-        r[1] = 0.870221;
-        r[2] = 0.398;
-        // rgrid = np.linspace(0.0, 1.0, 1000)
-        Eigen::VectorXd rgrid = Eigen::VectorXd::LinSpaced(1000, 1e-10, .1);
-        for (int i = 0; i < rgrid.size(); i++) {
-            r[0] = 0.068723 + rgrid(i);
-            toto << rgrid(i) << " " << kappaPot->real().evalf(r) << " " << kappaInvPot->real().evalf(r) << "\n";
-        }
-        toto.close();
-
-        // quit the program:
-        // exit(0);
-        
-
         mrcpp::print::footer(3, t_zora, 2);
-        std::cerr << "created zora stuff " << prec<< " \n";
     }
 
     t_tot.stop();
     if (plevel == 2) mrcpp::print::footer(2, t_tot, 2);
     if (plevel == 1) mrcpp::print::time(1, "Building Fock operator", t_tot);
-    std::cerr << "leaving fock setup\n";
 }
 
 /** @brief clear operator after application
