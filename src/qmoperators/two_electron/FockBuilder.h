@@ -94,7 +94,7 @@ private:
 
     double light_speed{-1.0};
     double exact_exchange{1.0};
-    RankZeroOperator zora_base;
+    // RankZeroOperator zora_base;
 
     double prec;
     Nuclei nucs;
@@ -115,6 +115,8 @@ private:
     std::shared_ptr<QMPotential> collectZoraBasePotential();
     OrbitalVector buildHelmholtzArgumentZORA(OrbitalVector &Phi, OrbitalVector &Psi, DoubleVector eps, double prec);
     OrbitalVector buildHelmholtzArgumentNREL(OrbitalVector &Phi, OrbitalVector &Psi);
+    std::shared_ptr<QMPotential> kappaPot{nullptr};
+    std::shared_ptr<QMPotential> kappaInvPot{nullptr};
 };
 
 } // namespace mrchem
