@@ -134,7 +134,6 @@ void FockBuilder::clear() {
         this->kappa_inv->clear();
         // this->zora_base.clear();
     }
-    std::cout << "clearing fock stuff\n";
 }
 
 /** @brief rotate orbitals of two-electron operators
