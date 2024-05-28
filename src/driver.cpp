@@ -1019,10 +1019,11 @@ void driver::build_fock_operator(const json &json_fock, Molecule &mol, FockBuild
         auto c = PhysicalConstants::get("light_speed");
         F.setLightSpeed(c);
 
-        auto include_nuclear = json_fock["zora_operator"]["include_nuclear"];
-        auto include_coulomb = json_fock["zora_operator"]["include_coulomb"];
-        auto include_xc = json_fock["zora_operator"]["include_xc"];
-        F.setZoraType(include_nuclear, include_coulomb, include_xc);
+        bool include_nuclear = json_fock["zora_operator"]["include_nuclear"];
+        bool include_coulomb = json_fock["zora_operator"]["include_coulomb"];
+        bool include_xc = json_fock["zora_operator"]["include_xc"];
+        bool is_azora = json_fock["zora_operator"]["isAZORA"];
+        F.setZoraType(include_nuclear, include_coulomb, include_xc, is_azora);
     }
     ///////////////////////////////////////////////////////////
     //////////////////   Coulomb Operator   ///////////////////

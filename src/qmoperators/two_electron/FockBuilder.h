@@ -79,7 +79,8 @@ public:
     double getLightSpeed() const { return this->light_speed; }
 
     bool isZora() const { return (zora_has_nuc || zora_has_coul || zora_has_xc); }
-    void setZoraType(bool has_nuc, bool has_coul, bool has_xc);
+    bool isAZora() const { return zora_is_azora; }
+    void setZoraType(bool has_nuc, bool has_coul, bool has_xc, bool is_azora);
     void setNucs(const Nuclei &nucs) { this->nucs = nucs;}
 
     SCFEnergy trace(OrbitalVector &Phi, const Nuclei &nucs);
@@ -91,6 +92,10 @@ private:
     bool zora_has_nuc{false};
     bool zora_has_coul{false};
     bool zora_has_xc{false};
+    /**
+     * @brief Flag to indicate if the ZORA operator is of the AZORA type
+    */
+    bool zora_is_azora{false};
 
     double light_speed{-1.0};
     double exact_exchange{1.0};
