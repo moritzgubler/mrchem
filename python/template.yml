@@ -290,12 +290,14 @@ sections:
         type: str
         default: none
         predicates:
-          - value.lower() in ['none', 'zora', 'nzora']
+          - value.lower() in ['none', 'zora', 'nzora', 'azora']
         docstring: |
           Set method for relativistic treatment. ``ZORA`` for fully self-consistent ZORA potential, by default
           including all potentials (``V_nuc``, ``J``, ``V_xc``) but this can be overwritten in the ``ZORA`` section.
           ``nZORA`` is shortcut for nuclear-ZORA, i.e. only ``V_nuc`` is included (this keyword takes precedence
           over keywords in the ``ZORA`` section).
+          ``azora`` uses atomic ZORA potentials, which are precomputed and read from the directory 
+          specified in the ``azora_potential_path`` keyword.
       - name: environment
         type: str
         default: none
@@ -335,6 +337,11 @@ sections:
         default: true
         docstring: |
           Include the XC potential ``V_xc`` in the ZORA potential.
+      - name: azora_potential_path
+        type: str
+        default: /home/moritz/Documents/mrchem/share/azora_potentials/
+        docstring: |
+          Path to the directory containing the AZORA potentials.
   - name: DFT
     docstring: |
       Define the exchange-correlation functional in case of DFT.
