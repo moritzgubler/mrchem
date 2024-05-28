@@ -30,6 +30,7 @@
 
 #include "qmoperators/QMPotential.h"
 #include "utils/print_utils.h"
+#include <string>
 
 using mrcpp::Printer;
 using mrcpp::Timer;
@@ -65,12 +66,15 @@ ZoraOperator::ZoraOperator(QMPotential &vz, double c, double proj_prec, bool inv
     print_utils::qmfunction(2, "ZORA operator (" + kappa.name() + ")", *k, timer);
 }
 
-ZoraOperator::ZoraOperator(QMPotential &relativisticDampening) {
+/**
+ * @brief Constructor for ZoraOperator used to construct an atomic zora operator
+ * @param relativisticDampening shared pointer to QMPotential that contains the precompouted kappa function
+ * @param name name of the operator should be either "kappa" or "kappa_inv"
+*/
+ZoraOperator::ZoraOperator(std::shared_ptr<QMPotential> &relativisticDampening, std::string name) {
     RankZeroOperator &kappa = (*this);
-    std::shared_ptr<QMPotential> k = std::make_shared<QMPotential>(0);
-    mrcpp::cplxfunc::deep_copy(*k, relativisticDampening);
-    kappa = k;
-    kappa.name() = "kappa";
+    kappa = relativisticDampening;
+    kappa.name() = name;
 }
 
 } // namespace mrchem

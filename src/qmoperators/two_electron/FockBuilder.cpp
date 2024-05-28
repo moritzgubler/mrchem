@@ -107,8 +107,8 @@ void FockBuilder::setup(double prec) {
 
         kappaInvPot->real().map([](double val) { return 1.0 / val; });
 
-        this->kappa = std::make_shared<ZoraOperator>(*kappaPot);
-        this->kappa_inv = std::make_shared<ZoraOperator>(*kappaInvPot);
+        this->kappa = std::make_shared<ZoraOperator>(kappaPot, "kappa");
+        this->kappa_inv = std::make_shared<ZoraOperator>(kappaInvPot, "kappa_inv");
         this->kappa->setup(prec);
         this->kappa_inv->setup(prec);
 
