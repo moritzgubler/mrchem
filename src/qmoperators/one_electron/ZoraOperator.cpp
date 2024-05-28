@@ -67,7 +67,7 @@ ZoraOperator::ZoraOperator(QMPotential &vz, double c, double proj_prec, bool inv
 
 ZoraOperator::ZoraOperator(QMPotential &relativisticDampening) {
     RankZeroOperator &kappa = (*this);
-    std::shared_ptr<QMPotential> k = std::make_shared<QMPotential>(1);
+    std::shared_ptr<QMPotential> k = std::make_shared<QMPotential>(0);
     mrcpp::cplxfunc::deep_copy(*k, relativisticDampening);
     kappa = k;
     kappa.name() = "kappa";

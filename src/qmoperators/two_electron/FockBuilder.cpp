@@ -97,11 +97,11 @@ void FockBuilder::setup(double prec) {
         mrcpp::print::value(3, "Precision", prec, "(rel)", 5);
         mrcpp::print::value(3, "Light speed", c, "(au)", 5);
         mrcpp::print::separator(3, '-');
-        int adap = 1;
+        int adap = 0;
         bool share = false;
         kappaPot = std::make_shared<AZoraPotential>(nucs, adap, prec);
 
-        kappaInvPot = std::make_shared<QMPotential>(1);
+        kappaInvPot = std::make_shared<QMPotential>(adap);
 
         mrcpp::cplxfunc::deep_copy(*kappaInvPot, *kappaPot);
 
@@ -264,7 +264,7 @@ OrbitalVector FockBuilder::buildHelmholtzArgumentZORA(OrbitalVector &Phi, Orbita
     RankZeroOperator operOne = 0.5 * tensor::dot(p(kappa), p);
     // RankZeroOperator operThree = kappa * V_zora;
     // auto const_func_ana = [](const mrcpp::Coord<3> &r) { return -1.0; };
-    std::shared_ptr<QMPotential> vTimesKappa = std::make_shared<QMPotential>(1);
+    std::shared_ptr<QMPotential> vTimesKappa = std::make_shared<QMPotential>(0);
     // mrcpp::cplxfunc::project(*vTimesKappa, const_func_ana, mrcpp::NUMBER::Real, prec);
     // vTimesKappa->real()->add(*kappaPot);
     // vTimesKappa->rescale(two_cc);
