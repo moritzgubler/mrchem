@@ -274,7 +274,7 @@ def write_scf_solver(user_dict, wf_dict):
 def write_scf_properties(user_dict, origin):
     prop_dict = {}
     if user_dict["Properties"]["dipole_moment"]:
-        prop_dict["dipole_moment"] = {}
+        prop_dict["dipole_moment"] = {} 
         prop_dict["dipole_moment"]["dip-1"] = {
             "operator": "h_e_dip",
             "precision": user_dict["world_prec"],
@@ -293,6 +293,9 @@ def write_scf_properties(user_dict, origin):
             "operator": "h_nuc_grad",
             "precision": user_dict["world_prec"],
             "smoothing": user_dict["Precisions"]["nuclear_prec"],
+            "method": user_dict["Forces"]["method"],
+            "surface_integral_precision": user_dict["Forces"]["surface_integral_precision"],
+            "sphere_averaging": user_dict["Forces"]["sphere_averaging"],
         }
     return prop_dict
 
