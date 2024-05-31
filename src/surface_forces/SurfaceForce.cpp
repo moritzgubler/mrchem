@@ -86,7 +86,7 @@ std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrchem::OrbitalV
 
     Eigen::MatrixXd nucPos(nNuc, 3);
     Eigen::VectorXd nucCharge(nNuc);
-    Einge::VectorXd nucSmoothing(nNuc);
+    Eigen::VectorXd nucSmoothing(nNuc);
     for (int i = 0; i < nNuc; i++)
     {
         std::array<double, 3> coord = mol.getNuclei()[i].getCoord();
