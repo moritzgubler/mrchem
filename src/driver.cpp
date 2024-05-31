@@ -516,84 +516,54 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
         Timer t_classic;
         t_classic.start();
         mrcpp::print::header(2, "Computing geometric derivative");
-        for (const auto &item : json_prop["geometric_derivative"].items()) {
-            const auto &id = item.key();
-            const double &prec = item.value()["precision"];
-            const double &smoothing = item.value()["smoothing"];
-            GeometricDerivative &G = mol.getGeometricDerivative(id);
-            auto &nuc = G.getNuclear();
-            auto &el = G.getElectronic();
+        if (json_prop["method"] == "hellmann_feynman") {
+            for (const auto &item : json_prop["geometric_derivative"].items()) {
+                const auto &id = item.key();
+                const double &prec = item.value()["precision"];
+                const double &smoothing = item.value()["smoothing"];
+                GeometricDerivative &G = mol.getGeometricDerivative(id);
+                auto &nuc = G.getNuclear();
+                auto &el = G.getElectronic();
 
-            for (auto k = 0; k < mol.getNNuclei(); ++k) {
-                const auto nuc_k = nuclei[k];
-                auto Z_k = nuc_k.getCharge();
-                auto R_k = nuc_k.getCoord();
-                double c = detail::nuclear_gradient_smoothing(smoothing, Z_k, mol.getNNuclei());
-                std::cerr << "Smoothing parameter: " << c << std::endl;
-                NuclearGradientOperator h(Z_k, R_k, prec, c);
-                h.setup(prec);
-                nuc.row(k) = Eigen::RowVector3d::Zero();
-                for (auto l = 0; l < mol.getNNuclei(); ++l) {
-                    if (l == k) continue;
-                    const auto nuc_l = nuclei[l];
-                    auto Z_l = nuc_l.getCharge();
-                    auto R_l = nuc_l.getCoord();
-                    std::array<double, 3> R_kl = {R_k[0] - R_l[0], R_k[1] - R_l[1], R_k[2] - R_l[2]};
-                    auto R_kl_3_2 = std::pow(math_utils::calc_distance(R_k, R_l), 3.0);
-                    nuc.row(k) -= Eigen::Map<Eigen::RowVector3d>(R_kl.data()) * (Z_k * Z_l / R_kl_3_2);
+                for (auto k = 0; k < mol.getNNuclei(); ++k) {
+                    const auto nuc_k = nuclei[k];
+                    auto Z_k = nuc_k.getCharge();
+                    auto R_k = nuc_k.getCoord();
+                    double c = detail::nuclear_gradient_smoothing(smoothing, Z_k, mol.getNNuclei());
+                    std::cerr << "Smoothing parameter: " << c << std::endl;
+                    NuclearGradientOperator h(Z_k, R_k, prec, c);
+                    h.setup(prec);
+                    nuc.row(k) = Eigen::RowVector3d::Zero();
+                    for (auto l = 0; l < mol.getNNuclei(); ++l) {
+                        if (l == k) continue;
+                        const auto nuc_l = nuclei[l];
+                        auto Z_l = nuc_l.getCharge();
+                        auto R_l = nuc_l.getCoord();
+                        std::array<double, 3> R_kl = {R_k[0] - R_l[0], R_k[1] - R_l[1], R_k[2] - R_l[2]};
+                        auto R_kl_3_2 = std::pow(math_utils::calc_distance(R_k, R_l), 3.0);
+                        nuc.row(k) -= Eigen::Map<Eigen::RowVector3d>(R_kl.data()) * (Z_k * Z_l / R_kl_3_2);
+                    }
+                    el.row(k) = h.trace(Phi).real();
+                    h.clear();
                 }
-                el.row(k) = h.trace(Phi).real();
-                h.clear();
+                t_classic.stop();
             }
-            t_classic.stop();
-            std::cerr << "Elapsed classic time: " << t_classic.elapsed() << " seconds" << std::endl;
-
-            // time the calculation of surface forces
+        } else if (json_prop["method"] == "surface_integrals") {
+            double prec = json_prop["geometric_derivative"]["geom-1"]["precision"];
             Timer t_surface;
             t_surface.start();
             Eigen::MatrixXd surfaceForces = surface_force::surface_forces(mol, Phi, prec, json_fock);
             t_surface.stop();
-            std::cerr << "Elapsed surface time: " << t_surface.elapsed() << " seconds" << std::endl;
-
-            Eigen::MatrixXd classicForces = G.getTensor();
-            // open file "mrtemp" for writing
-            std::ofstream file("mrtemp_classicForces.txt");
-            file << std::fixed << std::setprecision(10);
-            for (int i = 0; i < classicForces.rows(); i++) {
-                for (int j = 0; j < classicForces.cols(); j++) {
-                    file << classicForces(i, j) << " ";
-                }
-                file << std::endl;
-            }
-            file.close();
-            // open file "mrtemp" for writing
-            std::ofstream file2("mrtemp_surfaceForces.txt");
-            file2 << std::fixed << std::setprecision(10);
-            for (int i = 0; i < surfaceForces.rows(); i++) {
-                for (int j = 0; j < surfaceForces.cols(); j++) {
-                    file2 << surfaceForces(i, j) << " ";
-                }
-                file2 << std::endl;
-            }
-            file2.close();
-            // open file "mrenergy" for writing
-            std::ofstream file3("mrenergy.txt");
-            double energy = mol.getSCFEnergy().getTotalEnergy();
-            // write energy to file with 10 decimal places:
-            file3 << std::fixed << std::setprecision(10) << energy << std::endl;
-            
-            // file3 << mol.getSCFEnergy().getTotalEnergy() << std::endl;
-            file3.close();
+            GeometricDerivative &G = mol.getGeometricDerivative("geom-1");
+            auto &nuc = G.getNuclear();
+            auto &el = G.getElectronic();
 
             // check if file "surforces" exists
-            bool exists = std::filesystem::exists("surforces");
-            if (exists) {
-                for (int k = 0; k < mol.getNNuclei(); k++) {
-                    // set row of nuclear gradient zero
-                    nuc.row(k) = Eigen::RowVector3d::Zero();
-                    // set row of electronic gradient to row of surface forces
-                    el.row(k) = surfaceForces.row(k);
-                }
+            for (int k = 0; k < mol.getNNuclei(); k++) {
+                // set row of nuclear gradient zero
+                nuc.row(k) = Eigen::RowVector3d::Zero();
+                // set row of electronic gradient to row of surface forces
+                el.row(k) = surfaceForces.row(k);
             }
 
         }
