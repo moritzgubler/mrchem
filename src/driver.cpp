@@ -552,7 +552,9 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
             double prec = json_prop["geometric_derivative"]["geom-1"]["precision"];
             Timer t_surface;
             t_surface.start();
-            Eigen::MatrixXd surfaceForces = surface_force::surface_forces(mol, Phi, prec, json_fock);
+            std::string lebv_prec = json_prop["geometric_derivative"]["geom-1"]["surface_integral_precision"];
+            std::string averaging = json_prop["geometric_derivative"]["geom-1"]["averaging"];
+            Eigen::MatrixXd surfaceForces = surface_force::surface_forces(mol, Phi, prec, json_fock, lebv_prec, averaging);
             t_surface.stop();
             GeometricDerivative &G = mol.getGeometricDerivative("geom-1");
             auto &nuc = G.getNuclear();

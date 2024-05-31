@@ -247,7 +247,7 @@ VectorXd distanceToNearestNeighbour(MatrixXd pos){
  * @param json_fock The JSON object containing the Fock matrix settings.
  * @return The matrix of forces, shape (nAtoms, 3).
  */
-Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const json &json_fock) {
+Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const json &json_fock, std::string lebv_prec, std::string averaging) {
 
     // setup density
     mrchem::Density rho(false);
