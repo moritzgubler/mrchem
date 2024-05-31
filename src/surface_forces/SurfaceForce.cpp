@@ -158,7 +158,8 @@ std::vector<Matrix3d> xcStress(const Molecule &mol, const Density &rho, std::sha
     return stress;
 }
 
-std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std::vector<OrbitalVector> &nablaPhi, OrbitalVector &hessRho, double prec, const MatrixXd &gridPos){
+std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std::vector<OrbitalVector> &nablaPhi
+        , OrbitalVector &hessRho, double prec, const MatrixXd &gridPos){
 
     // original formula for kinetic stress:
     // sigma_ij = 0.5 \sum_k phi_k del_i del_j phi_k - (del_i phi_k) (del_j phi_k)
@@ -247,7 +248,8 @@ VectorXd distanceToNearestNeighbour(MatrixXd pos){
  * @param json_fock The JSON object containing the Fock matrix settings.
  * @return The matrix of forces, shape (nAtoms, 3).
  */
-Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const json &json_fock, std::string lebv_prec, std::string averaging) {
+Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const json &json_fock
+        , std::string lebv_prec, std::string averaging) {
 
     // setup density
     mrchem::Density rho(false);
