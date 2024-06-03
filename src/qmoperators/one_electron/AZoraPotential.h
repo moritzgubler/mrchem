@@ -166,10 +166,10 @@ public:
 
 };
 
-class KappaGradientPotential final : public RankOneOperator<3> {
+class KappaGradientOperator final : public RankOneOperator<3> {
 
 public:
-    KappaGradientPotential(Nuclei nucs, int adap, double prec, std::string azora_dir, bool shared = false) {
+    KappaGradientOperator(Nuclei nucs, int adap, double prec, std::string azora_dir, bool shared = false) {
 
         std::shared_ptr<KappaDerivativePotential> k_x = std::make_shared<KappaDerivativePotential>(nucs, adap, prec, azora_dir, 0, shared);
         std::shared_ptr<KappaDerivativePotential> k_y = std::make_shared<KappaDerivativePotential>(nucs, adap, prec, azora_dir, 1, shared);
