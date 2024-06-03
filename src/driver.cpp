@@ -55,6 +55,7 @@
 #include "qmoperators/one_electron/NuclearGradientOperator.h"
 #include "qmoperators/one_electron/NuclearOperator.h"
 #include "qmoperators/one_electron/ZoraOperator.h"
+#include "qmoperators/one_electron/NablaOperator.h"
 
 #include "qmoperators/one_electron/H_BB_dia.h"
 #include "qmoperators/one_electron/H_BM_dia.h"
@@ -996,9 +997,11 @@ void driver::build_fock_operator(const json &json_fock, Molecule &mol, FockBuild
     ///////////////////////////////////////////////////////////
     if (json_fock.contains("kinetic_operator")) {
         auto kin_diff = json_fock["kinetic_operator"]["derivative"];
-        auto D_p = driver::get_derivative(kin_diff);
+        DerivativeOperator_p D_p = driver::get_derivative(kin_diff);
         auto P_p = std::make_shared<MomentumOperator>(D_p);
+        std::shared_ptr<NablaOperator> nabla_p = std::make_shared<NablaOperator>(D_p);
         F.getMomentumOperator() = P_p;
+        F.getNablaOperator() = nabla_p;
     }
     ///////////////////////////////////////////////////////////
     //////////////////   Nuclear Operator   ///////////////////
