@@ -52,6 +52,7 @@ class RadInterpolater {
      * @param element The element for which the ZORA potential is to be interpolated
      * @param data_dir The directory containing the ZORA potential data
      * @param mode The mode of interpolation. Either "potential" or "kappa"
+     * @param deriv If true, the derivative of the potential is returned
     */
     RadInterpolater(const std::string element, std::string data_dir, const std::string mode, bool deriv=false){
         Eigen::VectorXd rGrid;
@@ -85,7 +86,7 @@ class RadInterpolater {
     }
 
     protected:
-    std::shared_ptr<PolyInterpolator> polyZora;
+    std::shared_ptr<PolyInterpolator> polyZora = nullptr;
     std::string mode;
     bool deriv;
 
