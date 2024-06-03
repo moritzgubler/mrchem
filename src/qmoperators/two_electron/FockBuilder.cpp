@@ -89,6 +89,7 @@ void FockBuilder::setup(double prec) {
     }
     this->prec = prec;
     if (this->mom != nullptr) this->momentum().setup(prec);
+    if (this->nabla != nullptr) this->nabla->setup(prec);
     this->potential().setup(prec);
     this->perturbation().setup(prec);
 
@@ -152,6 +153,9 @@ void FockBuilder::setup(double prec) {
         this->kappa->setup(prec);
         this->kappa_inv->setup(prec);
 
+        this->kappaGrad = std::make_shared<KappaGradientOperator>(nucs, adap, prec, azora_dir_final, share);
+        this->kappaGrad->setup(prec);
+
         mrcpp::print::footer(3, t_zora, 2);
     }
 
@@ -167,6 +171,7 @@ void FockBuilder::setup(double prec) {
  */
 void FockBuilder::clear() {
     if (this->mom != nullptr) this->momentum().clear();
+    if (this->nabla != nullptr) this->nabla->clear();
     this->potential().clear();
     this->perturbation().clear();
     if (isZora()) {
@@ -177,6 +182,7 @@ void FockBuilder::clear() {
     if (isAZora()) {
         kappa->clear();
         kappa_inv->clear();
+        kappaGrad->clear();
     }
 }
 
@@ -305,7 +311,19 @@ OrbitalVector FockBuilder::buildHelmholtzArgumentZORA(OrbitalVector &Phi, Orbita
     RankZeroOperator &V = potential();
     RankZeroOperator &kappa = *this->kappa;
     RankZeroOperator &kappa_m1 = *this->kappa_inv;
-    RankZeroOperator operOne = 0.5 * tensor::dot(p(kappa), p);
+
+    NablaOperator &n = *this->nabla;
+    KappaGradientOperator &kG = *this->kappaGrad;
+
+    std::shared_ptr<RankZeroOperator> operOne_p = nullptr;
+    if (isZora()) {
+        operOne_p = std::make_shared<RankZeroOperator>(0.5 * tensor::dot(p(kappa), p));
+    } else {
+        operOne_p = std::make_shared<RankZeroOperator>(- 0.5 * tensor::dot(kG, n));
+    }
+
+    RankZeroOperator operOne = *operOne_p;
+
 
     std::shared_ptr<RankZeroOperator> operThreePtr = nullptr;
 
