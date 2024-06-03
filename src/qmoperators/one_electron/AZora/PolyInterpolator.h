@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include <filesystem>
+#include <iostream>
 
 /**
  * @brief Read ZORA potential from file. Check if file exists and abort if it does not.
@@ -38,7 +39,7 @@ void readZoraPotential(const std::string path, Eigen::VectorXd &rGrid, Eigen::Ve
     // it is not used in the code, only the potential is used
 }
 
-double polynomialInterpolate5(Eigen::Vector5d &x_in, Eigen::Vector5d &y_in, double x){
+double polynomialInterpolate5(Eigen::VectorXd &x_in, Eigen::VectorXd &y_in, double x){
     double xm2 = x_in(0);
     double xm1 = x_in(1);
     double x00 = x_in(2);
@@ -61,7 +62,7 @@ double polynomialInterpolate5(Eigen::Vector5d &x_in, Eigen::Vector5d &y_in, doub
         (-xm1 + xp2)))/(-xm2 + xp2))));
 }
 
-double polynomialInterpolate5_deriv(Eigen::Vector5d &x_in, Eigen::Vector5d &y_in, double x) {
+double polynomialInterpolate5_deriv(Eigen::VectorXd &x_in, Eigen::VectorXd &y_in, double x) {
     double xm2 = x_in(0);
     double xm1 = x_in(1);
     double x00 = x_in(2);
@@ -103,8 +104,8 @@ double polynomialInterpolate5_deriv(Eigen::Vector5d &x_in, Eigen::Vector5d &y_in
 class PolyInterpolator {
     Eigen::VectorXd x;
     Eigen::VectorXd y;
-    double :: xmin;
-    double :: xmax;
+    double xmin;
+    double xmax;
     public:
     PolyInterpolator(Eigen::VectorXd &x_in, Eigen::VectorXd &y_in){
         x = x_in;
@@ -116,40 +117,39 @@ class PolyInterpolator {
     void evalf(const double &x, double &y, double &yp) const {
         if (x < xmin || x > xmax) {
             if (x < xmin) {
-                y = y(0);
+                y = this->y(0);
                 yp = 0;
             } else {
-                y = y(y.size() - 1);
+                y = this->y(this->y.size() - 1);
                 yp = 0;
             }
         }
 
         // Find the interval in which x lies using binary search
         int i = 0;
-        int j = x.size() - 1;
+        int j = this->x.size() - 1;
         while (j - i > 1) {
             int k = (i + j)/2;
-            if (x < x(k)) {
+            if (x < this->x(k)) {
                 j = k;
             } else {
                 i = k;
             }
         }
 
-        Eigen::Vector5d x_in;
-        Eigen::Vector5d y_in;
+        Eigen::VectorXd x_in(5), y_in(5);
 
         if (i == 0) i = 2;
         if (i == 1) i = 2;
-        if (i == x.size() - 1) i = x.size() - 3;
-        if (i == x.size() - 2) i = x.size() - 3;
+        if (i == this->x.size() - 1) i = this->x.size() - 3;
+        if (i == this->x.size() - 2) i = this->x.size() - 3;
         for (int k = 0; k < 5; k++) {
-            x_in(k) = x(i - 2 + k);
-            y_in(k) = y(i - 2 + k);
+            x_in(k) = this->x(i - 2 + k);
+            y_in(k) = this->y(i - 2 + k);
         }
 
         y = polynomialInterpolate5(x_in, y_in, x);
         yp = polynomialInterpolate5_deriv(x_in, y_in, x);
 
     }
-}
+};
