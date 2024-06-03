@@ -4,6 +4,7 @@
 #include <unsupported/Eigen/Splines>
 #include <string>
 #include <filesystem>
+#include "qmoperators/one_electron/AZora/PolyInterpolator.h"
 
 typedef Eigen::Spline<double, 1, 3> Spline1D;
 typedef Eigen::SplineFitting<Spline1D> SplineFitting1D;
@@ -37,6 +38,7 @@ void readZoraPotential(const std::string path, Eigen::VectorXd &rGrid, Eigen::Ve
     rGrid = Eigen::Map<Eigen::VectorXd>(r.data(), r.size());
     vZora = Eigen::Map<Eigen::VectorXd>(v.data(), v.size());
     kappa = Eigen::Map<Eigen::VectorXd>(k.data(), k.size());
+    kappa = kappa * 2.0;
     // The kappa function is half of what is defined in the paper Scalar 
     // Relativistic Effects with Multiwavelets: Implementation and Benchmark
     // it is not used in the code, only the potential is used
@@ -51,34 +53,41 @@ class RadInterpolater {
      * @param data_dir The directory containing the ZORA potential data
      * @param mode The mode of interpolation. Either "potential" or "kappa"
     */
-    RadInterpolater(const std::string element, std::string data_dir, const std::string mode){
+    RadInterpolater(const std::string element, std::string data_dir, const std::string mode, bool deriv=false){
         Eigen::VectorXd rGrid;
         Eigen::VectorXd vZora;
         Eigen::VectorXd kappa;
 
         this->mode = mode;
         std::string filename = data_dir + '/' + element + ".txt";
+        this->deriv = deriv;
 
         readZoraPotential(filename, rGrid, vZora, kappa);
         if (mode == "kappa") {
-            const auto fitV = SplineFitting1D::Interpolate(kappa.transpose(), 3, rGrid.transpose());
-            Spline1D temp (fitV);
-            splineAZora = temp;
+            polyZora = std::make_shared<PolyInterpolator>(rGrid, kappa);
         } else if (mode == "potential") {
-            const auto fitV = SplineFitting1D::Interpolate(vZora.transpose(), 3, rGrid.transpose());
-            Spline1D temp (fitV);
-            splineAZora = temp;
+            polyZora = std::make_shared<PolyInterpolator>(rGrid, vZora);
+        } else {
+            std::cerr << "Invalid mode. Choose either 'potential' or 'kappa'." << std::endl;
+            exit(1);
         }
 
     }
 
     double evalf(const double &r) const {
-        return splineAZora(r).coeff(0);
+        double y, yp;
+        polyZora->evalf(r, y, yp);
+        if (deriv) {
+            return yp;
+        } else {
+            return y;
+        }
     }
 
     protected:
-    Spline1D splineAZora;
+    std::shared_ptr<PolyInterpolator> polyZora;
     std::string mode;
+    bool deriv;
 
 };
 
