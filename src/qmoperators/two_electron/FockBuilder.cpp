@@ -313,7 +313,7 @@ OrbitalVector FockBuilder::buildHelmholtzArgumentZORA(OrbitalVector &Phi, Orbita
     NablaOperator nn(d_o, true);
     nn.setup(prec);
 
-    RankZeroOperator operOne = - 0.5 * kappa_m1 * tensor::dot(nn(kappa), p);
+    RankZeroOperator operOne = - 0.5 * tensor::dot(nn(kappa), p);
 
     std::shared_ptr<RankZeroOperator> operThreePtr = nullptr;
 
