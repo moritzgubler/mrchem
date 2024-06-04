@@ -516,7 +516,7 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
         Timer t_classic;
         t_classic.start();
         mrcpp::print::header(2, "Computing geometric derivative");
-        if (json_prop["method"] == "hellmann_feynman") {
+        if (json_prop["geometric_derivative"]["geom-1"]["method"] == "hellmann_feynman") {
             for (const auto &item : json_prop["geometric_derivative"].items()) {
                 const auto &id = item.key();
                 const double &prec = item.value()["precision"];
@@ -530,7 +530,6 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
                     auto Z_k = nuc_k.getCharge();
                     auto R_k = nuc_k.getCoord();
                     double c = detail::nuclear_gradient_smoothing(smoothing, Z_k, mol.getNNuclei());
-                    std::cerr << "Smoothing parameter: " << c << std::endl;
                     NuclearGradientOperator h(Z_k, R_k, prec, c);
                     h.setup(prec);
                     nuc.row(k) = Eigen::RowVector3d::Zero();
@@ -548,12 +547,12 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
                 }
                 t_classic.stop();
             }
-        } else if (json_prop["method"] == "surface_integrals") {
+        } else if (json_prop["geometric_derivative"]["geom-1"]["method"] == "surface_integrals") {
             double prec = json_prop["geometric_derivative"]["geom-1"]["precision"];
             Timer t_surface;
             t_surface.start();
             std::string lebv_prec = json_prop["geometric_derivative"]["geom-1"]["surface_integral_precision"];
-            std::string averaging = json_prop["geometric_derivative"]["geom-1"]["averaging"];
+            std::string averaging = json_prop["geometric_derivative"]["geom-1"]["sphere_averaging"];
             Eigen::MatrixXd surfaceForces = surface_force::surface_forces(mol, Phi, prec, json_fock, lebv_prec, averaging);
             t_surface.stop();
             GeometricDerivative &G = mol.getGeometricDerivative("geom-1");
@@ -568,6 +567,8 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
                 el.row(k) = surfaceForces.row(k);
             }
 
+        } else {
+            MSG_ABORT("Invalid method for geometric derivative");
         }
         mrcpp::print::footer(2, t_lap, 2);
         if (plevel == 1) mrcpp::print::time(1, "Geometric derivative", t_lap);

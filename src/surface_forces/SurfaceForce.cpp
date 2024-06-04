@@ -239,6 +239,49 @@ VectorXd distanceToNearestNeighbour(MatrixXd pos){
     return dist;
 }
 
+class TinySphere {
+public:
+    Eigen::Vector3d center;
+    double radius;
+    double weight;
+    TinySphere(Eigen::Vector3d center, double radius, double weight) : center(center), radius(radius), weight(weight) {}
+
+    void print() {
+        std::cout << "Center: " << center.transpose() << std::endl;
+        std::cout << "Radius: " << radius << std::endl;
+        std::cout << "Weight: " << weight << std::endl;
+    }
+
+};
+
+std::vector<TinySphere> tinySpheres(Vector3d pos, std::string averagingMode, int nrad, int nshift, double radius, double tinyRadius){
+    std::vector<TinySphere> spheres;
+    std::cout << "Averaging mode: " << averagingMode << std::endl; 
+    if ( averagingMode == "shift" ) {
+        std::filesystem::path p = __FILE__;
+        std::filesystem::path parent_dir = p.parent_path();
+        std::string tinyPoints = parent_dir.string() + "/lebvedev_tiny.txt";
+        LebedevIntegrator tintegrator(tinyPoints, tinyRadius, pos);
+        MatrixXd tinyPos = tintegrator.getPoints();
+        VectorXd tinyWeights = tintegrator.getWeights();
+        for (int i = 0; i < tintegrator.n; i++){
+            spheres.push_back(TinySphere(tinyPos.row(i).transpose(), tinyRadius, tinyWeights(i) / (4.0 * M_PI * tinyRadius * tinyRadius)));
+        }
+    } else if (averagingMode == "radial") {
+        for (int i = 0; i < nrad; i++){
+            double step = (1.0 * i) / (1.0 * nrad);
+            double rad = -0.2 + 0.4 * step;
+            spheres.push_back(TinySphere(pos, rad, 1.0 / nrad));
+        }
+    }
+    else if (averagingMode == "none") {
+        spheres.push_back(TinySphere(pos, radius, 1.0));
+    } else {
+        MSG_ABORT("Invalid averaging mode");
+    }
+    return spheres;
+}
+
 /**
  * Calculates the forces using surface integrals for a given molecule and orbital vector.
  *
@@ -324,7 +367,6 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     std::string filename = parent_dir.string() + "/lebvedev.txt";
     std::string tinyPoints = parent_dir.string() + "/lebvedev_tiny.txt";
 
-    double tinyRadius = 0.15;
     double radius = 0.6;
     int nRad = 11;
     VectorXd radii(nRad);
@@ -334,19 +376,18 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         radii(i) = -0.2 + 0.4 * step;
     }
 
+    int nrad = 11;
+    double tinyRadius = 0.15;
+
     for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
         radius = dist(iAtom) *.5;
         coord = mol.getNuclei()[iAtom].getCoord();
         center << coord[0], coord[1], coord[2];
-        LebedevIntegrator tintegrator(tinyPoints, tinyRadius, center);
-        MatrixXd tinyPos = tintegrator.getPoints();
-        VectorXd tinyWeights = tintegrator.getWeights();
-        for (int iTiny = 0; iTiny < tintegrator.n; iTiny++){
-            // Vector3d x = center + tinyPos.row(iTiny).transpose();
-            // std::cerr << "x " << x(0) << " " << x(1) << " " << x(2) << "\n";
-            // std::cerr << "center " << center << "\n";
-            // std::cerr << "tinyPos " << tinyPos.row(iTiny) << "\n";
-            LebedevIntegrator integrator(filename, radius, tinyPos.row(iTiny).transpose());
+
+        std::vector<TinySphere> spheres = tinySpheres(center, averaging, nRad, nrad, radius, tinyRadius);
+
+        for (int iTiny = 0; iTiny < spheres.size(); iTiny++){
+            LebedevIntegrator integrator(filename, spheres[iTiny].radius, spheres[iTiny].center);
             MatrixXd gridPos = integrator.getPoints();
             VectorXd weights = integrator.getWeights();
             MatrixXd normals = integrator.getNormals();
@@ -356,7 +397,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
             std::vector<Matrix3d> stress(integrator.n);
             for (int i = 0; i < integrator.n; i++){
                 stress[i] = xStress[i] + kstress[i] + mstress[i];
-                forces.row(iAtom) -= stress[i] * normals.row(i).transpose() * weights(i) * tinyWeights(iTiny) / (4.0 * M_PI * tinyRadius * tinyRadius);
+                forces.row(iAtom) -= stress[i] * normals.row(i).transpose() * weights(i) * spheres[iTiny].weight;
             }
         }
     }
