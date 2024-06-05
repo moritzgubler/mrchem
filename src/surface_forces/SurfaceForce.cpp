@@ -98,7 +98,7 @@ std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrchem::OrbitalV
         nucSmoothing(i) =  std::cbrt(tmp);
     }
 
-    MatrixXd Efield = electronicEfield(negEfield, gridPos) + nuclearEfield(nucPos, nucCharge, gridPos, nucSmoothing);
+    MatrixXd Efield = electronicEfield(negEfield, gridPos) + nuclearEfield(nucPos, nucCharge, nucSmoothing, gridPos);
 
     std::vector<Eigen::Matrix3d> stress(nGrid);
     for (int i = 0; i < nGrid; i++) {
@@ -256,7 +256,6 @@ public:
 
 std::vector<TinySphere> tinySpheres(Vector3d pos, std::string averagingMode, int nrad, int nshift, double radius, double tinyRadius){
     std::vector<TinySphere> spheres;
-    std::cout << "Averaging mode: " << averagingMode << std::endl; 
     if ( averagingMode == "shift" ) {
         std::filesystem::path p = __FILE__;
         std::filesystem::path parent_dir = p.parent_path();
@@ -265,7 +264,7 @@ std::vector<TinySphere> tinySpheres(Vector3d pos, std::string averagingMode, int
         MatrixXd tinyPos = tintegrator.getPoints();
         VectorXd tinyWeights = tintegrator.getWeights();
         for (int i = 0; i < tintegrator.n; i++){
-            spheres.push_back(TinySphere(tinyPos.row(i).transpose(), tinyRadius, tinyWeights(i) / (4.0 * M_PI * tinyRadius * tinyRadius)));
+            spheres.push_back(TinySphere(tinyPos.row(i).transpose(), radius, tinyWeights(i) / (4.0 * M_PI * tinyRadius * tinyRadius)));
         }
     } else if (averagingMode == "radial") {
         for (int i = 0; i < nrad; i++){
