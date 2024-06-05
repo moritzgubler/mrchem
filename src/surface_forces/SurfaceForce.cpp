@@ -254,12 +254,12 @@ public:
 
 };
 
-std::vector<TinySphere> tinySpheres(Vector3d pos, std::string averagingMode, int nrad, int nshift, double radius, double tinyRadius){
+std::vector<TinySphere> tinySpheres(Vector3d pos, std::string averagingMode, int nrad, int nshift, double radius, double tinyRadius, std::string tinyPoints_file){
     std::vector<TinySphere> spheres;
     if ( averagingMode == "shift" ) {
         std::filesystem::path p = __FILE__;
         std::filesystem::path parent_dir = p.parent_path();
-        std::string tinyPoints = parent_dir.string() + "/lebvedev_tiny.txt";
+        std::string tinyPoints = tinyPoints_file;
         LebedevIntegrator tintegrator(tinyPoints, tinyRadius, pos);
         MatrixXd tinyPos = tintegrator.getPoints();
         VectorXd tinyWeights = tintegrator.getWeights();
@@ -363,8 +363,8 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
 
     std::filesystem::path p = __FILE__;
     std::filesystem::path parent_dir = p.parent_path();
-    std::string filename = parent_dir.string() + "/lebvedev.txt";
-    std::string tinyPoints = parent_dir.string() + "/lebvedev_tiny.txt";
+    std::string filename = parent_dir.string() + "/lebvedev_" + lebv_prec + ".txt";
+    std::string tinyPoints = parent_dir.string() + "/lebvedev_tiny_" + lebv_prec + ".txt";
 
     double radius = 0.6;
     int nRad = 11;
@@ -383,7 +383,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         coord = mol.getNuclei()[iAtom].getCoord();
         center << coord[0], coord[1], coord[2];
 
-        std::vector<TinySphere> spheres = tinySpheres(center, averaging, nRad, nrad, radius, tinyRadius);
+        std::vector<TinySphere> spheres = tinySpheres(center, averaging, nRad, nrad, radius, tinyRadius, tinyPoints);
 
         for (int iTiny = 0; iTiny < spheres.size(); iTiny++){
             LebedevIntegrator integrator(filename, spheres[iTiny].radius, spheres[iTiny].center);
@@ -399,10 +399,6 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
                 forces.row(iAtom) -= stress[i] * normals.row(i).transpose() * weights(i) * spheres[iTiny].weight;
             }
         }
-    }
-
-    for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
-        std::cerr << "forces " << forces(iAtom, 0) << " " << forces(iAtom, 1) << " " << forces(iAtom, 2) << std::endl;
     }
 
     hess.clear();
