@@ -559,7 +559,6 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
             auto &nuc = G.getNuclear();
             auto &el = G.getElectronic();
 
-            // check if file "surforces" exists
             for (int k = 0; k < mol.getNNuclei(); k++) {
                 // set row of nuclear gradient zero
                 nuc.row(k) = Eigen::RowVector3d::Zero();
