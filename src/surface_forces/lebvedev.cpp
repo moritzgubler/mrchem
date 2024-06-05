@@ -49,7 +49,7 @@
     void LebedevIntegrator::readLebedevFile(const std::string& filename) {
         std::ifstream file(filename);
         if (!file.is_open()) {
-            throw std::runtime_error("Could not open the file.");
+            throw std::runtime_error("Could not open the lebvedev data file.");
         }
         std::string line;
         std::vector<double> thetaVec, phiVec, weightVec;

@@ -363,6 +363,19 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
 
     std::filesystem::path p = __FILE__;
     std::filesystem::path parent_dir = p.parent_path();
+
+    // These directories are set as preprocessor definitions in the CMakeLists.txt file
+    std::string lebvedevDirSrc = LEBVEDEV_SOURCE_DIR;
+    std::string lebvedevDirInstall = LEBVEDEV_INSTALL_DIR;
+    // check if directory exists
+    if (std::filesystem::exists(lebvedevDirInstall)){
+        parent_dir = lebvedevDirInstall;
+    } else if (std::filesystem::exists(lebvedevDirSrc)){
+        parent_dir = lebvedevDirSrc;
+    } else {
+        MSG_ABORT("Lebedev data directory not found");
+    }
+
     std::string filename = parent_dir.string() + "/lebvedev_" + lebv_prec + ".txt";
     std::string tinyPoints = parent_dir.string() + "/lebvedev_tiny_" + lebv_prec + ".txt";
 

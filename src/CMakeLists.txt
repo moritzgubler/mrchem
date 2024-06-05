@@ -39,6 +39,11 @@ add_subdirectory(surface_forces)
 add_subdirectory(tensor)
 add_subdirectory(utils)
 
+target_compile_definitions(mrchem PRIVATE 
+    LEBVEDEV_SOURCE_DIR="${LEBVEDEV_SOURCE_DIR}"
+    LEBVEDEV_INSTALL_DIR="${LEBVEDEV_INSTALL_DIR}"
+)
+
 target_link_libraries(mrchem
   PRIVATE
     Eigen3::Eigen
