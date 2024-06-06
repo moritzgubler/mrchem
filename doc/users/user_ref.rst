@@ -476,6 +476,15 @@ User input reference
     **Predicates**
       - ``value.lower() in ['shift', 'radial', 'none']``
   
+   :sphere_averaging_precision: Precision of the sphere averaging used in the computation of forces. Determines the number of spheres used in the averaging. 
+  
+    **Type** ``str``
+  
+    **Default** ``medium``
+  
+    **Predicates**
+      - ``value.lower() in ['low', 'medium', 'high']``
+  
  :ExternalFields: Define external electromagnetic fields. 
 
   :red:`Keywords`

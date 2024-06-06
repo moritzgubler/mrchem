@@ -291,7 +291,7 @@ std::vector<TinySphere> tinySpheres(Vector3d pos, std::string averagingMode, int
  * @return The matrix of forces, shape (nAtoms, 3).
  */
 Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const json &json_fock
-        , std::string lebv_prec, std::string averaging) {
+        , std::string lebv_prec, std::string averaging, std::string avg_precision) {
 
     // setup density
     mrchem::Density rho(false);

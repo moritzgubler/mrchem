@@ -432,6 +432,13 @@ sections:
         docstring: |
           Method for averaging the forces over the nuclear sphere. ``shift`` (default) shifts the centers of the integration spheres, ``radial``
           averages the forces by varying the radius of the integration spheres, and ``none`` does not perform any averaging.
+      - name: sphere_averaging_precision
+        type: str
+        default: medium
+        predicates:
+          - value.lower() in ['low', 'medium', 'high']
+        docstring: |
+          Precision of the sphere averaging used in the computation of forces. Determines the number of spheres used in the averaging.
   - name: ExternalFields
     docstring: |
       Define external electromagnetic fields.
