@@ -46,15 +46,15 @@ MatrixXd nuclearEfield(const MatrixXd &nucPos, const VectorXd &nucCharge, const 
     int nGrid = gridPos.rows();
     int nNuc = nucPos.rows();
     MatrixXd Efield = MatrixXd::Zero(nGrid, 3);
-    MatrixXd r = MatrixXd::Zero(nGrid, 3);
+    Vector3d r;
     double temp;
     for (int i = 0; i < nNuc; ++i) {
         for (int j = 0; j < nGrid; j++)
         {
-            r.row(j) = nucPos.row(i) - gridPos.row(j);
-            temp = r.row(j).norm();
+            r = nucPos.row(i) - gridPos.row(j);
+            temp = r.norm();
             temp = temp * temp * temp;
-            Efield.row(j) += nucCharge(i) * r.row(j) / temp;
+            Efield.row(j) += nucCharge(i) * r / temp;
         }
     }
     return Efield;
