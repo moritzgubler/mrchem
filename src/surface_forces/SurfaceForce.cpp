@@ -46,15 +46,31 @@ MatrixXd nuclearEfield(const MatrixXd &nucPos, const VectorXd &nucCharge, const 
     int nGrid = gridPos.rows();
     int nNuc = nucPos.rows();
     MatrixXd Efield = MatrixXd::Zero(nGrid, 3);
-    Vector3d r;
+    Vector3d r_vect;
+    double r;
+    double r2, r3;
     double temp;
+    double c, q;
+    double c2, c3;
+    double c3_times_sqrt_pi_times_three;
+    double sqrt_pi = std::sqrt(M_PI);
     for (int i = 0; i < nNuc; ++i) {
+        c = nucSmoothing(i);
+        q = nucCharge(i);
+        c2 = c * c;
+        c3 = c2 * c;
+        c3_times_sqrt_pi_times_three = 3. * std::sqrt(M_PI) * c3;
         for (int j = 0; j < nGrid; j++)
         {
-            r = nucPos.row(i) - gridPos.row(j);
-            temp = r.norm();
-            temp = temp * temp * temp;
-            Efield.row(j) += nucCharge(i) * r / temp;
+            r_vect = nucPos.row(i) - gridPos.row(j);
+            r = r_vect.norm();
+            r2 = r * r;
+            r3 = r2 * r;
+            Efield.row(j) += q * r_vect / r3;
+            // This would compute the electric field for the finite point like nucleus. It does not improve accuracy since the integration speres
+            // are large enough to not be affected by the finite point like nucleus. It is kept here for reference.
+            // Efield.row(j) += q * r_vect / r * (std::erf(r / c) / r2 - 2 * std::exp(-r2/c2)/(sqrt_pi * c * r) + 2.0 * r * std::exp(-r2 / c2) / c3_times_sqrt_pi_times_three 
+            //     + 128.0 * r * std::exp(-4.0 * r2 / c2) / c3_times_sqrt_pi_times_three);
         }
     }
     return Efield;
