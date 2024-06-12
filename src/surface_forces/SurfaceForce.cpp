@@ -42,6 +42,13 @@ using nlohmann::json;
 
 namespace surface_force {
 
+/**
+ * Calculates the electric field due to the nuclei.
+ * @param nucPos The positions of the nuclei. Shape (nNuc, 3).
+ * @param nucCharge The charges of the nuclei. Shape (nNuc,).
+ * @param nucSmoothing The smoothing parameter for the nuclei. Shape (nNuc,).
+ * @param gridPos The positions of the grid points where the field should be evaluated. Shape (nGrid, 3).
+*/
 MatrixXd nuclearEfield(const MatrixXd &nucPos, const VectorXd &nucCharge, const VectorXd &nucSmoothing, const MatrixXd gridPos) {
     int nGrid = gridPos.rows();
     int nNuc = nucPos.rows();
@@ -76,6 +83,9 @@ MatrixXd nuclearEfield(const MatrixXd &nucPos, const VectorXd &nucCharge, const 
     return Efield;
 }
 
+/**
+ * @brief Calculates the coulomb potential due to the given density.
+*/
 mrcpp::ComplexFunction calcPotential(Density &rho, mrcpp::PoissonOperator &poisson, double prec) {
     mrcpp::ComplexFunction V(false);
     V.alloc(mrchem::NUMBER::Real);
@@ -83,6 +93,11 @@ mrcpp::ComplexFunction calcPotential(Density &rho, mrcpp::PoissonOperator &poiss
     return V;
 }
 
+/**
+ * @brief Calculates the electric field due to the electrons.
+ * @param negEfield The negative gradient of the electric field. Shape (3,).
+ * @param gridPos The positions of the grid points where the field should be evaluated. Shape (nGrid, 3).
+*/
 MatrixXd electronicEfield(mrchem::OrbitalVector &negEfield, const MatrixXd &gridPos) {
     int nGrid = gridPos.rows();
     MatrixXd Efield = MatrixXd::Zero(nGrid, 3);
@@ -96,6 +111,13 @@ MatrixXd electronicEfield(mrchem::OrbitalVector &negEfield, const MatrixXd &grid
     return Efield;
 }
 
+/**
+ * Calculates the Maxwell stress tensor for the given molecule.
+ * @param mol The molecule for which to calculate the stress tensor.
+ * @param negEfield Negative electric field (gradient of potential)
+ * @param gridPos The positions of the grid points where the field should be evaluated. Shape (nGrid, 3).
+ * @param prec The precision value used in the calculation.
+*/
 std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrchem::OrbitalVector &negEfield, const MatrixXd &gridPos, double prec){
     int nGrid = gridPos.rows();
     int nNuc = mol.getNNuclei();
@@ -135,6 +157,9 @@ std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrchem::OrbitalV
     return stress;
 }
 
+/**
+ * @brief Calculates the exchange-correlation stress tensor for the given molecule.
+*/
 std::vector<Matrix3d> xcStress(const Molecule &mol, const Density &rho, std::shared_ptr<XCOperator> XC_p, const MatrixXd &gridPos, double prec){
     int nGrid = gridPos.rows();
 
@@ -174,6 +199,9 @@ std::vector<Matrix3d> xcStress(const Molecule &mol, const Density &rho, std::sha
     return stress;
 }
 
+/**
+ * @brief Calculates the kinetic stress tensor for the given molecule. See the function description for the formula.
+*/
 std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std::vector<OrbitalVector> &nablaPhi
         , OrbitalVector &hessRho, double prec, const MatrixXd &gridPos){
 
@@ -255,6 +283,9 @@ VectorXd distanceToNearestNeighbour(MatrixXd pos){
     return dist;
 }
 
+/**
+ * @brief Class representing integration spheres for averaging the surface force calculation
+*/
 class TinySphere {
 public:
     Eigen::Vector3d center;
@@ -270,6 +301,9 @@ public:
 
 };
 
+/**
+ * @brief Function to create the integration spheres for averaging the surface force calculation
+*/
 std::vector<TinySphere> tinySpheres(Vector3d pos, std::string averagingMode, int nrad, int nshift, double radius, double tinyRadius, std::string tinyPoints_file){
     std::vector<TinySphere> spheres;
     if ( averagingMode == "shift" ) {
