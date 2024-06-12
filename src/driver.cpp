@@ -55,7 +55,6 @@
 #include "qmoperators/one_electron/NuclearGradientOperator.h"
 #include "qmoperators/one_electron/NuclearOperator.h"
 #include "qmoperators/one_electron/ZoraOperator.h"
-#include "qmoperators/one_electron/NablaOperator.h"
 
 #include "qmoperators/one_electron/H_BB_dia.h"
 #include "qmoperators/one_electron/H_BM_dia.h"
@@ -68,7 +67,6 @@
 #include "qmoperators/one_electron/H_M_pso.h"
 
 #include "qmoperators/two_electron/CoulombOperator.h"
-#include "qmoperators/two_electron/CoulombPotential.h"
 #include "qmoperators/two_electron/ExchangeOperator.h"
 #include "qmoperators/two_electron/FockBuilder.h"
 #include "qmoperators/two_electron/ReactionOperator.h"
@@ -84,9 +82,6 @@
 #include "environment/PBESolver.h"
 #include "environment/Permittivity.h"
 #include "surface_forces/SurfaceForce.h"
-
-#include <fstream>
-#include <filesystem>
 
 #include "mrdft/Factory.h"
 
