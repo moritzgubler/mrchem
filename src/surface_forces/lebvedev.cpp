@@ -63,6 +63,8 @@
             phiVec.push_back(phi * M_PI / 180.0);
             weightVec.push_back(weight);
         }
+        this->theta = Eigen::Map<Eigen::VectorXd>(thetaVec.data(), thetaVec.size());
+        this->phi = Eigen::Map<Eigen::VectorXd>(phiVec.data(), phiVec.size());
 
         n = thetaVec.size();
         points = Eigen::MatrixXd(n, 3);

@@ -438,12 +438,23 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     int nrad = 11;
     double tinyRadius = 0.15;
 
+    mrchem::Nuclei nuclei = mol.getNuclei();
+    std::string writer;
+
     for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
+        std::string fname = std::to_string(iAtom) + "_" +  nuclei[iAtom].getElement().getSymbol() + ".dat";
+        // open file for writing
+        std::ofstream file;
+        file.open(fname);
+
         radius = dist(iAtom) *.5;
-        coord = mol.getNuclei()[iAtom].getCoord();
+        coord = nuclei[iAtom].getCoord();
+        file << nuclei[iAtom].getElement().getSymbol() + "\n";
+        file << std::to_string(coord[0]) + " " + std::to_string(coord[1]) + " " + std::to_string(coord[2]) + "\n";
         center << coord[0], coord[1], coord[2];
 
         std::vector<TinySphere> spheres = tinySpheres(center, averaging, nRad, nrad, radius, tinyRadius, tinyPoints);
+        Eigen::Vector3d stressNormal;
 
         for (int iTiny = 0; iTiny < spheres.size(); iTiny++){
             LebedevIntegrator integrator(filename, spheres[iTiny].radius, spheres[iTiny].center);
@@ -456,9 +467,14 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
             std::vector<Matrix3d> stress(integrator.n);
             for (int i = 0; i < integrator.n; i++){
                 stress[i] = xStress[i] + kstress[i] + mstress[i];
-                forces.row(iAtom) -= stress[i] * normals.row(i).transpose() * weights(i) * spheres[iTiny].weight;
+                stressNormal = stress[i] * normals.row(i).transpose();
+                forces.row(iAtom) -= stressNormal * weights(i) * spheres[iTiny].weight;
+                if (iTiny == 0){    
+                    file << std::to_string(integrator.theta(i)) + " " + std::to_string(integrator.phi(i)) + " " + std::to_string(stressNormal(0)) + " " + std::to_string(stressNormal(1)) + " " + std::to_string(stressNormal(2)) + "\n";
+                }
             }
         }
+        file.close();
     }
 
     hess.clear();
