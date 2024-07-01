@@ -442,15 +442,8 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     std::string writer;
 
     for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
-        std::string fname = std::to_string(iAtom) + "_" +  nuclei[iAtom].getElement().getSymbol() + ".dat";
-        // open file for writing
-        std::ofstream file;
-        file.open(fname);
-
         radius = dist(iAtom) *.5;
         coord = nuclei[iAtom].getCoord();
-        file << nuclei[iAtom].getElement().getSymbol() + "\n";
-        file << std::to_string(coord[0]) + " " + std::to_string(coord[1]) + " " + std::to_string(coord[2]) + "\n";
         center << coord[0], coord[1], coord[2];
 
         std::vector<TinySphere> spheres = tinySpheres(center, averaging, nRad, nrad, radius, tinyRadius, tinyPoints);
@@ -469,10 +462,60 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
                 stress[i] = xStress[i] + kstress[i] + mstress[i];
                 stressNormal = stress[i] * normals.row(i).transpose();
                 forces.row(iAtom) -= stressNormal * weights(i) * spheres[iTiny].weight;
-                if (iTiny == 0){    
-                    file << std::to_string(integrator.theta(i)) + " " + std::to_string(integrator.phi(i)) + " " + std::to_string(stressNormal(0)) + " " + std::to_string(stressNormal(1)) + " " + std::to_string(stressNormal(2)) + "\n";
-                }
+                // if (iTiny == 0){    
+                //     file << std::to_string(integrator.theta(i)) + " " + std::to_string(integrator.phi(i)) + " " + std::to_string(stressNormal(0)) + " " + std::to_string(stressNormal(1)) + " " + std::to_string(stressNormal(2)) + "\n";
+                // }
             }
+        }
+        // file.close();
+    }
+
+    radius = 0.3;
+    Eigen::Vector3d gp;
+    for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
+        std::string fname = std::to_string(iAtom) + "_" +  nuclei[iAtom].getElement().getSymbol() + ".dat";
+        std::ofstream file;
+        file.open(fname);
+
+        file << nuclei[iAtom].getElement().getSymbol() + "\n";
+
+        coord = nuclei[iAtom].getCoord();
+        center << coord[0], coord[1], coord[2];
+        file << std::to_string(coord[0]) + " " + std::to_string(coord[1]) + " " + std::to_string(coord[2]) + "\n";
+
+        int ntheta = 40;
+        int nphi   = 40;
+        int ntot = ntheta * nphi;
+        VectorXd thetas(ntot);
+        VectorXd phis(ntot);
+        MatrixXd gp(ntot, 3);
+        MatrixXd normals(ntot, 3);
+        double theta, phi;
+        int k = 0;
+        for (int i = 0; i < ntheta; i++) {
+            theta = i * M_PI / (ntheta-1);
+            for (int j = 0; j < nphi; j++) {
+                phi = j * 2 * M_PI / (nphi-1);
+                thetas(k) = theta;
+                phis(k) = phi;
+                gp(k, 0) = center(0) + radius * cos(theta) * sin(phi);
+                gp(k, 1) = center(1) + radius * sin(theta) * sin(phi);
+                gp(k, 2) = center(2) + radius * cos(phi);
+                normals(k, 0) = cos(theta) * sin(phi);
+                normals(k, 1) = sin(theta) * sin(phi);
+                normals(k, 2) = cos(phi);
+                k++;
+            }
+        }
+        std::vector<Matrix3d> xStress = xcStress(mol, rho, XC_p, gp, prec);
+        std::vector<Matrix3d> kstress = kineticStress(mol, Phi, nablaPhi, hessRho, prec, gp);
+        std::vector<Matrix3d> mstress = maxwellStress(mol, negEfield, gp, prec);
+        std::vector<Matrix3d> stress(ntot);
+        Eigen::Vector3d stressNormal;
+        for (int i = 0; i < ntot; i++) {
+            stress[i] = xStress[i] + kstress[i] + mstress[i];
+            stressNormal = stress[i] * normals.row(i).transpose();
+            file << std::to_string(thetas(i)) + " " + std::to_string(phis(i)) + " " + std::to_string(stressNormal(0)) + " " + std::to_string(stressNormal(1)) + " " + std::to_string(stressNormal(2)) + "\n";
         }
         file.close();
     }
