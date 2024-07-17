@@ -458,7 +458,7 @@ User input reference
     **Predicates**
       - ``value.lower() in ['surface_integrals', 'hellmann_feynman']``
   
-   :surface_integral_precision: Precision of the surface integrals used in the computation of forces. Determines the number of Lebvedev grid points used in the surface integration. 
+   :surface_integral_precision: Precision of the surface integrals used in the computation of forces. Determines the number of Lebedev grid points used in the surface integration. 
   
     **Type** ``str``
   

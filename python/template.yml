@@ -422,7 +422,7 @@ sections:
         predicates:
           - value.lower() in ['low', 'medium', 'high']
         docstring: |
-          Precision of the surface integrals used in the computation of forces. Determines the number of Lebvedev grid points used in the
+          Precision of the surface integrals used in the computation of forces. Determines the number of Lebedev grid points used in the
           surface integration.
       - name: sphere_averaging
         type: str
