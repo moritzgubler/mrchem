@@ -7,7 +7,7 @@
 #include <Eigen/Core>
 
 #include "lebedev_utils.hpp"
-#include "utils/meta_utils.hpp"
+#include "meta_utils.hpp"
 
 namespace detail {
 class Lebedev_021_0170 final
