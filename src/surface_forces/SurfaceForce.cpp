@@ -27,7 +27,7 @@
 #include "qmoperators/one_electron/HessianOperator.h"
 #include "tensor/RankOneOperator.h"
 
-#include "surface_forces/lebvedev.h"
+#include "surface_forces/lebedev.h"
 #include <string>
 #include <iostream>
 #include <filesystem>
@@ -341,7 +341,7 @@ std::vector<TinySphere> tinySpheres(Vector3d pos, std::string averagingMode, int
  * @return The matrix of forces, shape (nAtoms, 3).
  */
 Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const json &json_fock
-        , std::string lebv_prec, std::string averaging, std::string avg_precision) {
+        , std::string leb_prec, std::string averaging, std::string avg_precision) {
 
     // setup density
     mrchem::Density rho(false);
@@ -413,18 +413,18 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
 
     std::string parent_dir;
     // These directories are set as preprocessor definitions in the CMakeLists.txt file
-    std::string lebvedevDirSrc = LEBVEDEV_SOURCE_DIR;
-    std::string lebvedevDirInstall = LEBVEDEV_INSTALL_DIR;
-    if (std::filesystem::exists(lebvedevDirInstall)){
-        parent_dir = lebvedevDirInstall;
-    } else if (std::filesystem::exists(lebvedevDirSrc)){
-        parent_dir = lebvedevDirSrc;
+    std::string lebedevDirSrc = LEBEDEV_SOURCE_DIR;
+    std::string lebedevDirInstall = LEBEDEV_INSTALL_DIR;
+    if (std::filesystem::exists(lebedevDirInstall)){
+        parent_dir = lebedevDirInstall;
+    } else if (std::filesystem::exists(lebedevDirSrc)){
+        parent_dir = lebedevDirSrc;
     } else {
         MSG_ABORT("Lebedev data directory not found");
     }
 
-    std::string filename = parent_dir + "/lebvedev_" + lebv_prec + ".txt";
-    std::string tinyPoints = parent_dir + "/lebvedev_tiny_" + lebv_prec + ".txt";
+    std::string filename = parent_dir + "/lebedev_" + leb_prec + ".txt";
+    std::string tinyPoints = parent_dir + "/lebedev_tiny_" + leb_prec + ".txt";
 
     double radius = 0.6;
     int nRad = 11;

@@ -1,9 +1,9 @@
 /**
- * @file lebvedev.cpp
+ * @file lebedev.cpp
  * @brief Implementation of the LebedevIntegrator class for surface integration calculations.
  */
 
-#include "lebvedev.h"
+#include "lebedev.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -49,7 +49,7 @@
     void LebedevIntegrator::readLebedevFile(const std::string& filename) {
         std::ifstream file(filename);
         if (!file.is_open()) {
-            throw std::runtime_error("Could not open the lebvedev data file.");
+            throw std::runtime_error("Could not open the lebedev data file.");
         }
         std::string line;
         std::vector<double> thetaVec, phiVec, weightVec;
@@ -98,7 +98,7 @@ int main() {
     try {
         double radius = 4.0;
         Eigen::Vector3d shift(5.0, 2.0, 1.0);
-        LebedevIntegrator integrator("lebvedev.txt", radius, shift);
+        LebedevIntegrator integrator("lebedev.txt", radius, shift);
 
         double sum = integrator.getWeights().sum();
         std::cout << "Sum of weights: " << sum << " Refererence 4 * pi * r**2 " << 4 * M_PI * radius * radius << std::endl;

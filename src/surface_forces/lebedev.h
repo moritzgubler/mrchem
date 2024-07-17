@@ -1,5 +1,5 @@
-#ifndef LEBVEDEV_H
-#define LEBVEDEV_H
+#ifndef LEBEDEV_H
+#define LEBEDEV_H
 
 #include <Eigen/Dense>
 #include <string>
@@ -21,4 +21,4 @@ private:
     void calculateCartesianPoints(double radius, const Eigen::Vector3d &center);
 };
 
-#endif // LEBVEDEV_H
+#endif // LEBEDEV_H

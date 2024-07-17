@@ -40,8 +40,8 @@ add_subdirectory(tensor)
 add_subdirectory(utils)
 
 target_compile_definitions(mrchem PRIVATE 
-    LEBVEDEV_SOURCE_DIR="${LEBVEDEV_SOURCE_DIR}"
-    LEBVEDEV_INSTALL_DIR="${LEBVEDEV_INSTALL_DIR}"
+    LEBEDEV_SOURCE_DIR="${LEBEDEV_SOURCE_DIR}"
+    LEBEDEV_INSTALL_DIR="${LEBEDEV_INSTALL_DIR}"
 )
 
 target_link_libraries(mrchem
