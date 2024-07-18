@@ -12,11 +12,12 @@ public:
     int n; /**< Number of Lebedev grid points. */
 
 
-    LebedevIntegrator(const std::string& filename, double radius, const Eigen::Vector3d& center);
+    LebedevIntegrator(int nPoints, double radius, const Eigen::Vector3d& center);
     Eigen::MatrixXd getPoints() const;
     Eigen::VectorXd getWeights() const;
     Eigen::MatrixXd getNormals() const;
 private:
+    void getLebedevData(int nPoints);
     void readLebedevFile(const std::string& filename);
     void calculateCartesianPoints(double radius, const Eigen::Vector3d &center);
 };

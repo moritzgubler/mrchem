@@ -304,13 +304,12 @@ public:
 /**
  * @brief Function to create the integration spheres for averaging the surface force calculation
 */
-std::vector<TinySphere> tinySpheres(Vector3d pos, std::string averagingMode, int nrad, int nshift, double radius, double tinyRadius, std::string tinyPoints_file){
+std::vector<TinySphere> tinySpheres(Vector3d pos, std::string averagingMode, int nrad, int nshift, double radius, double tinyRadius, int nTinyPoints){
     std::vector<TinySphere> spheres;
     if ( averagingMode == "shift" ) {
         std::filesystem::path p = __FILE__;
         std::filesystem::path parent_dir = p.parent_path();
-        std::string tinyPoints = tinyPoints_file;
-        LebedevIntegrator tintegrator(tinyPoints, tinyRadius, pos);
+        LebedevIntegrator tintegrator(nTinyPoints, tinyRadius, pos);
         MatrixXd tinyPos = tintegrator.getPoints();
         VectorXd tinyWeights = tintegrator.getWeights();
         for (int i = 0; i < tintegrator.n; i++){
@@ -411,20 +410,29 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     }
     VectorXd dist = distanceToNearestNeighbour(posmatrix);
 
-    std::string parent_dir;
-    // These directories are set as preprocessor definitions in the CMakeLists.txt file
-    std::string lebedevDirSrc = LEBEDEV_SOURCE_DIR;
-    std::string lebedevDirInstall = LEBEDEV_INSTALL_DIR;
-    if (std::filesystem::exists(lebedevDirInstall)){
-        parent_dir = lebedevDirInstall;
-    } else if (std::filesystem::exists(lebedevDirSrc)){
-        parent_dir = lebedevDirSrc;
-    } else {
-        MSG_ABORT("Lebedev data directory not found");
+    int nLebPoints = 0;
+    int nTinyPoints = 1;
+    if (leb_prec == "low") {
+        nLebPoints = 194;
     }
-
-    std::string filename = parent_dir + "/lebedev_" + leb_prec + ".txt";
-    std::string tinyPoints = parent_dir + "/lebedev_tiny_" + leb_prec + ".txt";
+    else if (leb_prec == "medium"){
+        nLebPoints = 350;
+    }
+    else if (leb_prec == "high") {
+        nLebPoints = 590;
+    }
+    else {
+        MSG_ABORT("Invalid lebedev precision");
+    }
+    if (avg_precision == "low") {
+        nTinyPoints = 6;
+    } else if (avg_precision == "medium") {
+        nTinyPoints = 14;
+    } else if (avg_precision == "high") {
+        nTinyPoints = 26;
+    } else {
+        MSG_ABORT("Invalid averaging precision");
+    }
 
     double radius = 0.6;
     int nRad = 11;
@@ -443,10 +451,10 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         coord = mol.getNuclei()[iAtom].getCoord();
         center << coord[0], coord[1], coord[2];
 
-        std::vector<TinySphere> spheres = tinySpheres(center, averaging, nRad, nrad, radius, tinyRadius, tinyPoints);
+        std::vector<TinySphere> spheres = tinySpheres(center, averaging, nRad, nrad, radius, tinyRadius, nTinyPoints);
 
         for (int iTiny = 0; iTiny < spheres.size(); iTiny++){
-            LebedevIntegrator integrator(filename, spheres[iTiny].radius, spheres[iTiny].center);
+            LebedevIntegrator integrator(nLebPoints, spheres[iTiny].radius, spheres[iTiny].center);
             MatrixXd gridPos = integrator.getPoints();
             VectorXd weights = integrator.getWeights();
             MatrixXd normals = integrator.getNormals();

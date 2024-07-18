@@ -10,6 +10,7 @@
 #include <vector>
 #include <cmath>
 #include <Eigen/Dense>
+#include "surface_forces/LebedevData.h"
 
 
     /**
@@ -18,8 +19,8 @@
      * @param radius The radius of the sphere.
      * @param center Center of the sphere.
      */
-    LebedevIntegrator::LebedevIntegrator(const std::string& filename, double radius, const Eigen::Vector3d& center) {
-        readLebedevFile(filename);
+    LebedevIntegrator::LebedevIntegrator(int nPoints, double radius, const Eigen::Vector3d& center) {
+        getLebedevData(nPoints);
         calculateCartesianPoints(radius, center);
     }
 
@@ -74,6 +75,19 @@
             normals.row(i) << cos(thetaVec[i]) * sin(phiVec[i]), sin(thetaVec[i]) * sin(phiVec[i]), cos(phiVec[i]);
         }
     }
+
+    /**
+     * @brief Get the Lebedev data for a given number of grid points.
+     * @param n The number of Lebedev grid points.
+     */
+    void LebedevIntegrator::getLebedevData(int nPoints) {
+        std::tuple<Eigen::VectorXd, Eigen::Matrix3Xd> dat = lebedev(nPoints);
+        weights = std::get<0>(dat);
+        n = weights.size();
+        normals = std::get<1>(dat).transpose();
+        points = Eigen::MatrixXd(n, 3);
+    }
+        
 
     /**
      * @brief Calculate the Cartesian coordinates of the Lebedev grid points.
