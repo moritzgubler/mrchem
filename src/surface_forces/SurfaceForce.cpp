@@ -21,6 +21,7 @@
 
 #include "mrdft/Factory.h"
 #include "mrdft/MRDFT.h"
+#include "mrdft/xc_utils.h"
 #include "qmoperators/two_electron/XCOperator.h"
 #include "mrdft/Functional.h"
 
@@ -416,26 +417,46 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         xc_factory.setFunctional(name, coef);
     }
     std::unique_ptr<mrdft::MRDFT> mrdft_p = xc_factory.build();
-    std::shared_ptr<XCOperator> XC_p = std::make_shared<XCOperator>(mrdft_p, funcVectorShared, shared_memory);
-    XC_p->potential->setup(prec);
+    // std::shared_ptr<XCOperator> XC_p = std::make_shared<XCOperator>(mrdft_p, funcVectorShared, shared_memory);
+    // XC_p->potential->setup(prec);
     std::vector<mrcpp::FunctionNode<3> *> xcNodes;
 
     mrcpp::FunctionTreeVector<3> input;
 
     double one = 1.0;
 
-    // mrcpp::CoefsFunctionTree<3> rhoTree  = std::make_tuple(one, &rho.real());
     mrcpp::CoefsFunctionTree<3> rhoATree = std::make_tuple(one, &rhoA.real());
     mrcpp::CoefsFunctionTree<3> rhoBTree = std::make_tuple(one, &rhoB.real());
-    // input.push_back(rhoTree);
+
     input.push_back(rhoATree);
     input.push_back(rhoBTree);
 
-    std::cout << "calling makepot" << std::endl;
 
-    mrdft_p->functional().makepot(input, xcNodes);
+    mrdft::Grid grid(rhoA.real().getMRA());
+    mrdft_p->grid().unify(input);
+    int potvecSize = 3; //use 3 if spin, 2 if paired
+    mrcpp::FunctionTreeVector<3> PotVec = grid.generate(potvecSize);
+    int nNodes = grid.size();
+
+    // parallelization of loop both with omp (pragma omp for) and
+    // mpi (each mpi has a portion of the loop, defined by n_start and n_end)
+    int n_start = (mrcpp::mpi::wrk_rank * nNodes) / mrcpp::mpi::wrk_size;
+    int n_end = ((mrcpp::mpi::wrk_rank + 1) * nNodes) / mrcpp::mpi::wrk_size;
+    std::cout << " entering makepot loop" << n_start <<" "<<n_end<<std::endl;
+#pragma omp parallel
+    {
+#pragma omp for schedule(guided)
+        for (int n = n_start; n < n_end; n++) {
+            std::vector<mrcpp::FunctionNode<3> *> xcNodes = mrdft::xc_utils::fetch_nodes(n, PotVec);
+            mrdft_p->functional().makepot(input, xcNodes);
+        }
+    }
 
     std::cout << "done calling makepot" << std::endl;
+
+    std::shared_ptr<XCOperator> XC_p = std::make_shared<XCOperator>(mrdft_p, funcVectorShared, shared_memory);
+
+    XC_p->potential->setup(prec);
     
     int numAtoms = mol.getNNuclei();
     int numOrbitals = Phi.size();
