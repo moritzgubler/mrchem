@@ -160,7 +160,7 @@ std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrchem::OrbitalV
 /**
  * @brief Calculates the exchange-correlation stress tensor for the given molecule.
 */
-std::vector<Matrix3d> xcStress(const Molecule &mol, const Density &rho, std::shared_ptr<XCOperator> XC_p, const MatrixXd &gridPos, double prec){
+std::vector<Matrix3d> xcStress(const Molecule &mol, const Density &rho, std::shared_ptr<XCOperator> XC_p, const MatrixXd &gridPos, double prec, bool xc_spin){
     int nGrid = gridPos.rows();
 
     std::vector<Matrix3d> stress(nGrid);
@@ -178,22 +178,43 @@ std::vector<Matrix3d> xcStress(const Molecule &mol, const Density &rho, std::sha
     VectorXd xcGrid(nGrid);
     VectorXd vxcGrid(nGrid);
 
-    for (int i = 0; i < nGrid; i++){
-        pos[0] = gridPos(i, 0);
-        pos[1] = gridPos(i, 1);
-        pos[2] = gridPos(i, 2);
-        xcGrid(i) = std::get<1>(XC_p->potential->xc_vec[0])->evalf(pos);
-        vxcGrid(i) = std::get<1>(XC_p->potential->xc_vec[1])->evalf(pos);
-        for (int i1 = 0; i1 < 3; i1++) {
-            for (int i2 = 0; i2 < 3; i2++) {
-                stress[i](i1, i2) = 0.0;
+    std::cerr << "Len xc vec " << XC_p->potential->xc_vec.size() << std::endl;
+    int lenFuncs = XC_p->potential->xc_vec.size();
+    bool isGGA = lenFuncs > 3;
+    if (!isGGA) {
+        if (xc_spin && lenFuncs != 3) {
+            MSG_ABORT("Invalid number of XC functionals for spin calculation");
+        } else if (!xc_spin && lenFuncs != 2) {
+            MSG_ABORT("Invalid number of XC functionals for non-spin calculation");
+        }
+        for (int i = 0; i < nGrid; i++){
+            pos[0] = gridPos(i, 0);
+            pos[1] = gridPos(i, 1);
+            pos[2] = gridPos(i, 2);
+            xcGrid(i) = std::get<1>(XC_p->potential->xc_vec[0])->evalf(pos);
+            if (xc_spin) {
+                vxcGrid(i) = 0.5 * std::get<1>(XC_p->potential->xc_vec[1])->evalf(pos) + 0.5 * std::get<1>(XC_p->potential->xc_vec[2])->evalf(pos);
+            } else {
+                vxcGrid(i) = std::get<1>(XC_p->potential->xc_vec[1])->evalf(pos);
             }
+            for (int i1 = 0; i1 < 3; i1++) {
+                for (int i2 = 0; i2 < 3; i2++) {
+                    stress[i](i1, i2) = 0.0;
+                }
+            }
+            for (int i1 = 0; i1 < 3; i1++)
+            {
+                stress[i](i1, i1) = xcGrid(i) - vxcGrid(i) * rhoGrid(i);
+            }
+
         }
-        for (int i1 = 0; i1 < 3; i1++)
-        {
-            stress[i](i1, i1) = xcGrid(i) - vxcGrid(i) * rhoGrid(i);
+    } else {
+        if (xc_spin && lenFuncs != 9) {
+            MSG_ABORT("Invalid number of XC functionals for spin calculation");
+        } else if (!xc_spin && lenFuncs != 5) {
+            MSG_ABORT("Invalid number of XC functionals for non-spin calculation");
         }
-        
+        MSG_ABORT("GGA not implemented");
     }
 
     return stress;
@@ -344,7 +365,12 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
 
     // setup density
     mrchem::Density rho(false);
+    mrchem::Density rhoA(false);
+    mrchem::Density rhoB(false);
     mrchem::density::compute(prec, rho, Phi, DensityType::Total);
+    mrchem::density::compute(prec, rhoA, Phi, DensityType::Alpha);
+    mrchem::density::compute(prec, rhoA, Phi, DensityType::Beta);
+
 
     // setup operators and potentials
     auto poisson_op = mrcpp::PoissonOperator(*mrchem::MRA, prec);
@@ -374,7 +400,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     int order = 0;
     bool shared_memory = json_fock["xc_operator"]["shared_memory"];
     auto json_xcfunc = json_fock["xc_operator"]["xc_functional"];
-    auto xc_spin = json_xcfunc["spin"];
+    bool xc_spin = json_xcfunc["spin"];
     auto xc_cutoff = json_xcfunc["cutoff"];
     auto xc_funcs = json_xcfunc["functionals"];
     auto xc_order = order + 1;
@@ -392,7 +418,24 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     std::unique_ptr<mrdft::MRDFT> mrdft_p = xc_factory.build();
     std::shared_ptr<XCOperator> XC_p = std::make_shared<XCOperator>(mrdft_p, funcVectorShared, shared_memory);
     XC_p->potential->setup(prec);
+    std::vector<mrcpp::FunctionNode<3> *> xcNodes;
 
+    mrcpp::FunctionTreeVector<3> input;
+
+    double one = 1.0;
+
+    // mrcpp::CoefsFunctionTree<3> rhoTree  = std::make_tuple(one, &rho.real());
+    mrcpp::CoefsFunctionTree<3> rhoATree = std::make_tuple(one, &rhoA.real());
+    mrcpp::CoefsFunctionTree<3> rhoBTree = std::make_tuple(one, &rhoB.real());
+    // input.push_back(rhoTree);
+    input.push_back(rhoATree);
+    input.push_back(rhoBTree);
+
+    std::cout << "calling makepot" << std::endl;
+
+    mrdft_p->functional().makepot(input, xcNodes);
+
+    std::cout << "done calling makepot" << std::endl;
     
     int numAtoms = mol.getNNuclei();
     int numOrbitals = Phi.size();
@@ -458,7 +501,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
             MatrixXd gridPos = integrator.getPoints();
             VectorXd weights = integrator.getWeights();
             MatrixXd normals = integrator.getNormals();
-            std::vector<Matrix3d> xStress = xcStress(mol, rho, XC_p, gridPos, prec);
+            std::vector<Matrix3d> xStress = xcStress(mol, rho, XC_p, gridPos, prec, xc_spin);
             std::vector<Matrix3d> kstress = kineticStress(mol, Phi, nablaPhi, hessRho, prec, gridPos);
             std::vector<Matrix3d> mstress = maxwellStress(mol, negEfield, gridPos, prec);
             std::vector<Matrix3d> stress(integrator.n);
