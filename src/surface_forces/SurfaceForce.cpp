@@ -29,6 +29,7 @@
 #include "tensor/RankOneOperator.h"
 
 #include "surface_forces/lebedev.h"
+#include "surface_forces/xcHelper.h"
 #include <string>
 #include <iostream>
 #include <filesystem>
