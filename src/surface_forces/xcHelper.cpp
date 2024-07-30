@@ -4,24 +4,30 @@
 #include "qmfunctions/Orbital.h"
 #include "mrdft/MRDFT.h"
 
+Eigen::MatrixXd xcLDA(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGrid){
+    Eigen::MatrixXd out = Eigen::MatrixXd::Zero(rhoGrid.rows(), 5);
+    Eigen::MatrixXd xcOUT =  mrdft_p->functional().evaluate_transposed(rhoGrid);
+    out.col(0) = xcOUT.col(0);
+    for (int i = 0; i < rhoGrid.rows(); i++) {
+        out(i, 1) = xcOUT(i, 1) * rhoGrid(i);
+    }
 
-Eigen::MatrixXd xcLDA(std::shared_ptr<mrdft::MRDFT> mrdft_p, Eigen::MatrixXd &rhoGrid){
-    Eigen::MatrixXd out = Eigen::MatrixXd::Zero(5, rhoGrid.cols());
-    out(Eigen::seq(0, 1), Eigen::all) =  mrdft_p->functional().evaluate_transposed(rhoGrid);
     return out;
 }
 
-Eigen::MatrixXd xcLDASpin(std::shared_ptr<mrdft::MRDFT> mrdft_p, Eigen::MatrixXd &rhoGridAlpha, Eigen::MatrixXd &rhoGridBeta){
-    Eigen::MatrixXd inp(2, rhoGridAlpha.cols());
-    Eigen::MatrixXd out = Eigen::MatrixXd::Zero(4, rhoGridAlpha.cols());
-    inp.row(0) = rhoGridAlpha;
-    inp.row(1) = rhoGridBeta;
+Eigen::MatrixXd xcLDASpin(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGridAlpha, Eigen::MatrixXd &rhoGridBeta){
+    Eigen::MatrixXd inp(rhoGridAlpha.rows(), 2);
+    Eigen::MatrixXd out = Eigen::MatrixXd::Zero(rhoGridAlpha.rows(), 5);
+    Eigen::MatrixXd outAlpha = Eigen::MatrixXd::Zero(rhoGridAlpha.rows(), 5);
+    Eigen::MatrixXd outBeta = Eigen::MatrixXd::Zero(rhoGridAlpha.rows(), 5);
+    inp.col(0) = rhoGridAlpha.col(0);
+    inp.col(1) = rhoGridBeta.col(0);
     Eigen::MatrixXd xc = mrdft_p->functional().evaluate_transposed(inp);
-    out.row(0) = xc.row(0);
-    out.row(1) = xc.row(1) + xc.row(2);
+    out.col(0) = xc.col(0);
+    for (int i = 0; i < rhoGridAlpha.rows(); i++) {
+        out(i, 1) = xc(i, 1) * rhoGridAlpha(i) + xc(i, 2) * rhoGridBeta(i);
+    }
+    
     return out;
 }
 
-Eigen::MatrixXd createXCInput(mrchem::Density &rho, mrchem::OrbitalVector &nablaRho, Eigen::MatrixXd &gridPos){
-
-}
