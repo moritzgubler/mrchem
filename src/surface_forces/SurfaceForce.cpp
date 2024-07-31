@@ -357,8 +357,11 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     std::unique_ptr<mrdft::MRDFT> mrdft_p = xc_factory.build();
 
     bool isGGA = mrdft_p->functional().isGGA();
-    // std::shared_ptr<XCOperator> XC_p = std::make_shared<XCOperator>(mrdft_p, funcVectorShared, shared_memory);
-    // XC_p->potential->setup(prec);
+    bool isHybrid = mrdft_p->functional().isHybrid();
+
+    if (isHybrid) {
+        MSG_ABORT("Exact exchange is not implemented for forces computed with surface integrals");
+    }
 
     
     int numAtoms = mol.getNNuclei();
@@ -459,7 +462,22 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
                     }
                     xcStress = xcGGA(mrdft_p, rhoGrid, nablaRhoGrid);
                 } else {
-                    // xcStress = xcGGASpin(mrdft_p, rhoGridAlpha, rhoGridBeta, nablaRhoGridAlpha, nablaRhoGridBeta);
+                    mrchem::OrbitalVector nablaRhoAlpha = nabla(rhoA);
+                    mrchem::OrbitalVector nablaRhoBeta = nabla(rhoB);
+                    Eigen::MatrixXd nablaRhoGridAlpha(integrator.n, 3);
+                    Eigen::MatrixXd nablaRhoGridBeta(integrator.n, 3);
+                    for (int i = 0; i < integrator.n; i++) {
+                        pos[0] = gridPos(i, 0);
+                        pos[1] = gridPos(i, 1);
+                        pos[2] = gridPos(i, 2);
+                        nablaRhoGridAlpha(i, 0) = nablaRhoAlpha[0].real().evalf(pos);
+                        nablaRhoGridAlpha(i, 1) = nablaRhoAlpha[1].real().evalf(pos);
+                        nablaRhoGridAlpha(i, 2) = nablaRhoAlpha[2].real().evalf(pos);
+                        nablaRhoGridBeta(i, 0) = nablaRhoBeta[0].real().evalf(pos);
+                        nablaRhoGridBeta(i, 1) = nablaRhoBeta[1].real().evalf(pos);
+                        nablaRhoGridBeta(i, 2) = nablaRhoBeta[2].real().evalf(pos);
+                    }
+                    xcStress = xcGGASpin(mrdft_p, rhoGridAlpha, rhoGridBeta, nablaRhoGridAlpha, nablaRhoGridBeta);
                 }
             }
             
@@ -475,7 +493,6 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
 
     hess.clear();
     nabla.clear();
-    // XC_p->potential->clear();
     return forces;
 }
 
