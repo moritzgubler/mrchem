@@ -444,9 +444,9 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
             std::vector<Matrix3d> xcStress;
             if (! isGGA) {
                 if ( !xc_spin) {
-                    xcStress = xcLDA(mrdft_p, rhoGrid);
+                    xcStress = xcLDAStress(mrdft_p, rhoGrid);
                 } else {
-                    xcStress = xcLDASpin(mrdft_p, rhoGridAlpha, rhoGridBeta);
+                    xcStress = xcLDASpinStress(mrdft_p, rhoGridAlpha, rhoGridBeta);
                 }
             } else{
                 if ( !xc_spin) {
@@ -460,7 +460,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
                         nablaRhoGrid(i, 1) = nablaRho[1].real().evalf(pos);
                         nablaRhoGrid(i, 2) = nablaRho[2].real().evalf(pos);
                     }
-                    xcStress = xcGGA(mrdft_p, rhoGrid, nablaRhoGrid);
+                    xcStress = xcGGAStress(mrdft_p, rhoGrid, nablaRhoGrid);
                 } else {
                     mrchem::OrbitalVector nablaRhoAlpha = nabla(rhoA);
                     mrchem::OrbitalVector nablaRhoBeta = nabla(rhoB);
@@ -477,7 +477,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
                         nablaRhoGridBeta(i, 1) = nablaRhoBeta[1].real().evalf(pos);
                         nablaRhoGridBeta(i, 2) = nablaRhoBeta[2].real().evalf(pos);
                     }
-                    xcStress = xcGGASpin(mrdft_p, rhoGridAlpha, rhoGridBeta, nablaRhoGridAlpha, nablaRhoGridBeta);
+                    xcStress = xcGGASpinStress(mrdft_p, rhoGridAlpha, rhoGridBeta, nablaRhoGridAlpha, nablaRhoGridBeta);
                 }
             }
             

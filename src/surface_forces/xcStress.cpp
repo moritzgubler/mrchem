@@ -6,7 +6,7 @@
 
 using namespace Eigen;
 
-std::vector<Eigen::Matrix3d> xcLDA(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGrid){
+std::vector<Eigen::Matrix3d> xcLDAStress(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGrid){
     int nGrid = rhoGrid.rows();
     std::vector<Eigen::Matrix3d> out(nGrid);
     Eigen::MatrixXd xcOUT =  mrdft_p->functional().evaluate_transposed(rhoGrid);
@@ -19,7 +19,7 @@ std::vector<Eigen::Matrix3d> xcLDA(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen
     return out;
 }
 
-std::vector<Matrix3d> xcLDASpin(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGridAlpha, Eigen::MatrixXd &rhoGridBeta){
+std::vector<Matrix3d> xcLDASpinStress(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGridAlpha, Eigen::MatrixXd &rhoGridBeta){
     int nGrid = rhoGridAlpha.rows();
     Eigen::MatrixXd inp(rhoGridAlpha.rows(), 2);
     std::vector<Matrix3d> out = std::vector<Eigen::Matrix3d>(nGrid);
@@ -35,7 +35,7 @@ std::vector<Matrix3d> xcLDASpin(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::M
     return out;
 }
 
-std::vector<Matrix3d> xcGGA(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGrid, Eigen::MatrixXd &nablaRhoGrid){
+std::vector<Matrix3d> xcGGAStress(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGrid, Eigen::MatrixXd &nablaRhoGrid){
     int nGrid = rhoGrid.rows();
     Eigen::MatrixXd inp(rhoGrid.rows(), 4);
     inp.col(0) = rhoGrid.col(0);
@@ -59,7 +59,7 @@ std::vector<Matrix3d> xcGGA(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::Matri
     return out;
 }
 
-std::vector<Matrix3d> xcGGASpin(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGridAlpha, Eigen::MatrixXd &rhoGridBeta, Eigen::MatrixXd &nablaRhoGridAlpha, Eigen::MatrixXd &nablaRhoGridBeta){
+std::vector<Matrix3d> xcGGASpinStress(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGridAlpha, Eigen::MatrixXd &rhoGridBeta, Eigen::MatrixXd &nablaRhoGridAlpha, Eigen::MatrixXd &nablaRhoGridBeta){
     int nGrid = rhoGridAlpha.rows();
     Eigen::MatrixXd inp(rhoGridAlpha.rows(), 8);
     std::vector<Matrix3d> out = std::vector<Eigen::Matrix3d>(nGrid);
