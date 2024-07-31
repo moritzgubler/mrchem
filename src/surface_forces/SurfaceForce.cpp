@@ -159,34 +159,6 @@ std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrchem::OrbitalV
     return stress;
 }
 
-// /**
-//  * @brief Calculates the exchange-correlation stress tensor for the given molecule.
-// */
-// std::vector<Matrix3d> xcStress(const Eigen::MatrixXd xcGrid, bool isGGA){
-//     int nGrid = xcGrid.cols();
-//     std::cout << "xcGrid: " << xcGrid.rows() << " " << xcGrid.cols() << std::endl;
-
-//     std::vector<Matrix3d> stress(nGrid);
-
-//     if (!isGGA) {
-//         for (int i = 0; i < nGrid; i++) {
-//             for (int i1 = 0; i1 < 3; i1++) {
-//                 for (int i2 = 0; i2 < 3; i2++) {
-//                     stress[i](i1, i2) = 0.0;
-//                 }
-//             }
-//             for (int i1 = 0; i1 < 3; i1++) {
-//                 stress[i](i1, i1) = xcGrid(0, i) - xcGrid(1, i);
-//             }
-//             // std::cout << "stress: " << xcGrid(0, 1) << " " << xcGrid(1, 0) << std::endl;
-//         }
-//     } else {
-//         MSG_ABORT("GGA not implemented");
-//     }
-
-//     return stress;
-// }
-
 /**
  * @brief Calculates the kinetic stress tensor for the given molecule. See the function description for the formula.
 */
@@ -412,10 +384,10 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         nLebPoints = 194;
     }
     else if (leb_prec == "medium"){
-        nLebPoints = 350;
+        nLebPoints = 434;
     }
     else if (leb_prec == "high") {
-        nLebPoints = 590;
+        nLebPoints = 770;
     }
     else {
         MSG_ABORT("Invalid lebedev precision");
@@ -457,7 +429,6 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
             Eigen::MatrixXd rhoGrid(integrator.n, 1);
             Eigen::MatrixXd rhoGridAlpha(integrator.n, 1);
             Eigen::MatrixXd rhoGridBeta(integrator.n, 1);
-            std::cout << "density start" << std::endl;
             for (int i = 0; i < integrator.n; i++) {
                 pos[0] = gridPos(i, 0);
                 pos[1] = gridPos(i, 1);
@@ -476,9 +447,17 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
                 }
             } else{
                 if ( !xc_spin) {
-                    // mrcpp::ComplexFunction nablaRho = nabla(rho.real());
-                    // Eigen::MatrixXd nablaRhoGrid(integrator.n, 3);
-                    // xcStress = xcGGA(mrdft_p, rhoGrid, nablaRhoGrid);
+                    mrchem::OrbitalVector nablaRho = nabla(rho);
+                    Eigen::MatrixXd nablaRhoGrid(integrator.n, 3);
+                    for (int i = 0; i < integrator.n; i++) {
+                        pos[0] = gridPos(i, 0);
+                        pos[1] = gridPos(i, 1);
+                        pos[2] = gridPos(i, 2);
+                        nablaRhoGrid(i, 0) = nablaRho[0].real().evalf(pos);
+                        nablaRhoGrid(i, 1) = nablaRho[1].real().evalf(pos);
+                        nablaRhoGrid(i, 2) = nablaRho[2].real().evalf(pos);
+                    }
+                    xcStress = xcGGA(mrdft_p, rhoGrid, nablaRhoGrid);
                 } else {
                     // xcStress = xcGGASpin(mrdft_p, rhoGridAlpha, rhoGridBeta, nablaRhoGridAlpha, nablaRhoGridBeta);
                 }
