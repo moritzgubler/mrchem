@@ -1,4 +1,4 @@
-#include "surface_forces/xcHelper.h"
+#include "surface_forces/xcStress.h"
 
 #include "qmfunctions/Density.h"
 #include "qmfunctions/Orbital.h"
