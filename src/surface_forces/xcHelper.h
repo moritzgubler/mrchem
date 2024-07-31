@@ -5,7 +5,7 @@
 #include "qmfunctions/Density.h"
 #include "qmfunctions/Orbital.h"
 #include "mrdft/MRDFT.h"
+#include <vector>
 
-Eigen::MatrixXd xcLDA(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGrid);
-Eigen::MatrixXd xcLDASpin(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGridAlpha, Eigen::MatrixXd &rhoGridBeta);
-Eigen::MatrixXd createXCInput(mrchem::Density &rho, mrchem::OrbitalVector &nablaRho, Eigen::MatrixXd &gridPos);
+std::vector<Eigen::Matrix3d> xcLDA(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGrid);
+std::vector<Eigen::Matrix3d> xcLDASpin(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGridAlpha, Eigen::MatrixXd &rhoGridBeta);

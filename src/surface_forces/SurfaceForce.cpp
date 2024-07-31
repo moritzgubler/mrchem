@@ -159,33 +159,33 @@ std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrchem::OrbitalV
     return stress;
 }
 
-/**
- * @brief Calculates the exchange-correlation stress tensor for the given molecule.
-*/
-std::vector<Matrix3d> xcStress(const Eigen::MatrixXd xcGrid, bool isGGA){
-    int nGrid = xcGrid.cols();
-    std::cout << "xcGrid: " << xcGrid.rows() << " " << xcGrid.cols() << std::endl;
+// /**
+//  * @brief Calculates the exchange-correlation stress tensor for the given molecule.
+// */
+// std::vector<Matrix3d> xcStress(const Eigen::MatrixXd xcGrid, bool isGGA){
+//     int nGrid = xcGrid.cols();
+//     std::cout << "xcGrid: " << xcGrid.rows() << " " << xcGrid.cols() << std::endl;
 
-    std::vector<Matrix3d> stress(nGrid);
+//     std::vector<Matrix3d> stress(nGrid);
 
-    if (!isGGA) {
-        for (int i = 0; i < nGrid; i++) {
-            for (int i1 = 0; i1 < 3; i1++) {
-                for (int i2 = 0; i2 < 3; i2++) {
-                    stress[i](i1, i2) = 0.0;
-                }
-            }
-            for (int i1 = 0; i1 < 3; i1++) {
-                stress[i](i1, i1) = xcGrid(0, i) - xcGrid(1, i);
-            }
-            // std::cout << "stress: " << xcGrid(0, 1) << " " << xcGrid(1, 0) << std::endl;
-        }
-    } else {
-        MSG_ABORT("GGA not implemented");
-    }
+//     if (!isGGA) {
+//         for (int i = 0; i < nGrid; i++) {
+//             for (int i1 = 0; i1 < 3; i1++) {
+//                 for (int i2 = 0; i2 < 3; i2++) {
+//                     stress[i](i1, i2) = 0.0;
+//                 }
+//             }
+//             for (int i1 = 0; i1 < 3; i1++) {
+//                 stress[i](i1, i1) = xcGrid(0, i) - xcGrid(1, i);
+//             }
+//             // std::cout << "stress: " << xcGrid(0, 1) << " " << xcGrid(1, 0) << std::endl;
+//         }
+//     } else {
+//         MSG_ABORT("GGA not implemented");
+//     }
 
-    return stress;
-}
+//     return stress;
+// }
 
 /**
  * @brief Calculates the kinetic stress tensor for the given molecule. See the function description for the formula.
@@ -383,6 +383,8 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         xc_factory.setFunctional(name, coef);
     }
     std::unique_ptr<mrdft::MRDFT> mrdft_p = xc_factory.build();
+
+    bool isGGA = mrdft_p->functional().isGGA();
     // std::shared_ptr<XCOperator> XC_p = std::make_shared<XCOperator>(mrdft_p, funcVectorShared, shared_memory);
     // XC_p->potential->setup(prec);
 
@@ -464,21 +466,29 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
                 rhoGridAlpha(i, 0) = rhoA.real().evalf(pos);
                 rhoGridBeta(i, 0) = rhoB.real().evalf(pos);
             }
-            std::cout << "density worked" << std::endl;
-            Eigen::MatrixXd xc;
-            if (xc_spin) {
-                xc = xcLDASpin(mrdft_p, rhoGridAlpha, rhoGridBeta);
-            } else {
-                xc = xcLDA(mrdft_p, rhoGrid);
+
+            std::vector<Matrix3d> xcStress;
+            if (! isGGA) {
+                if ( !xc_spin) {
+                    xcStress = xcLDA(mrdft_p, rhoGrid);
+                } else {
+                    xcStress = xcLDASpin(mrdft_p, rhoGridAlpha, rhoGridBeta);
+                }
+            } else{
+                if ( !xc_spin) {
+                    // mrcpp::ComplexFunction nablaRho = nabla(rho.real());
+                    // Eigen::MatrixXd nablaRhoGrid(integrator.n, 3);
+                    // xcStress = xcGGA(mrdft_p, rhoGrid, nablaRhoGrid);
+                } else {
+                    // xcStress = xcGGASpin(mrdft_p, rhoGridAlpha, rhoGridBeta, nablaRhoGridAlpha, nablaRhoGridBeta);
+                }
             }
-            xc.transposeInPlace();
             
-            std::vector<Matrix3d> xStress = xcStress(xc, false);
             std::vector<Matrix3d> kstress = kineticStress(mol, Phi, nablaPhi, hessRho, prec, gridPos);
             std::vector<Matrix3d> mstress = maxwellStress(mol, negEfield, gridPos, prec);
             std::vector<Matrix3d> stress(integrator.n);
             for (int i = 0; i < integrator.n; i++){
-                stress[i] = xStress[i] + kstress[i] + mstress[i];
+                stress[i] = xcStress[i] + kstress[i] + mstress[i];
                 forces.row(iAtom) -= stress[i] * normals.row(i).transpose() * weights(i) * spheres[iTiny].weight;
             }
         }
