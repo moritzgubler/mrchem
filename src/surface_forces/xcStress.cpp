@@ -3,10 +3,15 @@
 #include "qmfunctions/Density.h"
 #include "qmfunctions/Orbital.h"
 #include "mrdft/MRDFT.h"
+#include "qmfunctions/Density.h"
+#include "qmfunctions/density_utils.h"
+#include "qmoperators/one_electron/NablaOperator.h"
 
 using namespace Eigen;
+using namespace mrchem;
+using namespace std;
 
-std::vector<Eigen::Matrix3d> xcLDAStress(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGrid){
+std::vector<Eigen::Matrix3d> xcLDAStress(unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGrid){
     int nGrid = rhoGrid.rows();
     std::vector<Eigen::Matrix3d> out(nGrid);
     Eigen::MatrixXd xcOUT =  mrdft_p->functional().evaluate_transposed(rhoGrid);
@@ -19,7 +24,7 @@ std::vector<Eigen::Matrix3d> xcLDAStress(std::unique_ptr<mrdft::MRDFT> &mrdft_p,
     return out;
 }
 
-std::vector<Matrix3d> xcLDASpinStress(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGridAlpha, Eigen::MatrixXd &rhoGridBeta){
+std::vector<Matrix3d> xcLDASpinStress(unique_ptr<mrdft::MRDFT> &mrdft_p, MatrixXd &rhoGridAlpha, MatrixXd &rhoGridBeta){
     int nGrid = rhoGridAlpha.rows();
     Eigen::MatrixXd inp(rhoGridAlpha.rows(), 2);
     std::vector<Matrix3d> out = std::vector<Eigen::Matrix3d>(nGrid);
@@ -35,7 +40,7 @@ std::vector<Matrix3d> xcLDASpinStress(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Ei
     return out;
 }
 
-std::vector<Matrix3d> xcGGAStress(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGrid, Eigen::MatrixXd &nablaRhoGrid){
+std::vector<Matrix3d> xcGGAStress(unique_ptr<mrdft::MRDFT> &mrdft_p, MatrixXd &rhoGrid, MatrixXd &nablaRhoGrid){
     int nGrid = rhoGrid.rows();
     Eigen::MatrixXd inp(rhoGrid.rows(), 4);
     inp.col(0) = rhoGrid.col(0);
@@ -59,7 +64,7 @@ std::vector<Matrix3d> xcGGAStress(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen:
     return out;
 }
 
-std::vector<Matrix3d> xcGGASpinStress(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGridAlpha, Eigen::MatrixXd &rhoGridBeta, Eigen::MatrixXd &nablaRhoGridAlpha, Eigen::MatrixXd &nablaRhoGridBeta){
+std::vector<Matrix3d> xcGGASpinStress(unique_ptr<mrdft::MRDFT> &mrdft_p, MatrixXd &rhoGridAlpha, MatrixXd &rhoGridBeta, MatrixXd &nablaRhoGridAlpha, MatrixXd &nablaRhoGridBeta){
     int nGrid = rhoGridAlpha.rows();
     Eigen::MatrixXd inp(rhoGridAlpha.rows(), 8);
     std::vector<Matrix3d> out = std::vector<Eigen::Matrix3d>(nGrid);
@@ -86,4 +91,95 @@ std::vector<Matrix3d> xcGGASpinStress(std::unique_ptr<mrdft::MRDFT> &mrdft_p, Ei
         }
     }
     return out;
+}
+
+std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, std::shared_ptr<OrbitalVector> phi, std::shared_ptr<NablaOperator> nabla, MatrixXd &gridPos, bool isOpenShell, double prec){
+
+    bool isGGA = mrdft_p->functional().isGGA();
+    bool isHybrid = mrdft_p->functional().isHybrid();
+    if (isHybrid) {
+        MSG_ABORT("Exact exchange is not implemented for forces computed with surface integrals");
+    }
+
+    std::array<double, 3> pos;
+    int nGrid = gridPos.rows();
+
+    vector<Matrix3d> xcStress;
+
+    if (isOpenShell) {
+        MatrixXd rhoGridAlpha(nGrid, 1);
+        MatrixXd rhoGridBeta(nGrid, 1);
+        mrchem::Density rhoA(false);
+        mrchem::Density rhoB(false);
+        mrchem::density::compute(prec, rhoA, *phi, DensityType::Alpha);
+        mrchem::density::compute(prec, rhoB, *phi, DensityType::Beta);
+
+        for (int i = 0; i < nGrid; i++) { // compute density on grid
+            pos[0] = gridPos(i, 0);
+            pos[1] = gridPos(i, 1);
+            pos[2] = gridPos(i, 2);
+            rhoGridAlpha(i) = rhoA.real().evalf(pos);
+            rhoGridBeta(i) = rhoB.real().evalf(pos);
+        }
+
+        if (isGGA) {
+
+            mrchem::NablaOperator nablaOP = *nabla;
+            OrbitalVector nablaRhoAlpha = nablaOP(rhoA);
+            OrbitalVector nablaRhoBeta = nablaOP(rhoB);
+            MatrixXd nablaRhoGridAlpha(nGrid, 3);
+            MatrixXd nablaRhoGridBeta(nGrid, 3);
+
+            for (int i = 0; i < nGrid; i++) {
+                pos[0] = gridPos(i, 0);
+                pos[1] = gridPos(i, 1);
+                pos[2] = gridPos(i, 2);
+                nablaRhoGridAlpha(i, 0) = nablaRhoAlpha[0].real().evalf(pos);
+                nablaRhoGridAlpha(i, 1) = nablaRhoAlpha[1].real().evalf(pos);
+                nablaRhoGridAlpha(i, 2) = nablaRhoAlpha[2].real().evalf(pos);
+                nablaRhoGridBeta(i, 0) = nablaRhoBeta[0].real().evalf(pos);
+                nablaRhoGridBeta(i, 1) = nablaRhoBeta[1].real().evalf(pos);
+                nablaRhoGridBeta(i, 2) = nablaRhoBeta[2].real().evalf(pos);
+            }
+
+            xcStress = xcGGASpinStress(mrdft_p, rhoGridAlpha, rhoGridBeta, nablaRhoGridAlpha, nablaRhoGridBeta);
+        } else {
+            xcStress = xcLDASpinStress(mrdft_p, rhoGridAlpha, rhoGridBeta);
+        }
+
+
+    } else { // closed shell
+        MatrixXd rhoGrid(nGrid, 1);
+        mrchem::Density rho(false);
+        mrchem::density::compute(prec, rho, *phi, DensityType::Total);
+
+        for (int i = 0; i < nGrid; i++) { // compute density on grid
+            pos[0] = gridPos(i, 0);
+            pos[1] = gridPos(i, 1);
+            pos[2] = gridPos(i, 2);
+            rhoGrid(i) = rho.real().evalf(pos);
+        }
+
+        if (isGGA) {
+            mrchem::NablaOperator nablaOP = *nabla;
+            OrbitalVector nablaRho = nablaOP(rho);
+            MatrixXd nablaRhoGrid(nGrid, 3);
+            for (int i = 0; i < nGrid; i++) {
+                pos[0] = gridPos(i, 0);
+                pos[1] = gridPos(i, 1);
+                pos[2] = gridPos(i, 2);
+                nablaRhoGrid(i, 0) = nablaRho[0].real().evalf(pos);
+                nablaRhoGrid(i, 1) = nablaRho[1].real().evalf(pos);
+                nablaRhoGrid(i, 2) = nablaRho[2].real().evalf(pos);
+            }
+            xcStress = xcGGAStress(mrdft_p, rhoGrid, nablaRhoGrid);
+        } else {
+            xcStress = xcLDAStress(mrdft_p, rhoGrid);
+        }
+
+    }
+
+    return xcStress;
+
+
 }

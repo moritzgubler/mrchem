@@ -359,9 +359,6 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     bool isGGA = mrdft_p->functional().isGGA();
     bool isHybrid = mrdft_p->functional().isHybrid();
 
-    if (isHybrid) {
-        MSG_ABORT("Exact exchange is not implemented for forces computed with surface integrals");
-    }
 
     
     int numAtoms = mol.getNNuclei();
@@ -441,45 +438,8 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
                 rhoGridBeta(i, 0) = rhoB.real().evalf(pos);
             }
 
-            std::vector<Matrix3d> xcStress;
-            if (! isGGA) {
-                if ( !xc_spin) {
-                    xcStress = xcLDAStress(mrdft_p, rhoGrid);
-                } else {
-                    xcStress = xcLDASpinStress(mrdft_p, rhoGridAlpha, rhoGridBeta);
-                }
-            } else{
-                if ( !xc_spin) {
-                    mrchem::OrbitalVector nablaRho = nabla(rho);
-                    Eigen::MatrixXd nablaRhoGrid(integrator.n, 3);
-                    for (int i = 0; i < integrator.n; i++) {
-                        pos[0] = gridPos(i, 0);
-                        pos[1] = gridPos(i, 1);
-                        pos[2] = gridPos(i, 2);
-                        nablaRhoGrid(i, 0) = nablaRho[0].real().evalf(pos);
-                        nablaRhoGrid(i, 1) = nablaRho[1].real().evalf(pos);
-                        nablaRhoGrid(i, 2) = nablaRho[2].real().evalf(pos);
-                    }
-                    xcStress = xcGGAStress(mrdft_p, rhoGrid, nablaRhoGrid);
-                } else {
-                    mrchem::OrbitalVector nablaRhoAlpha = nabla(rhoA);
-                    mrchem::OrbitalVector nablaRhoBeta = nabla(rhoB);
-                    Eigen::MatrixXd nablaRhoGridAlpha(integrator.n, 3);
-                    Eigen::MatrixXd nablaRhoGridBeta(integrator.n, 3);
-                    for (int i = 0; i < integrator.n; i++) {
-                        pos[0] = gridPos(i, 0);
-                        pos[1] = gridPos(i, 1);
-                        pos[2] = gridPos(i, 2);
-                        nablaRhoGridAlpha(i, 0) = nablaRhoAlpha[0].real().evalf(pos);
-                        nablaRhoGridAlpha(i, 1) = nablaRhoAlpha[1].real().evalf(pos);
-                        nablaRhoGridAlpha(i, 2) = nablaRhoAlpha[2].real().evalf(pos);
-                        nablaRhoGridBeta(i, 0) = nablaRhoBeta[0].real().evalf(pos);
-                        nablaRhoGridBeta(i, 1) = nablaRhoBeta[1].real().evalf(pos);
-                        nablaRhoGridBeta(i, 2) = nablaRhoBeta[2].real().evalf(pos);
-                    }
-                    xcStress = xcGGASpinStress(mrdft_p, rhoGridAlpha, rhoGridBeta, nablaRhoGridAlpha, nablaRhoGridBeta);
-                }
-            }
+            std::vector<Matrix3d> xcStress = getXCStress(mrdft_p, std::make_shared<mrchem::OrbitalVector>(Phi), 
+            std::make_shared<mrchem::NablaOperator>(nabla), gridPos, xc_spin, prec);
             
             std::vector<Matrix3d> kstress = kineticStress(mol, Phi, nablaPhi, hessRho, prec, gridPos);
             std::vector<Matrix3d> mstress = maxwellStress(mol, negEfield, gridPos, prec);
