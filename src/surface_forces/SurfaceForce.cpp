@@ -304,11 +304,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
 
     // setup density
     mrchem::Density rho(false);
-    mrchem::Density rhoA(false);
-    mrchem::Density rhoB(false);
     mrchem::density::compute(prec, rho, Phi, DensityType::Total);
-    mrchem::density::compute(prec, rhoA, Phi, DensityType::Alpha);
-    mrchem::density::compute(prec, rhoB, Phi, DensityType::Beta);
 
 
     // setup operators and potentials
@@ -356,13 +352,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     }
     std::unique_ptr<mrdft::MRDFT> mrdft_p = xc_factory.build();
 
-    bool isGGA = mrdft_p->functional().isGGA();
-    bool isHybrid = mrdft_p->functional().isHybrid();
-
-
-    
     int numAtoms = mol.getNNuclei();
-    int numOrbitals = Phi.size();
 
     Eigen::MatrixXd forces = Eigen::MatrixXd::Zero(numAtoms, 3);
     Vector3d center;
@@ -426,20 +416,9 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
             MatrixXd gridPos = integrator.getPoints();
             VectorXd weights = integrator.getWeights();
             MatrixXd normals = integrator.getNormals();
-            Eigen::MatrixXd rhoGrid(integrator.n, 1);
-            Eigen::MatrixXd rhoGridAlpha(integrator.n, 1);
-            Eigen::MatrixXd rhoGridBeta(integrator.n, 1);
-            for (int i = 0; i < integrator.n; i++) {
-                pos[0] = gridPos(i, 0);
-                pos[1] = gridPos(i, 1);
-                pos[2] = gridPos(i, 2);
-                rhoGrid(i, 0) = rho.real().evalf(pos);
-                rhoGridAlpha(i, 0) = rhoA.real().evalf(pos);
-                rhoGridBeta(i, 0) = rhoB.real().evalf(pos);
-            }
 
             std::vector<Matrix3d> xcStress = getXCStress(mrdft_p, std::make_shared<mrchem::OrbitalVector>(Phi), 
-            std::make_shared<mrchem::NablaOperator>(nabla), gridPos, xc_spin, prec);
+                std::make_shared<mrchem::NablaOperator>(nabla), gridPos, xc_spin, prec);
             
             std::vector<Matrix3d> kstress = kineticStress(mol, Phi, nablaPhi, hessRho, prec, gridPos);
             std::vector<Matrix3d> mstress = maxwellStress(mol, negEfield, gridPos, prec);

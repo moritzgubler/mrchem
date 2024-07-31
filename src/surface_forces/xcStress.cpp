@@ -11,6 +11,15 @@ using namespace Eigen;
 using namespace mrchem;
 using namespace std;
 
+namespace surface_force{
+
+/**
+ * @brief Compute the exchange-correlation stress tensor for LDA functional
+ * 
+ * @param mrdft_p MRDFT object
+ * @param rhoGrid MatrixXd with density values, shape (nGrid, 1)
+ * @return std::vector<Eigen::Matrix3d> vector of 3x3 matrices with stress tensor at each grid point
+ */
 std::vector<Eigen::Matrix3d> xcLDAStress(unique_ptr<mrdft::MRDFT> &mrdft_p, Eigen::MatrixXd &rhoGrid){
     int nGrid = rhoGrid.rows();
     std::vector<Eigen::Matrix3d> out(nGrid);
@@ -24,6 +33,14 @@ std::vector<Eigen::Matrix3d> xcLDAStress(unique_ptr<mrdft::MRDFT> &mrdft_p, Eige
     return out;
 }
 
+/**
+ * @brief Compute the exchange-correlation stress tensor for LDA functional for open shell systems
+ * 
+ * @param mrdft_p MRDFT object
+ * @param rhoGridAlpha MatrixXd with alpha density values, shape (nGrid, 1)
+ * @param rhoGridBeta MatrixXd with beta density values, shape (nGrid, 1)
+ * @return std::vector<Eigen::Matrix3d> vector of 3x3 matrices with stress tensor at each grid point
+ */
 std::vector<Matrix3d> xcLDASpinStress(unique_ptr<mrdft::MRDFT> &mrdft_p, MatrixXd &rhoGridAlpha, MatrixXd &rhoGridBeta){
     int nGrid = rhoGridAlpha.rows();
     Eigen::MatrixXd inp(rhoGridAlpha.rows(), 2);
@@ -40,6 +57,14 @@ std::vector<Matrix3d> xcLDASpinStress(unique_ptr<mrdft::MRDFT> &mrdft_p, MatrixX
     return out;
 }
 
+/**
+ * @brief Compute the exchange-correlation stress tensor for GGA functional
+ * 
+ * @param mrdft_p MRDFT object
+ * @param rhoGrid MatrixXd with density values, shape (nGrid, 1)
+ * @param nablaRhoGrid MatrixXd with gradient of density values, shape (nGrid, 3)
+ * @return std::vector<Eigen::Matrix3d> vector of 3x3 matrices with stress tensor at each grid point
+ */
 std::vector<Matrix3d> xcGGAStress(unique_ptr<mrdft::MRDFT> &mrdft_p, MatrixXd &rhoGrid, MatrixXd &nablaRhoGrid){
     int nGrid = rhoGrid.rows();
     Eigen::MatrixXd inp(rhoGrid.rows(), 4);
@@ -64,6 +89,16 @@ std::vector<Matrix3d> xcGGAStress(unique_ptr<mrdft::MRDFT> &mrdft_p, MatrixXd &r
     return out;
 }
 
+/**
+ * @brief Compute the exchange-correlation stress tensor for GGA functional for open shell systems
+ * 
+ * @param mrdft_p MRDFT object
+ * @param rhoGridAlpha MatrixXd with alpha density values, shape (nGrid, 1)
+ * @param rhoGridBeta MatrixXd with beta density values, shape (nGrid, 1)
+ * @param nablaRhoGridAlpha MatrixXd with gradient of alpha density values, shape (nGrid, 3)
+ * @param nablaRhoGridBeta MatrixXd with gradient of beta density values, shape (nGrid, 3)
+ * @return std::vector<Eigen::Matrix3d> vector of 3x3 matrices with stress tensor at each grid point
+ */
 std::vector<Matrix3d> xcGGASpinStress(unique_ptr<mrdft::MRDFT> &mrdft_p, MatrixXd &rhoGridAlpha, MatrixXd &rhoGridBeta, MatrixXd &nablaRhoGridAlpha, MatrixXd &nablaRhoGridBeta){
     int nGrid = rhoGridAlpha.rows();
     Eigen::MatrixXd inp(rhoGridAlpha.rows(), 8);
@@ -93,7 +128,18 @@ std::vector<Matrix3d> xcGGASpinStress(unique_ptr<mrdft::MRDFT> &mrdft_p, MatrixX
     return out;
 }
 
-std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, std::shared_ptr<OrbitalVector> phi, std::shared_ptr<NablaOperator> nabla, MatrixXd &gridPos, bool isOpenShell, double prec){
+/**
+ * @brief Compute the exchange-correlation stress tensor on a grid
+ * 
+ * @param mrdft_p MRDFT object
+ * @param phi OrbitalVector
+ * @param nabla NablaOperator (must be set up prior to calling this function)
+ * @param gridPos MatrixXd with grid positions, shape (nGrid, 3)
+ * @param isOpenShell bool, true if open shell calculation
+ * @param prec precision to use in density representation
+ */
+std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, std::shared_ptr<OrbitalVector> phi,
+        std::shared_ptr<NablaOperator> nabla, MatrixXd &gridPos, bool isOpenShell, double prec){
 
     bool isGGA = mrdft_p->functional().isGGA();
     bool isHybrid = mrdft_p->functional().isHybrid();
@@ -123,7 +169,6 @@ std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, std:
         }
 
         if (isGGA) {
-
             mrchem::NablaOperator nablaOP = *nabla;
             OrbitalVector nablaRhoAlpha = nablaOP(rhoA);
             OrbitalVector nablaRhoBeta = nablaOP(rhoB);
@@ -146,7 +191,6 @@ std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, std:
         } else {
             xcStress = xcLDASpinStress(mrdft_p, rhoGridAlpha, rhoGridBeta);
         }
-
 
     } else { // closed shell
         MatrixXd rhoGrid(nGrid, 1);
@@ -176,10 +220,7 @@ std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, std:
         } else {
             xcStress = xcLDAStress(mrdft_p, rhoGrid);
         }
-
     }
-
     return xcStress;
-
-
 }
+} // namespace surface_force
