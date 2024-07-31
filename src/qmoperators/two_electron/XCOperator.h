@@ -70,6 +70,7 @@ public:
     }
     void clearSpin() { this->potential->setReal(nullptr); }
 
+private:
     std::shared_ptr<XCPotential> potential{nullptr};
 };
 
