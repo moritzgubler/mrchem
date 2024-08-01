@@ -296,8 +296,6 @@ def write_scf_properties(user_dict, origin):
             "smoothing": user_dict["Precisions"]["nuclear_prec"],
             "method": user_dict["Forces"]["method"],
             "surface_integral_precision": user_dict["Forces"]["surface_integral_precision"],
-            "sphere_averaging": user_dict["Forces"]["sphere_averaging"],
-            "sphere_averaging_precision": user_dict["Forces"]["sphere_averaging_precision"],
         }
     return prop_dict
 
