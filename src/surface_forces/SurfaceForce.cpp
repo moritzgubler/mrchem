@@ -244,53 +244,6 @@ VectorXd distanceToNearestNeighbour(MatrixXd pos){
 }
 
 /**
- * @brief Class representing integration spheres for averaging the surface force calculation
-*/
-class TinySphere {
-public:
-    Eigen::Vector3d center;
-    double radius;
-    double weight;
-    TinySphere(Eigen::Vector3d center, double radius, double weight) : center(center), radius(radius), weight(weight) {}
-
-    void print() {
-        std::cout << "Center: " << center.transpose() << std::endl;
-        std::cout << "Radius: " << radius << std::endl;
-        std::cout << "Weight: " << weight << std::endl;
-    }
-
-};
-
-/**
- * @brief Function to create the integration spheres for averaging the surface force calculation
-*/
-std::vector<TinySphere> tinySpheres(Vector3d pos, std::string averagingMode, int nrad, int nshift, double radius, double tinyRadius, int nTinyPoints){
-    std::vector<TinySphere> spheres;
-    if ( averagingMode == "shift" ) {
-        std::filesystem::path p = __FILE__;
-        std::filesystem::path parent_dir = p.parent_path();
-        LebedevIntegrator tintegrator(nTinyPoints, tinyRadius, pos);
-        MatrixXd tinyPos = tintegrator.getPoints();
-        VectorXd tinyWeights = tintegrator.getWeights();
-        for (int i = 0; i < tintegrator.n; i++){
-            spheres.push_back(TinySphere(tinyPos.row(i).transpose(), radius, tinyWeights(i) / (4.0 * M_PI * tinyRadius * tinyRadius)));
-        }
-    } else if (averagingMode == "radial") {
-        for (int i = 0; i < nrad; i++){
-            double step = (1.0 * i) / (1.0 * nrad);
-            double rad = -0.2 + 0.4 * step;
-            spheres.push_back(TinySphere(pos, rad, 1.0 / nrad));
-        }
-    }
-    else if (averagingMode == "none") {
-        spheres.push_back(TinySphere(pos, radius, 1.0));
-    } else {
-        MSG_ABORT("Invalid averaging mode");
-    }
-    return spheres;
-}
-
-/**
  * Calculates the forces using surface integrals for a given molecule and orbital vector.
  *
  * @param mol The molecule for which to calculate the forces.
@@ -300,12 +253,11 @@ std::vector<TinySphere> tinySpheres(Vector3d pos, std::string averagingMode, int
  * @return The matrix of forces, shape (nAtoms, 3).
  */
 Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const json &json_fock
-        , std::string leb_prec, std::string averaging, std::string avg_precision) {
+        , std::string leb_prec) {
 
     // setup density
     mrchem::Density rho(false);
     mrchem::density::compute(prec, rho, Phi, DensityType::Total);
-
 
     // setup operators and potentials
     auto poisson_op = mrcpp::PoissonOperator(*mrchem::MRA, prec);
@@ -354,10 +306,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
 
     int numAtoms = mol.getNNuclei();
 
-    Eigen::MatrixXd forces = Eigen::MatrixXd::Zero(numAtoms, 3);
-    Vector3d center;
     std::array<double, 3> coord;
-    std::array<double, 3> pos;
 
     Eigen::MatrixXd posmatrix = Eigen::MatrixXd::Zero(numAtoms, 3);
     for (int i = 0; i < numAtoms; i++) {
@@ -382,51 +331,30 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     else {
         MSG_ABORT("Invalid lebedev precision");
     }
-    if (avg_precision == "low") {
-        nTinyPoints = 6;
-    } else if (avg_precision == "medium") {
-        nTinyPoints = 14;
-    } else if (avg_precision == "high") {
-        nTinyPoints = 26;
-    } else {
-        MSG_ABORT("Invalid averaging precision");
-    }
 
-    double radius = 0.6;
-    int nRad = 11;
-    VectorXd radii(nRad);
-    double step;
-    for (int i = 0; i < nRad; i++) {
-        step = (1.0 * i) / (1.0 * nRad);
-        radii(i) = -0.2 + 0.4 * step;
-    }
-
-    int nrad = 11;
-    double tinyRadius = 0.15;
+    double radius;
+    Vector3d center;
+    Eigen::MatrixXd forces = Eigen::MatrixXd::Zero(numAtoms, 3);
 
     for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
         radius = dist(iAtom) *.5;
         coord = mol.getNuclei()[iAtom].getCoord();
         center << coord[0], coord[1], coord[2];
 
-        std::vector<TinySphere> spheres = tinySpheres(center, averaging, nRad, nrad, radius, tinyRadius, nTinyPoints);
+        LebedevIntegrator integrator(nLebPoints, radius, center);
+        MatrixXd gridPos = integrator.getPoints();
+        VectorXd weights = integrator.getWeights();
+        MatrixXd normals = integrator.getNormals();
 
-        for (int iTiny = 0; iTiny < spheres.size(); iTiny++){
-            LebedevIntegrator integrator(nLebPoints, spheres[iTiny].radius, spheres[iTiny].center);
-            MatrixXd gridPos = integrator.getPoints();
-            VectorXd weights = integrator.getWeights();
-            MatrixXd normals = integrator.getNormals();
-
-            std::vector<Matrix3d> xcStress = getXCStress(mrdft_p, std::make_shared<mrchem::OrbitalVector>(Phi), 
-                std::make_shared<mrchem::NablaOperator>(nabla), gridPos, xc_spin, prec);
-            
-            std::vector<Matrix3d> kstress = kineticStress(mol, Phi, nablaPhi, hessRho, prec, gridPos);
-            std::vector<Matrix3d> mstress = maxwellStress(mol, negEfield, gridPos, prec);
-            std::vector<Matrix3d> stress(integrator.n);
-            for (int i = 0; i < integrator.n; i++){
-                stress[i] = xcStress[i] + kstress[i] + mstress[i];
-                forces.row(iAtom) -= stress[i] * normals.row(i).transpose() * weights(i) * spheres[iTiny].weight;
-            }
+        std::vector<Matrix3d> xcStress = getXCStress(mrdft_p, std::make_shared<mrchem::OrbitalVector>(Phi), 
+            std::make_shared<mrchem::NablaOperator>(nabla), gridPos, xc_spin, prec);
+        
+        std::vector<Matrix3d> kstress = kineticStress(mol, Phi, nablaPhi, hessRho, prec, gridPos);
+        std::vector<Matrix3d> mstress = maxwellStress(mol, negEfield, gridPos, prec);
+        std::vector<Matrix3d> stress(integrator.n);
+        for (int i = 0; i < integrator.n; i++){
+            stress[i] = xcStress[i] + kstress[i] + mstress[i];
+            forces.row(iAtom) -= stress[i] * normals.row(i).transpose() * weights(i);
         }
     }
 
