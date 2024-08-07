@@ -63,6 +63,10 @@ public:
             , mrdft(std::move(F)) {}
     ~XCPotential() override = default;
 
+    std::shared_ptr<mrcpp::FunctionTreeVector<3>> getPotentialVector() { 
+        return std::make_shared<mrcpp::FunctionTreeVector<3>>(xc_out); 
+    }
+
     friend class XCOperator;
 
 protected:
@@ -84,6 +88,7 @@ protected:
     Orbital apply(Orbital phi) override;
     Orbital dagger(Orbital phi) override;
     QMOperatorVector apply(std::shared_ptr<QMOperator> &O) override;
+    mrcpp::FunctionTreeVector<3> xc_out;
 };
 
 } // namespace mrchem

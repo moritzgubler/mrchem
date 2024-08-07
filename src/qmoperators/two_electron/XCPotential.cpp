@@ -64,7 +64,7 @@ void XCPotential::setup(double prec) {
 
     auto &grid = this->mrdft->grid().get();
     mrcpp::FunctionTreeVector<3> xc_inp = setupDensities(prec, grid);
-    mrcpp::FunctionTreeVector<3> xc_out = this->mrdft->evaluate(xc_inp);
+    xc_out = this->mrdft->evaluate(xc_inp);
 
     // Fetch energy
     this->energy = this->mrdft->functional().XCenergy;
@@ -85,7 +85,6 @@ void XCPotential::setup(double prec) {
         this->potentials.push_back(std::make_tuple(1.0, v_global));
     }
 
-    mrcpp::clear(xc_out, true);
 
     if (plevel == 2) {
         int totNodes = 0;
@@ -106,6 +105,7 @@ void XCPotential::clear() {
     this->energy = 0.0;
     for (auto &rho : this->densities) rho.free(NUMBER::Total);
     mrcpp::clear(this->potentials, true);
+    mrcpp::clear(xc_out, true);
     clearApplyPrec();
 }
 
