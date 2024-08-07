@@ -253,7 +253,12 @@ VectorXd distanceToNearestNeighbour(MatrixXd pos){
  * @return The matrix of forces, shape (nAtoms, 3).
  */
 Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec, const json &json_fock
-        , std::string leb_prec) {
+        , std::string leb_prec, double radius_factor) {
+
+    if (radius_factor > 0.95 && radius_factor < 0.05){
+        MSG_ABORT("Invalid value of radius_factor")
+    }
+    std::cout << "Radius factor " << radius_factor << std::endl;
 
     // setup density
     mrchem::Density rho(false);
@@ -357,7 +362,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     Eigen::MatrixXd forces = Eigen::MatrixXd::Zero(numAtoms, 3);
 
     for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
-        radius = dist(iAtom) * .6;
+        radius = dist(iAtom) * radius_factor;
         coord = mol.getNuclei()[iAtom].getCoord();
         center << coord[0], coord[1], coord[2];
 

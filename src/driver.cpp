@@ -548,7 +548,8 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
             Timer t_surface;
             t_surface.start();
             std::string leb_prec = json_prop["geometric_derivative"]["geom-1"]["surface_integral_precision"];
-            Eigen::MatrixXd surfaceForces = surface_force::surface_forces(mol, Phi, prec, json_fock, leb_prec);
+            double radius_factor = json_prop["geometric_derivative"]["geom-1"]["radius_factor"];
+            Eigen::MatrixXd surfaceForces = surface_force::surface_forces(mol, Phi, prec, json_fock, leb_prec, radius_factor);
             t_surface.stop();
             GeometricDerivative &G = mol.getGeometricDerivative("geom-1");
             auto &nuc = G.getNuclear();

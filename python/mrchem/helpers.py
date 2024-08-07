@@ -296,6 +296,7 @@ def write_scf_properties(user_dict, origin):
             "smoothing": user_dict["Precisions"]["nuclear_prec"],
             "method": user_dict["Forces"]["method"],
             "surface_integral_precision": user_dict["Forces"]["surface_integral_precision"],
+            "radius_factor": user_dict["Forces"]["radius_factor"],
         }
     return prop_dict
 

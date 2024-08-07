@@ -12,7 +12,7 @@ namespace surface_force {
 
 // Function declaration
 Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi, double prec
-    , const json &json_fock, std::string leb_prec);
+    , const json &json_fock, std::string leb_prec, double radius_factor);
 
 } // namespace surface_force
 
