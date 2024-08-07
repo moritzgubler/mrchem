@@ -259,6 +259,8 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     mrchem::Density rho(false);
     mrchem::density::compute(prec, rho, Phi, DensityType::Total);
 
+    std::shared_ptr<OrbitalVector> phi_p = std::make_shared<OrbitalVector>(Phi);
+
     // setup operators and potentials
     auto poisson_op = mrcpp::PoissonOperator(*mrchem::MRA, prec);
     int derivOrder = 1;
@@ -304,6 +306,24 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     }
     std::unique_ptr<mrdft::MRDFT> mrdft_p = xc_factory.build();
 
+    mrdft::Factory xc_factory2(*MRA);
+    xc_factory2.setSpin(xc_spin);
+    xc_factory2.setOrder(xc_order);
+    xc_factory2.setDensityCutoff(xc_cutoff);
+    for (const auto &f : xc_funcs) {
+        auto name = f["name"];
+        auto coef = f["coef"];
+        xc_factory2.setFunctional(name, coef);
+    }
+    std::unique_ptr<mrdft::MRDFT> mrdft_p_for_operator = xc_factory2.build();
+
+    std::shared_ptr<XCOperator> xc_op = std::make_shared<XCOperator>(mrdft_p_for_operator, phi_p, false);
+    xc_op->setup(prec);
+
+    std::shared_ptr<mrcpp::FunctionTreeVector<3>> xc_pot_vector = xc_op->getPotential()->getPotentialVector();
+
+    std::cout << "length of xc_pot_vector: " << xc_pot_vector->size() << std::endl;
+
     int numAtoms = mol.getNNuclei();
 
     std::array<double, 3> coord;
@@ -337,7 +357,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     Eigen::MatrixXd forces = Eigen::MatrixXd::Zero(numAtoms, 3);
 
     for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
-        radius = dist(iAtom) *.5;
+        radius = dist(iAtom) * .6;
         coord = mol.getNuclei()[iAtom].getCoord();
         center << coord[0], coord[1], coord[2];
 
@@ -360,6 +380,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
 
     hess.clear();
     nabla.clear();
+    xc_op->clear();
     return forces;
 }
 
