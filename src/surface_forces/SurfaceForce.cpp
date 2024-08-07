@@ -366,7 +366,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         VectorXd weights = integrator.getWeights();
         MatrixXd normals = integrator.getNormals();
 
-        std::vector<Matrix3d> xcStress = getXCStress(mrdft_p, std::make_shared<mrchem::OrbitalVector>(Phi), 
+        std::vector<Matrix3d> xcStress = getXCStress(mrdft_p, *xc_pot_vector, std::make_shared<mrchem::OrbitalVector>(Phi), 
             std::make_shared<mrchem::NablaOperator>(nabla), gridPos, xc_spin, prec);
         
         std::vector<Matrix3d> kstress = kineticStress(mol, Phi, nablaPhi, hessRho, prec, gridPos);
