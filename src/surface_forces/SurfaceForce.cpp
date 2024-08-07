@@ -258,7 +258,6 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     if (radius_factor > 0.95 && radius_factor < 0.05){
         MSG_ABORT("Invalid value of radius_factor")
     }
-    std::cout << "Radius factor " << radius_factor << std::endl;
 
     // setup density
     mrchem::Density rho(false);
@@ -326,8 +325,6 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     xc_op->setup(prec);
 
     std::shared_ptr<mrcpp::FunctionTreeVector<3>> xc_pot_vector = xc_op->getPotential()->getPotentialVector();
-
-    std::cout << "length of xc_pot_vector: " << xc_pot_vector->size() << std::endl;
 
     int numAtoms = mol.getNNuclei();
 
