@@ -114,7 +114,9 @@ std::vector<Matrix3d> xcGGASpinStress(unique_ptr<mrdft::MRDFT> &mrdft_p, mrcpp::
     inp.col(5) = nablaRhoGridBeta.col(0);
     inp.col(6) = nablaRhoGridBeta.col(1);
     inp.col(7) = nablaRhoGridBeta.col(2);
+    std::cout << "before evaluate_transposed " << mrcpp::mpi::wrk_rank << std::endl;
     Eigen::MatrixXd xc = mrdft_p->functional().evaluate_transposed(inp);
+    std::cout << "after evaluate_transposed " << mrcpp::mpi::wrk_rank << std::endl;
     std::array<double, 3> pos;
     for (int i = 0; i < rhoGridAlpha.rows(); i++) {
         out[i] = Matrix3d::Zero();
@@ -176,11 +178,11 @@ std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, mrcp
 
         if (isGGA) {
             mrchem::NablaOperator nablaOP = *nabla;
-            OrbitalVector nablaRhoAlpha = nablaOP(rhoA);
-            OrbitalVector nablaRhoBeta = nablaOP(rhoB);
+            std::vector<mrchem::Orbital> nablaRhoAlpha = nablaOP(rhoA);
+            std::vector<mrchem::Orbital> nablaRhoBeta = nablaOP(rhoB);
             MatrixXd nablaRhoGridAlpha(nGrid, 3);
             MatrixXd nablaRhoGridBeta(nGrid, 3);
-
+            std::cout << "before nablaRhoGridAlpha " << mrcpp::mpi::wrk_rank << std::endl;
             for (int i = 0; i < nGrid; i++) {
                 pos[0] = gridPos(i, 0);
                 pos[1] = gridPos(i, 1);
@@ -192,6 +194,7 @@ std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, mrcp
                 nablaRhoGridBeta(i, 1) = nablaRhoBeta[1].real().evalf(pos);
                 nablaRhoGridBeta(i, 2) = nablaRhoBeta[2].real().evalf(pos);
             }
+            std::cout << "after nablaRhoGridAlpha " << mrcpp::mpi::wrk_rank << std::endl;
 
             xcStress = xcGGASpinStress(mrdft_p, xc_pots, rhoGridAlpha, rhoGridBeta, nablaRhoGridAlpha, nablaRhoGridBeta, gridPos);
         } else {
@@ -212,7 +215,7 @@ std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, mrcp
 
         if (isGGA) {
             mrchem::NablaOperator nablaOP = *nabla;
-            OrbitalVector nablaRho = nablaOP(rho);
+            std::vector<mrchem::Orbital> nablaRho = nablaOP(rho);
             MatrixXd nablaRhoGrid(nGrid, 3);
             for (int i = 0; i < nGrid; i++) {
                 pos[0] = gridPos(i, 0);

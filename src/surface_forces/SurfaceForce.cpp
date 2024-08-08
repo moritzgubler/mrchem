@@ -162,8 +162,8 @@ std::vector<Eigen::Matrix3d> maxwellStress(const Molecule &mol, mrchem::OrbitalV
 /**
  * @brief Calculates the kinetic stress tensor for the given molecule. See the function description for the formula.
 */
-std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std::vector<OrbitalVector> &nablaPhi
-        , OrbitalVector &hessRho, double prec, const MatrixXd &gridPos){
+std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std::vector<std::vector<mrchem::Orbital>> &nablaPhi
+        , std::vector<Orbital> &hessRho, double prec, const MatrixXd &gridPos){
 
     // original formula for kinetic stress:
     // sigma_ij = 0.5 \sum_k phi_k del_i del_j phi_k - (del_i phi_k) (del_j phi_k)
@@ -174,47 +174,62 @@ std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std
     int nGrid = gridPos.rows();
     int nOrbs = Phi.size();
 
+    double StressArray[nGrid][3][3];
+
     double orbVal;
     std::vector<Matrix3d> stress(nGrid);
-    for (int i = 0; i < nGrid; i++) {
-        stress[i] = Matrix3d::Zero();
-    }
+
+    Eigen::MatrixXd voigtStress = Eigen::MatrixXd::Zero(nGrid, 6);
+
     std::array<double, 3> pos;
     double n1, n2, n3;
     int occ;
+    std::cout << "Starting first loop on rank " << mrcpp::mpi::wrk_rank << std::endl;
     for (int iOrb = 0; iOrb < Phi.size(); iOrb++) {
         occ = Phi[iOrb].occ();
     
         for (int i = 0; i < nGrid; i++) {
+            if (mrcpp::mpi::my_orb(iOrb)) {  
             pos[0] = gridPos(i, 0);
             pos[1] = gridPos(i, 1);
             pos[2] = gridPos(i, 2);
+            std::cout << "before evalf" << std::endl;
             n1 = nablaPhi[iOrb][0].real().evalf(pos);
             n2 = nablaPhi[iOrb][1].real().evalf(pos);
             n3 = nablaPhi[iOrb][2].real().evalf(pos);
-            stress[i](0, 0) -= occ * n1 * n1;
-            stress[i](1, 1) -= occ * n2 * n2;
-            stress[i](2, 2) -= occ * n3 * n3;
-            stress[i](0, 1) -= occ * n1 * n2;
-            stress[i](0, 2) -= occ * n1 * n3;
-            stress[i](1, 2) -= occ * n2 * n3;
+            std::cout << "after evalf" << std::endl;
+            voigtStress(i, 0) -= occ * n1 * n1;
+            voigtStress(i, 1) -= occ * n2 * n2;
+            voigtStress(i, 2) -= occ * n3 * n3;
+            voigtStress(i, 5) -= occ * n1 * n2;
+            voigtStress(i, 4) -= occ * n1 * n3;
+            voigtStress(i, 3) -= occ * n2 * n3;
+            }
+
         }
     }
+    std::cout << "First loop done on rank " << mrcpp::mpi::wrk_rank << std::endl; 
     // loop over grid
     for (int i = 0; i < nGrid; i++) {
         pos[0] = gridPos(i, 0);
         pos[1] = gridPos(i, 1);
         pos[2] = gridPos(i, 2);
-        stress[i](0, 0) += 0.25 * hessRho[0].real().evalf(pos);
-        stress[i](1, 1) += 0.25 * hessRho[1].real().evalf(pos);
-        stress[i](2, 2) += 0.25 * hessRho[2].real().evalf(pos);
-        stress[i](0, 1) += 0.25 * hessRho[3].real().evalf(pos);
-        stress[i](0, 2) += 0.25 * hessRho[4].real().evalf(pos);
-        stress[i](1, 2) += 0.25 * hessRho[5].real().evalf(pos);
-        // symmetrize stress tensor
-        stress[i](1, 0) = stress[i](0, 1);
-        stress[i](2, 0) = stress[i](0, 2);
-        stress[i](2, 1) = stress[i](1, 2);
+        voigtStress(i, 0) += 0.25 * hessRho[0].real().evalf(pos);
+        voigtStress(i, 1) += 0.25 * hessRho[1].real().evalf(pos);
+        voigtStress(i, 2) += 0.25 * hessRho[2].real().evalf(pos);
+        voigtStress(i, 3) += 0.25 * hessRho[3].real().evalf(pos);
+        voigtStress(i, 4) += 0.25 * hessRho[4].real().evalf(pos);
+        voigtStress(i, 5) += 0.25 * hessRho[5].real().evalf(pos);
+    }
+
+    std::cout << "Before allreduce on rank " << mrcpp::mpi::wrk_rank << std::endl;
+    mrcpp::mpi::allreduce_matrix(voigtStress, mrcpp::mpi::comm_wrk);
+    std::cout << "After allreduce on rank " << mrcpp::mpi::wrk_rank << std::endl;
+
+    for (int i = 0; i < nGrid; i++) {
+        stress[i] << voigtStress(i, 0), voigtStress(i, 5), voigtStress(i, 4),
+                     voigtStress(i, 5), voigtStress(i, 1), voigtStress(i, 3),
+                     voigtStress(i, 4), voigtStress(i, 3), voigtStress(i, 2);
     }
     return stress;
 }
@@ -283,12 +298,19 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     mrchem::HessianOperator hess(D1, D2, prec);
     hess.setup(prec);
 
-    std::vector<mrchem::OrbitalVector> nablaPhi;
-    mrchem::OrbitalVector hessRho = hess(rho);
+    // std::vector<mrchem::OrbitalVector> nablaPhi;
+    std::vector<std::vector<Orbital>> nablaPhi;
+    std::vector<Orbital> hessRho = hess(rho);
+    std::cout << "before nabla on rank " << mrcpp::mpi::wrk_rank << std::endl;
     for (int i = 0; i < Phi.size(); i++) {
         nablaPhi.push_back(nabla(Phi[i]));
+        // nablaPhi[i].distribute();
+        // if (mrcpp::wrk_rank == 0){
+        //     std::cout << "Orbital " << i << " stored on rank " << Phi[i].getRank() << std::endl;
+        //     std::cout << "gradient of orbital " << i << " stored on rank: x: " << nablaPhi[i][0].getRank() << " y: " << nablaPhi[i][1].getRank() << " z: " << nablaPhi[i][2].getRank() << std::endl;
+        // }
     }
-
+    std::cout << "after nabla on rank " << mrcpp::mpi::wrk_rank << std::endl;
     // setup xc stuff:
     int order = 0;
     bool shared_memory = json_fock["xc_operator"]["shared_memory"];
@@ -367,15 +389,17 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         MatrixXd gridPos = integrator.getPoints();
         VectorXd weights = integrator.getWeights();
         MatrixXd normals = integrator.getNormals();
-
-        std::vector<Matrix3d> xcStress = getXCStress(mrdft_p, *xc_pot_vector, std::make_shared<mrchem::OrbitalVector>(Phi), 
-            std::make_shared<mrchem::NablaOperator>(nabla), gridPos, xc_spin, prec);
+        std::cout << "before xc stress on rank " << mrcpp::mpi::wrk_rank << std::endl;
+        // std::vector<Matrix3d> xcStress = getXCStress(mrdft_p, *xc_pot_vector, std::make_shared<mrchem::OrbitalVector>(Phi), 
+        //     std::make_shared<mrchem::NablaOperator>(nabla), gridPos, xc_spin, prec);
+        
+        std::cout << "before kinetic stress on rank " << mrcpp::mpi::wrk_rank << std::endl;
         
         std::vector<Matrix3d> kstress = kineticStress(mol, Phi, nablaPhi, hessRho, prec, gridPos);
         std::vector<Matrix3d> mstress = maxwellStress(mol, negEfield, gridPos, prec);
         std::vector<Matrix3d> stress(integrator.n);
         for (int i = 0; i < integrator.n; i++){
-            stress[i] = xcStress[i] + kstress[i] + mstress[i];
+            stress[i] = kstress[i] + mstress[i];
             forces.row(iAtom) -= stress[i] * normals.row(i).transpose() * weights(i);
         }
     }
