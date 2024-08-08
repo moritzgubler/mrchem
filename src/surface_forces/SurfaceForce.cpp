@@ -209,6 +209,7 @@ std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std
         }
     }
     std::cout << "First loop done on rank " << mrcpp::mpi::wrk_rank << std::endl; 
+    std::cout << "Before evaluating hessRho on rank " << mrcpp::mpi::wrk_rank << std::endl;
     // loop over grid
     for (int i = 0; i < nGrid; i++) {
         pos[0] = gridPos(i, 0);
@@ -221,10 +222,9 @@ std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std
         voigtStress(i, 4) += 0.25 * hessRho[4].real().evalf(pos);
         voigtStress(i, 5) += 0.25 * hessRho[5].real().evalf(pos);
     }
+    std::cout << "After evaluating hessRho on rank " << mrcpp::mpi::wrk_rank << std::endl;
 
-    std::cout << "Before allreduce on rank " << mrcpp::mpi::wrk_rank << std::endl;
     mrcpp::mpi::allreduce_matrix(voigtStress, mrcpp::mpi::comm_wrk);
-    std::cout << "After allreduce on rank " << mrcpp::mpi::wrk_rank << std::endl;
 
     for (int i = 0; i < nGrid; i++) {
         stress[i] << voigtStress(i, 0), voigtStress(i, 5), voigtStress(i, 4),
