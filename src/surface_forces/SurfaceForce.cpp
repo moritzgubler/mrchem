@@ -298,17 +298,11 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     mrchem::HessianOperator hess(D1, D2, prec);
     hess.setup(prec);
 
-    // std::vector<mrchem::OrbitalVector> nablaPhi;
     std::vector<std::vector<Orbital>> nablaPhi;
     std::vector<Orbital> hessRho = hess(rho);
     std::cout << "before nabla on rank " << mrcpp::mpi::wrk_rank << std::endl;
     for (int i = 0; i < Phi.size(); i++) {
         nablaPhi.push_back(nabla(Phi[i]));
-        // nablaPhi[i].distribute();
-        // if (mrcpp::wrk_rank == 0){
-        //     std::cout << "Orbital " << i << " stored on rank " << Phi[i].getRank() << std::endl;
-        //     std::cout << "gradient of orbital " << i << " stored on rank: x: " << nablaPhi[i][0].getRank() << " y: " << nablaPhi[i][1].getRank() << " z: " << nablaPhi[i][2].getRank() << std::endl;
-        // }
     }
     std::cout << "after nabla on rank " << mrcpp::mpi::wrk_rank << std::endl;
     // setup xc stuff:
@@ -390,8 +384,8 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         VectorXd weights = integrator.getWeights();
         MatrixXd normals = integrator.getNormals();
         std::cout << "before xc stress on rank " << mrcpp::mpi::wrk_rank << std::endl;
-        // std::vector<Matrix3d> xcStress = getXCStress(mrdft_p, *xc_pot_vector, std::make_shared<mrchem::OrbitalVector>(Phi), 
-        //     std::make_shared<mrchem::NablaOperator>(nabla), gridPos, xc_spin, prec);
+        std::vector<Matrix3d> xcStress = getXCStress(mrdft_p, *xc_pot_vector, std::make_shared<mrchem::OrbitalVector>(Phi), 
+            std::make_shared<mrchem::NablaOperator>(nabla), gridPos, xc_spin, prec);
         
         std::cout << "before kinetic stress on rank " << mrcpp::mpi::wrk_rank << std::endl;
         
@@ -399,7 +393,7 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         std::vector<Matrix3d> mstress = maxwellStress(mol, negEfield, gridPos, prec);
         std::vector<Matrix3d> stress(integrator.n);
         for (int i = 0; i < integrator.n; i++){
-            stress[i] = kstress[i] + mstress[i];
+            stress[i] = xcStress[i] + kstress[i] + mstress[i];
             forces.row(iAtom) -= stress[i] * normals.row(i).transpose() * weights(i);
         }
     }
