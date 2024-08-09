@@ -55,6 +55,7 @@
 #include "qmoperators/one_electron/NuclearGradientOperator.h"
 #include "qmoperators/one_electron/NuclearOperator.h"
 #include "qmoperators/one_electron/ZoraOperator.h"
+#include "qmoperators/one_electron/NablaOperator.h"
 
 #include "qmoperators/one_electron/H_BB_dia.h"
 #include "qmoperators/one_electron/H_BM_dia.h"
@@ -299,6 +300,23 @@ json driver::scf::run(const json &json_scf, Molecule &mol) {
 
         json_out["scf_solver"] = solver.optimize(mol, F);
         json_out["success"] = json_out["scf_solver"]["converged"];
+
+        mrchem::OrbitalVector phi = mol.getOrbitals();
+        mrchem::Density rho(false);
+        mrchem::density::compute(1e-4, rho, phi, DensityType::Total);
+        int derivOrder = 1;
+        auto mrcd = std::make_shared<mrcpp::BSOperator<3>>(*mrchem::MRA, derivOrder);
+        mrchem::NablaOperator nabla(mrcd);
+        nabla.setup(1e-4);
+        std::vector<mrchem::Orbital> nablaRho;
+        nablaRho = nabla(rho);
+        std::array<double, 3> pos;
+        pos[0] = 0;
+        pos[1] = 0;
+        pos[2] = 0;
+        std::cout << "evaluating nablaRho on rank" << mrcpp::mpi::world_rank << std::endl;
+        double out = nablaRho[0].real().evalf(pos);
+        std::cout << "Value of nablarho " << out << std::endl;
     }
 
     ///////////////////////////////////////////////////////////
