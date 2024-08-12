@@ -184,7 +184,6 @@ std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std
     std::array<double, 3> pos;
     double n1, n2, n3;
     int occ;
-    std::cout << "Starting first loop on rank " << mrcpp::mpi::wrk_rank << std::endl;
     for (int iOrb = 0; iOrb < Phi.size(); iOrb++) {
         occ = Phi[iOrb].occ();
     
@@ -208,9 +207,7 @@ std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std
 
         }
     }
-    std::cout << "First loop done on rank " << mrcpp::mpi::wrk_rank << std::endl; 
-    std::cout << "Before evaluating hessRho on rank " << mrcpp::mpi::wrk_rank << std::endl;
-    // loop over grid
+    mrcpp::mpi::allreduce_matrix(voigtStress, mrcpp::mpi::comm_wrk);
     for (int i = 0; i < nGrid; i++) {
         pos[0] = gridPos(i, 0);
         pos[1] = gridPos(i, 1);
@@ -222,9 +219,6 @@ std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std
         voigtStress(i, 4) += 0.25 * hessRho[4].real().evalf(pos);
         voigtStress(i, 5) += 0.25 * hessRho[5].real().evalf(pos);
     }
-    std::cout << "After evaluating hessRho on rank " << mrcpp::mpi::wrk_rank << std::endl;
-
-    mrcpp::mpi::allreduce_matrix(voigtStress, mrcpp::mpi::comm_wrk);
 
     for (int i = 0; i < nGrid; i++) {
         stress[i] << voigtStress(i, 0), voigtStress(i, 5), voigtStress(i, 4),
@@ -298,11 +292,13 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
     mrchem::HessianOperator hess(D1, D2, prec);
     hess.setup(prec);
 
-    std::vector<std::vector<Orbital>> nablaPhi;
+    std::vector<std::vector<Orbital>> nablaPhi(Phi.size());
     std::vector<Orbital> hessRho = hess(rho);
     std::cout << "before nabla on rank " << mrcpp::mpi::wrk_rank << std::endl;
     for (int i = 0; i < Phi.size(); i++) {
-        nablaPhi.push_back(nabla(Phi[i]));
+        if (mrcpp::mpi::my_orb(i)) {
+            nablaPhi[i] = nabla(Phi[i]);
+        }
     }
     std::cout << "after nabla on rank " << mrcpp::mpi::wrk_rank << std::endl;
     // setup xc stuff:
