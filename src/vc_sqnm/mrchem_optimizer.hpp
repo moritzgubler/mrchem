@@ -190,9 +190,9 @@ json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp, std::
 
     double energyOld = energy;
     extractForcesInPlace(results, forces);
-    mrcpp::print::header(-1, "Geometry optimization summary of initial iteration", 0, '=');
+    mrcpp::print::header(0, "Geometry optimization summary of initial iteration", 0, '=');
     print_utils::scalar(0, "Iteration", i, "", 0);
-    print_utils::scalar(-1, "Energy", energy, "Ha", pprec, true);
+    print_utils::scalar(0, "Energy", energy, "Ha", pprec, true);
     print_utils::scalar(0, "Maximal force component", forces.cwiseAbs().maxCoeff(), "Ha / Bohr", pprec, true);
     print_utils::scalar(0, "Convergence threshold", max_force_component, "Ha / Bohr", pprec, true);
     mrcpp::print::separator(printLevel, '=', 2);
@@ -238,7 +238,7 @@ json optimize_positions(json scf_inp, json mol_inp, const json &geopt_inp, std::
         }
         mrcpp::print::header(printLevel, "Geometry optimization summary of iteration", 0, '=');
         print_utils::scalar(0, "Iteration", i, "", 0);
-        print_utils::scalar(-1, "Energy", energy, "Ha", pprec, true);
+        print_utils::scalar(0, "Energy", energy, "Ha", pprec, true);
         print_utils::scalar(0, "Energy improvement", energyOld - energy, "Ha", pprec, true);
         print_utils::scalar(0, "Maximal force component", forces.cwiseAbs().maxCoeff(), "Ha / Bohr", pprec, true);
         print_utils::scalar(0, "Convergence threshold", max_force_component, "Ha / Bohr", pprec, true);
