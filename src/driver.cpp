@@ -317,6 +317,7 @@ json driver::scf::run(const json &json_scf, Molecule &mol) {
         std::cout << "evaluating nablaRho on rank" << mrcpp::mpi::world_rank << std::endl;
         double out = nablaRho[0].real().evalf(pos);
         std::cout << "Value of nablarho " << out << std::endl;
+        nabla.clear();
     }
 
     ///////////////////////////////////////////////////////////
