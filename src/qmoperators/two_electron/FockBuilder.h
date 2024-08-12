@@ -31,6 +31,7 @@
 #include "tensor/RankZeroOperator.h"
 #include <string>
 #include "chemistry/Nucleus.h"
+#include "pseudopotential/projectorOperator.h"
 
 /** @class FockOperator
  *
@@ -56,7 +57,6 @@ class ExchangeOperator;
 class XCOperator;
 class ElectricFieldOperator;
 class ReactionOperator;
-class ProjectorOperator;
 
 class FockBuilder final {
 public:
@@ -72,6 +72,7 @@ public:
     std::shared_ptr<ElectricFieldOperator> &getExtOperator() { return this->ext; }
     std::shared_ptr<ReactionOperator> &getReactionOperator() { return this->Ro; }
     std::shared_ptr<AZoraPotential> &getAZoraChiPotential() { return this->chiPot; }
+    std::shared_ptr<ProjectorOperator> &getProjectorOperator() { return this->pp_projector; }
 
     void rotate(const ComplexMatrix &U);
 
@@ -121,7 +122,7 @@ private:
     std::shared_ptr<ElectricFieldOperator> ext{nullptr}; // Total external potential
     std::shared_ptr<ZoraOperator> chi{nullptr};
     std::shared_ptr<ZoraOperator> chi_inv{nullptr};
-    std::shared_ptr<ProjectorOperator> proj{nullptr};
+    std::shared_ptr<ProjectorOperator> pp_projector{nullptr};
 
 
     std::shared_ptr<QMPotential> collectZoraBasePotential();
