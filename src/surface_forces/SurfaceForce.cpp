@@ -192,11 +192,9 @@ std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std
             pos[0] = gridPos(i, 0);
             pos[1] = gridPos(i, 1);
             pos[2] = gridPos(i, 2);
-            std::cout << "before evalf" << std::endl;
             n1 = nablaPhi[iOrb][0].real().evalf(pos);
             n2 = nablaPhi[iOrb][1].real().evalf(pos);
             n3 = nablaPhi[iOrb][2].real().evalf(pos);
-            std::cout << "after evalf" << std::endl;
             voigtStress(i, 0) -= occ * n1 * n1;
             voigtStress(i, 1) -= occ * n2 * n2;
             voigtStress(i, 2) -= occ * n3 * n3;
@@ -294,13 +292,11 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
 
     std::vector<std::vector<Orbital>> nablaPhi(Phi.size());
     std::vector<Orbital> hessRho = hess(rho);
-    std::cout << "before nabla on rank " << mrcpp::mpi::wrk_rank << std::endl;
     for (int i = 0; i < Phi.size(); i++) {
         if (mrcpp::mpi::my_orb(i)) {
             nablaPhi[i] = nabla(Phi[i]);
         }
     }
-    std::cout << "after nabla on rank " << mrcpp::mpi::wrk_rank << std::endl;
     // setup xc stuff:
     int order = 0;
     bool shared_memory = json_fock["xc_operator"]["shared_memory"];
@@ -379,11 +375,9 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         MatrixXd gridPos = integrator.getPoints();
         VectorXd weights = integrator.getWeights();
         MatrixXd normals = integrator.getNormals();
-        std::cout << "before xc stress on rank " << mrcpp::mpi::wrk_rank << std::endl;
         std::vector<Matrix3d> xcStress = getXCStress(mrdft_p, *xc_pot_vector, std::make_shared<mrchem::OrbitalVector>(Phi), 
             std::make_shared<mrchem::NablaOperator>(nabla), gridPos, xc_spin, prec);
         
-        std::cout << "before kinetic stress on rank " << mrcpp::mpi::wrk_rank << std::endl;
         
         std::vector<Matrix3d> kstress = kineticStress(mol, Phi, nablaPhi, hessRho, prec, gridPos);
         std::vector<Matrix3d> mstress = maxwellStress(mol, negEfield, gridPos, prec);

@@ -202,7 +202,6 @@ std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, mrcp
         mrchem::Density rho(false);
         mrchem::density::compute(prec, rho, *phi, DensityType::Total);
 
-        std::cout << " evaluating rho " << mrcpp::mpi::wrk_rank << std::endl;
         for (int i = 0; i < nGrid; i++) { // compute density on grid
             pos[0] = gridPos(i, 0);
             pos[1] = gridPos(i, 1);
@@ -214,7 +213,6 @@ std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, mrcp
             mrchem::NablaOperator nablaOP = *nabla;
             std::vector<mrchem::Orbital> nablaRho = nablaOP(rho);
             MatrixXd nablaRhoGrid(nGrid, 3);
-            std::cout << " evaluating nabla rho " << mrcpp::mpi::wrk_rank << std::endl;
             for (int i = 0; i < nGrid; i++) {
                 pos[0] = gridPos(i, 0);
                 pos[1] = gridPos(i, 1);
@@ -223,7 +221,6 @@ std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, mrcp
                 nablaRhoGrid(i, 1) = nablaRho[1].real().evalf(pos);
                 nablaRhoGrid(i, 2) = nablaRho[2].real().evalf(pos);
             }
-            std::cout << " done evaluating nabla rho " << mrcpp::mpi::wrk_rank << std::endl;
             xcStress = xcGGAStress(mrdft_p, xc_pots, rhoGrid, nablaRhoGrid, gridPos);
         } else {
             xcStress = xcLDAStress(mrdft_p, rhoGrid);
