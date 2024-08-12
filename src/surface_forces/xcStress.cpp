@@ -81,7 +81,7 @@ std::vector<Matrix3d> xcGGAStress(unique_ptr<mrdft::MRDFT> &mrdft_p, mrcpp::Func
         pos[1] = gridPos(i, 1);
         pos[2] = gridPos(i, 2);
         for (int j = 0; j < 3; j++) {
-            out[i](j, j) = xcOUT(i, 0) - rhoGrid(i) * std::get<1>(xc_pots[1])->evalf(pos);
+            out[i](j, j) = xcOUT(i, 0) - rhoGrid(i) * std::get<1>(xc_pots[0])->evalf(pos);
         }
         for (int j1 = 0; j1 < 3; j1++) {
             for (int j2 = 0; j2 < 3; j2++) {
@@ -122,7 +122,7 @@ std::vector<Matrix3d> xcGGASpinStress(unique_ptr<mrdft::MRDFT> &mrdft_p, mrcpp::
         pos[1] = gridPos(i, 1);
         pos[2] = gridPos(i, 2);
         for (int j = 0; j < 3; j++) {
-            out[i](j, j) = xc(i, 0) - std::get<1>(xc_pots[1])->evalf(pos) * rhoGridAlpha(i) - std::get<1>(xc_pots[2])->evalf(pos) * rhoGridBeta(i);
+            out[i](j, j) = xc(i, 0) - std::get<1>(xc_pots[0])->evalf(pos) * rhoGridAlpha(i) - std::get<1>(xc_pots[1])->evalf(pos) * rhoGridBeta(i);
         }
         for (int j1 = 0; j1 < 3; j1++) {
             for (int j2 = 0; j2 < 3; j2++) {

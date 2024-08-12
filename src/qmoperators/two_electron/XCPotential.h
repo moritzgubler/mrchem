@@ -63,8 +63,11 @@ public:
             , mrdft(std::move(F)) {}
     ~XCPotential() override = default;
 
+    /**
+     * @brief Get the XC potential. For unrestricted calculations, the potential is a vector of two functions.
+     */
     std::shared_ptr<mrcpp::FunctionTreeVector<3>> getPotentialVector() { 
-        return std::make_shared<mrcpp::FunctionTreeVector<3>>(xc_out); 
+        return std::make_shared<mrcpp::FunctionTreeVector<3>>(potentials); 
     }
 
     friend class XCOperator;
@@ -88,7 +91,6 @@ protected:
     Orbital apply(Orbital phi) override;
     Orbital dagger(Orbital phi) override;
     QMOperatorVector apply(std::shared_ptr<QMOperator> &O) override;
-    mrcpp::FunctionTreeVector<3> xc_out;
 };
 
 } // namespace mrchem

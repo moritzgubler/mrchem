@@ -64,7 +64,7 @@ void XCPotential::setup(double prec) {
 
     auto &grid = this->mrdft->grid().get();
     mrcpp::FunctionTreeVector<3> xc_inp = setupDensities(prec, grid);
-    xc_out = this->mrdft->evaluate(xc_inp);
+    mrcpp::FunctionTreeVector<3> xc_out = this->mrdft->evaluate(xc_inp);
 
     // Fetch energy
     this->energy = this->mrdft->functional().XCenergy;
@@ -97,6 +97,7 @@ void XCPotential::setup(double prec) {
         auto t = timer.elapsed();
         mrcpp::print::tree(2, "XC operator", totNodes, totSize, t);
     }
+    mrcpp::clear(xc_out, true);
     mrcpp::print::footer(3, timer, 2);
 }
 
@@ -105,7 +106,6 @@ void XCPotential::clear() {
     this->energy = 0.0;
     for (auto &rho : this->densities) rho.free(NUMBER::Total);
     mrcpp::clear(this->potentials, true);
-    mrcpp::clear(xc_out, true);
     clearApplyPrec();
 }
 
