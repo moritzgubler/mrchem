@@ -47,7 +47,7 @@
 #include "qmoperators/qmoperator_utils.h"
 #include "utils/math_utils.h"
 
-#include "pseudopotential/projectorOperator.h"
+// #include "pseudopotential/projectorOperator.h"
 
 using mrcpp::Printer;
 using mrcpp::Timer;
@@ -67,6 +67,7 @@ void FockBuilder::build(double exx) {
     if (this->xc != nullptr) this->V += (*this->xc);
     if (this->ext != nullptr) this->V += (*this->ext);
     if (this->Ro != nullptr) this->V -= (*this->Ro);
+    if (this->pp_projector != nullptr) this->V += (*this->pp_projector);
 }
 
 /** @brief prepare operator for application
