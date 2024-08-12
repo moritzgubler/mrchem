@@ -86,6 +86,8 @@
 #include "surface_forces/SurfaceForce.h"
 #include "properties/hirshfeld/HirshfeldPartition.h"
 
+#include "pseudopotential/projectorOperator.h"
+
 #include "mrdft/Factory.h"
 
 using mrcpp::ABGVOperator;
@@ -1139,6 +1141,12 @@ void driver::build_fock_operator(const json &json_fock, Molecule &mol, FockBuild
             MSG_ABORT("Invalid perturbation order");
         }
     }
+    std::cout << "making projector operator" << std::endl;
+    std::shared_ptr<ProjectorOperator> pp = std::make_shared<ProjectorOperator>(mol, 1e-4);
+    std::cout << "done making projector operator" << std::endl;
+    F.getProjectorOperator() = pp;
+    std::cout << "projector set" << std::endl;
+
     ///////////////////////////////////////////////////////////
     //////////////////   Reaction Operator   ///////////////////
     ///////////////////////////////////////////////////////////
