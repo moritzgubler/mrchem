@@ -103,12 +103,16 @@ mrcpp::ComplexFunction calcPotential(Density &rho, mrcpp::PoissonOperator &poiss
 MatrixXd electronicEfield(mrchem::OrbitalVector &negEfield, const MatrixXd &gridPos) {
     int nGrid = gridPos.rows();
     MatrixXd Efield = MatrixXd::Zero(nGrid, 3);
-    for (int i = 0; i < nGrid; i++)
+
+    #pragma omp parallel
     {
+    #pragma omp for
+    for (int i = 0; i < nGrid; i++) {
         std::array<double, 3> pos = {gridPos(i, 0), gridPos(i, 1), gridPos(i, 2)};
         Efield(i, 0) = -negEfield[0].real().evalf(pos);
         Efield(i, 1) = -negEfield[1].real().evalf(pos);
         Efield(i, 2) = -negEfield[2].real().evalf(pos);
+    }
     }
     return Efield;
 }
@@ -184,26 +188,29 @@ std::vector<Matrix3d> kineticStress(const Molecule &mol, OrbitalVector &Phi, std
     std::array<double, 3> pos;
     double n1, n2, n3;
     int occ;
+    #pragma omp parallel 
+    {
+    #pragma omp for private(pos, n1, n2, n3, occ)
     for (int iOrb = 0; iOrb < Phi.size(); iOrb++) {
         occ = Phi[iOrb].occ();
     
-        for (int i = 0; i < nGrid; i++) {
-            if (mrcpp::mpi::my_orb(iOrb)) {  
-            pos[0] = gridPos(i, 0);
-            pos[1] = gridPos(i, 1);
-            pos[2] = gridPos(i, 2);
-            n1 = nablaPhi[iOrb][0].real().evalf(pos);
-            n2 = nablaPhi[iOrb][1].real().evalf(pos);
-            n3 = nablaPhi[iOrb][2].real().evalf(pos);
-            voigtStress(i, 0) -= occ * n1 * n1;
-            voigtStress(i, 1) -= occ * n2 * n2;
-            voigtStress(i, 2) -= occ * n3 * n3;
-            voigtStress(i, 5) -= occ * n1 * n2;
-            voigtStress(i, 4) -= occ * n1 * n3;
-            voigtStress(i, 3) -= occ * n2 * n3;
+        if (mrcpp::mpi::my_orb(iOrb)) {  
+            for (int i = 0; i < nGrid; i++) {
+                pos[0] = gridPos(i, 0);
+                pos[1] = gridPos(i, 1);
+                pos[2] = gridPos(i, 2);
+                n1 = nablaPhi[iOrb][0].real().evalf(pos);
+                n2 = nablaPhi[iOrb][1].real().evalf(pos);
+                n3 = nablaPhi[iOrb][2].real().evalf(pos);
+                voigtStress(i, 0) -= occ * n1 * n1;
+                voigtStress(i, 1) -= occ * n2 * n2;
+                voigtStress(i, 2) -= occ * n3 * n3;
+                voigtStress(i, 5) -= occ * n1 * n2;
+                voigtStress(i, 4) -= occ * n1 * n3;
+                voigtStress(i, 3) -= occ * n2 * n3;
             }
-
         }
+    }
     }
     mrcpp::mpi::allreduce_matrix(voigtStress, mrcpp::mpi::comm_wrk);
     for (int i = 0; i < nGrid; i++) {

@@ -48,7 +48,7 @@ std::vector<Matrix3d> xcLDASpinStress(unique_ptr<mrdft::MRDFT> &mrdft_p, MatrixX
     inp.col(0) = rhoGridAlpha.col(0);
     inp.col(1) = rhoGridBeta.col(0);
     Eigen::MatrixXd xc = mrdft_p->functional().evaluate_transposed(inp);
-    for (int i = 0; i < rhoGridAlpha.rows(); i++) {
+    for (int i = 0; i < nGrid; i++) {
         out[i] = Matrix3d::Zero();
         for (int j = 0; j < 3; j++) {
             out[i](j, j) = xc(i, 0) - xc(i, 1) * rhoGridAlpha(i) - xc(i, 2) * rhoGridBeta(i);
@@ -75,7 +75,8 @@ std::vector<Matrix3d> xcGGAStress(unique_ptr<mrdft::MRDFT> &mrdft_p, mrcpp::Func
     Eigen::MatrixXd xcOUT =  mrdft_p->functional().evaluate_transposed(inp);
     std::vector<Matrix3d> out(nGrid);
     std::array<double, 3> pos;
-    for (int i = 0; i < rhoGrid.rows(); i++) {
+    #pragma omp parallel for private(pos)
+    for (int i = 0; i < nGrid; i++) {
         out[i] = Matrix3d::Zero();
         pos[0] = gridPos(i, 0);
         pos[1] = gridPos(i, 1);
@@ -116,7 +117,8 @@ std::vector<Matrix3d> xcGGASpinStress(unique_ptr<mrdft::MRDFT> &mrdft_p, mrcpp::
     inp.col(7) = nablaRhoGridBeta.col(2);
     Eigen::MatrixXd xc = mrdft_p->functional().evaluate_transposed(inp);
     std::array<double, 3> pos;
-    for (int i = 0; i < rhoGridAlpha.rows(); i++) {
+    #pragma omp parallel for private(pos)
+    for (int i = 0; i < nGrid; i++) {
         out[i] = Matrix3d::Zero();
         pos[0] = gridPos(i, 0);
         pos[1] = gridPos(i, 1);
@@ -166,13 +168,6 @@ std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, mrcp
         mrchem::density::compute(prec, rhoA, *phi, DensityType::Alpha);
         mrchem::density::compute(prec, rhoB, *phi, DensityType::Beta);
 
-        for (int i = 0; i < nGrid; i++) { // compute density on grid
-            pos[0] = gridPos(i, 0);
-            pos[1] = gridPos(i, 1);
-            pos[2] = gridPos(i, 2);
-            rhoGridAlpha(i) = rhoA.real().evalf(pos);
-            rhoGridBeta(i) = rhoB.real().evalf(pos);
-        }
 
         if (isGGA) {
             mrchem::NablaOperator nablaOP = *nabla;
@@ -180,10 +175,13 @@ std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, mrcp
             std::vector<mrchem::Orbital> nablaRhoBeta = nablaOP(rhoB);
             MatrixXd nablaRhoGridAlpha(nGrid, 3);
             MatrixXd nablaRhoGridBeta(nGrid, 3);
+            #pragma omp parallel private(pos)
             for (int i = 0; i < nGrid; i++) {
                 pos[0] = gridPos(i, 0);
                 pos[1] = gridPos(i, 1);
                 pos[2] = gridPos(i, 2);
+                rhoGridAlpha(i) = rhoA.real().evalf(pos);
+                rhoGridBeta(i) = rhoB.real().evalf(pos);
                 nablaRhoGridAlpha(i, 0) = nablaRhoAlpha[0].real().evalf(pos);
                 nablaRhoGridAlpha(i, 1) = nablaRhoAlpha[1].real().evalf(pos);
                 nablaRhoGridAlpha(i, 2) = nablaRhoAlpha[2].real().evalf(pos);
@@ -194,6 +192,14 @@ std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, mrcp
 
             xcStress = xcGGASpinStress(mrdft_p, xc_pots, rhoGridAlpha, rhoGridBeta, nablaRhoGridAlpha, nablaRhoGridBeta, gridPos);
         } else {
+            #pragma omp parallel for private(pos)
+            for (int i = 0; i < nGrid; i++) { // compute density on grid
+                pos[0] = gridPos(i, 0);
+                pos[1] = gridPos(i, 1);
+                pos[2] = gridPos(i, 2);
+                rhoGridAlpha(i) = rhoA.real().evalf(pos);
+                rhoGridBeta(i) = rhoB.real().evalf(pos);
+            }
             xcStress = xcLDASpinStress(mrdft_p, rhoGridAlpha, rhoGridBeta);
         }
 
@@ -202,27 +208,29 @@ std::vector<Eigen::Matrix3d> getXCStress(unique_ptr<mrdft::MRDFT> &mrdft_p, mrcp
         mrchem::Density rho(false);
         mrchem::density::compute(prec, rho, *phi, DensityType::Total);
 
-        for (int i = 0; i < nGrid; i++) { // compute density on grid
-            pos[0] = gridPos(i, 0);
-            pos[1] = gridPos(i, 1);
-            pos[2] = gridPos(i, 2);
-            rhoGrid(i) = rho.real().evalf(pos);
-        }
-
         if (isGGA) {
             mrchem::NablaOperator nablaOP = *nabla;
             std::vector<mrchem::Orbital> nablaRho = nablaOP(rho);
             MatrixXd nablaRhoGrid(nGrid, 3);
-            for (int i = 0; i < nGrid; i++) {
+            #pragma omp parallel for private(pos)
+            for (int i = 0; i < nGrid; i++) { // computye density and gradients on grid
                 pos[0] = gridPos(i, 0);
                 pos[1] = gridPos(i, 1);
                 pos[2] = gridPos(i, 2);
+                rhoGrid(i) = rho.real().evalf(pos);
                 nablaRhoGrid(i, 0) = nablaRho[0].real().evalf(pos);
                 nablaRhoGrid(i, 1) = nablaRho[1].real().evalf(pos);
                 nablaRhoGrid(i, 2) = nablaRho[2].real().evalf(pos);
             }
             xcStress = xcGGAStress(mrdft_p, xc_pots, rhoGrid, nablaRhoGrid, gridPos);
         } else {
+            #pragma omp parallel for private(pos)
+            for (int i = 0; i < nGrid; i++) { // compute density on grid
+                pos[0] = gridPos(i, 0);
+                pos[1] = gridPos(i, 1);
+                pos[2] = gridPos(i, 2);
+                rhoGrid(i) = rho.real().evalf(pos);
+            }
             xcStress = xcLDAStress(mrdft_p, rhoGrid);
         }
     }
