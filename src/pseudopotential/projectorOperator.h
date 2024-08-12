@@ -7,6 +7,7 @@
 #include "qmfunctions/Orbital.h"
 #include "chemistry/Molecule.h"
 #include "qmfunctions/qmfunction_utils.h"
+#include <string>
 
 class magneticQuantumNumberProjector {
     public:
@@ -26,14 +27,21 @@ class AtomProjector {
     int numberOfAngMom;
 };
 
-class ProjectorOperator: public mrchem::RankZeroOperator {
+class ProjectorOperator final : public mrchem::RankZeroOperator {
 
     std::vector<PseudopotentialData> pp;
     std::vector<AtomProjector> proj;
     double prec;
 
 public:
-    ProjectorOperator(mrchem::Molecule molecule, std::vector<PseudopotentialData> pp, double prec){
+    ProjectorOperator(mrchem::Molecule &molecule, double prec){
+
+        mrchem::Nuclei nucs = molecule.getNuclei();
+        for (int i = 0; i < nucs.size(); i++){
+            std::string elem = nucs[i].getElement().getSymbol();
+            std::string fname = "psppar." + elem;
+            this->pp.push_back(PseudopotentialData(fname));
+        }
 
         this->pp = pp;
         this->prec = prec;
