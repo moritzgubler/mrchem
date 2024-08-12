@@ -508,60 +508,55 @@ void driver::scf::calc_properties(const json &json_prop, Molecule &mol, const js
 
     if (json_prop.contains("geometric_derivative")) {
         t_lap.start();
-        // time the calculation of forces:
-        Timer t_classic;
-        t_classic.start();
         mrcpp::print::header(2, "Computing geometric derivative");
-        if (json_prop["geometric_derivative"]["geom-1"]["method"] == "hellmann_feynman") {
-            for (const auto &item : json_prop["geometric_derivative"].items()) {
-                const auto &id = item.key();
-                const double &prec = item.value()["precision"];
-                const double &smoothing = item.value()["smoothing"];
-                GeometricDerivative &G = mol.getGeometricDerivative(id);
-                auto &nuc = G.getNuclear();
-                auto &el = G.getElectronic();
+        GeometricDerivative &G = mol.getGeometricDerivative("geom-1");
+        auto &nuc = G.getNuclear();
 
-                for (auto k = 0; k < mol.getNNuclei(); ++k) {
-                    const auto nuc_k = nuclei[k];
-                    auto Z_k = nuc_k.getCharge();
-                    auto R_k = nuc_k.getCoord();
-                    double c = detail::nuclear_gradient_smoothing(smoothing, Z_k, mol.getNNuclei());
-                    NuclearGradientOperator h(Z_k, R_k, prec, c);
-                    h.setup(prec);
-                    nuc.row(k) = Eigen::RowVector3d::Zero();
-                    for (auto l = 0; l < mol.getNNuclei(); ++l) {
-                        if (l == k) continue;
-                        const auto nuc_l = nuclei[l];
-                        auto Z_l = nuc_l.getCharge();
-                        auto R_l = nuc_l.getCoord();
-                        std::array<double, 3> R_kl = {R_k[0] - R_l[0], R_k[1] - R_l[1], R_k[2] - R_l[2]};
-                        auto R_kl_3_2 = std::pow(math_utils::calc_distance(R_k, R_l), 3.0);
-                        nuc.row(k) -= Eigen::Map<Eigen::RowVector3d>(R_kl.data()) * (Z_k * Z_l / R_kl_3_2);
-                    }
-                    el.row(k) = h.trace(Phi).real();
-                    h.clear();
-                }
-                t_classic.stop();
+        // calculate nuclear gradient
+        for (auto k = 0; k < mol.getNNuclei(); ++k) {
+            const auto nuc_k = nuclei[k];
+            auto Z_k = nuc_k.getCharge();
+            auto R_k = nuc_k.getCoord();
+            nuc.row(k) = Eigen::RowVector3d::Zero();
+            for (auto l = 0; l < mol.getNNuclei(); ++l) {
+                if (l == k) continue;
+                const auto nuc_l = nuclei[l];
+                auto Z_l = nuc_l.getCharge();
+                auto R_l = nuc_l.getCoord();
+                std::array<double, 3> R_kl = {R_k[0] - R_l[0], R_k[1] - R_l[1], R_k[2] - R_l[2]};
+                auto R_kl_3_2 = std::pow(math_utils::calc_distance(R_k, R_l), 3.0);
+                nuc.row(k) -= Eigen::Map<Eigen::RowVector3d>(R_kl.data()) * (Z_k * Z_l / R_kl_3_2);
             }
+        }
+        // calculate electronic gradient using the Hellmann-Feynman theorem
+        if (json_prop["geometric_derivative"]["geom-1"]["method"] == "hellmann_feynman") {
+            const double &prec = json_prop["geometric_derivative"]["geom-1"]["precision"];
+            const double &smoothing = json_prop["geometric_derivative"]["geom-1"]["smoothing"];
+            auto &el = G.getElectronic();
+
+            for (auto k = 0; k < mol.getNNuclei(); ++k) {
+                const auto nuc_k = nuclei[k];
+                auto Z_k = nuc_k.getCharge();
+                auto R_k = nuc_k.getCoord();
+                double c = detail::nuclear_gradient_smoothing(smoothing, Z_k, mol.getNNuclei());
+                NuclearGradientOperator h(Z_k, R_k, prec, c);
+                h.setup(prec);
+                el.row(k) = h.trace(Phi).real();
+                h.clear();
+            }
+        // calculate electronic gradient using the surface integrals method
         } else if (json_prop["geometric_derivative"]["geom-1"]["method"] == "surface_integrals") {
             double prec = json_prop["geometric_derivative"]["geom-1"]["precision"];
-            Timer t_surface;
-            t_surface.start();
             std::string leb_prec = json_prop["geometric_derivative"]["geom-1"]["surface_integral_precision"];
             double radius_factor = json_prop["geometric_derivative"]["geom-1"]["radius_factor"];
             Eigen::MatrixXd surfaceForces = surface_force::surface_forces(mol, Phi, prec, json_fock, leb_prec, radius_factor);
-            t_surface.stop();
             GeometricDerivative &G = mol.getGeometricDerivative("geom-1");
             auto &nuc = G.getNuclear();
             auto &el = G.getElectronic();
-
+            // set electronic gradient
             for (int k = 0; k < mol.getNNuclei(); k++) {
-                // set row of nuclear gradient zero
-                nuc.row(k) = Eigen::RowVector3d::Zero();
-                // set row of electronic gradient to row of surface forces
-                el.row(k) = surfaceForces.row(k);
+                el.row(k) = surfaceForces.row(k) - nuc.row(k);
             }
-
         } else {
             MSG_ABORT("Invalid method for geometric derivative");
         }
