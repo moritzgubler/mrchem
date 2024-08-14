@@ -16,6 +16,7 @@
  * @param prec The precision of the projector.
  */
 ProjectorFunction::ProjectorFunction(mrcpp::Coord<3> pos, double rl, int i, int l, int m, double prec) {
+    std::cout << "Constructing ProjectorFunction" << std::endl;
     this->pos = pos;
     this->rl = rl;
     this->i = i;
@@ -33,7 +34,7 @@ ProjectorFunction::ProjectorFunction(mrcpp::Coord<3> pos, double rl, int i, int 
     };
     auto op = (*this);
     mrcpp::cplxfunc::project(op, project_analytic, mrcpp::NUMBER::Real, prec);
-
+    std::cout << "ProjectorFunction constructed in constructor" << std::endl;
 }
 
 void ProjectorFunction::switch_sperics(int l, int m){
