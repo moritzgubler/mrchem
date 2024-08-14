@@ -41,7 +41,10 @@ public:
             std::string elem = nucs[i].getElement().getSymbol();
             std::string fname = "psppar." + elem;
             this->pp.push_back(PseudopotentialData(fname));
+            pp[i].print();
         }
+
+        std::cout << "Pseudopotential data loaded" << std::endl;
 
         this->pp = pp;
         this->prec = prec;
@@ -49,6 +52,7 @@ public:
 
         // loop over all atoms and create projectors
         for (int i = 0; i < molecule.getNNuclei(); i++) {
+            std::cout << "Creating projectors for atom " << i << std::endl;
             mrcpp::Coord<3> pos = molecule.getNuclei()[i].getCoord();
             proj.push_back(AtomProjector());
             for (int l = 0; l < pp[i].nsep; l++) {
@@ -57,19 +61,35 @@ public:
                     proj[i].lProj[l].mProj.push_back(magneticQuantumNumberProjector());
                     for (int idim = 0; idim < pp[i].dim_h[l]; idim++){
                         // proj.push_back(ProjectorFunction(pos, pp[i].rl[l], isep, l, m, prec));
+                        std::cout << "Creating ProjectorFunction " << l << " " << m << " " << idim << std::endl;
                         proj[i].lProj[l].mProj[m].iProj.push_back(ProjectorFunction(pos, pp[i].rl[l], idim, l, m, prec));
+                        std::cout << "ProjectorFunction constructed " << i << std::endl;
+                        std::cout << "i = " << i << std::endl;
+                        std::cout << "nsep = " << pp[i].nsep << std::endl;
                         proj[i].numberOfAngMom = pp[i].nsep;
+                        std::cout << "ProjectorFunction added to projector" << std::endl;
                         proj[i].lProj[l].nM = 2*pp[i].nsep + 1;
+                        std::cout << "ProjectorFunction added to projector" << std::endl;
                         proj[i].lProj[l].mProj[m].nProj = pp[i].dim_h[l];
+                        std::cout << "End of loop" << std::endl;
                         npp++;
                     }
                 }
             }
         }
-
+        std::cout << "ProjectorOperator constructed" << std::endl;
     }
 
+    void setup(double prec) {
+        this->prec = prec;
+    }
+
+    void clear() {
+    }
+
+
 mrchem::Orbital apply(mrchem::Orbital phi) {
+    std::cout << "Applying projector operator" << std::endl;
     // loop over all atoms
     ComplexDouble dotComplex;
 
