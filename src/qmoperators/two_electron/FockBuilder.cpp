@@ -253,14 +253,11 @@ OrbitalVector FockBuilder::buildHelmholtzArgumentZORA(OrbitalVector &Phi, Orbita
     RankZeroOperator &kappa_m1 = *this->kappa_inv;
     RankZeroOperator &V_zora = this->zora_base;
 
-    std::shared_ptr<mrcpp::BSOperator<3>> dd = std::make_shared<mrcpp::BSOperator<3>>(*MRA, 1);
-
-    NablaOperator nabla(dd, false); // gradient operator
+    std::shared_ptr<mrcpp::BSOperator<3>> dd = std::make_shared<mrcpp::BSOperator<3>>(*MRA, true);
+    NablaOperator nabla(dd, true);
     nabla.setup(prec);
 
-    RankOneOperator nabla_kappa = nabla(kappa);
-
-    RankZeroOperator operOne = 0.5 * (nabla_kappa[0](nabla[0]) + nabla_kappa[1](nabla[1]) + nabla_kappa[2](nabla[2]));
+    RankZeroOperator operOne = 0.5 * tensor::dot(p(kappa), p);
     RankZeroOperator operThree = kappa * V_zora + V_zora;
     operOne.setup(prec);
     operThree.setup(prec);
