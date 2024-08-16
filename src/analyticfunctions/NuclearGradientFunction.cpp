@@ -53,28 +53,39 @@ bool NuclearGradientFunction::isZeroOnInterval(const double *a, const double *b)
 // clang-format off
 double NuclearGradientFunction::du_dr(double r1) const {
     double out = 0.0;
+    // double a =  2.54008323534600;
+    // double b =  -3.23551364544290;
+    // double c =  0.991286230704572;
+    double a =  3.52158251244672;
+    double b =  -6.22207279615117;
+    double c =  3.52158251244672;
+    double d =  -0.623448488675065;
+    double r2 = r1*r1;
     if (r1 > 6.0) {
-        double r2 = r1*r1;
         out = -1.0/r2;
-    } else if (r1 > 0.01) {
-        double r2 = r1*r1;
-        out =   2.0*std::exp(-r2)/(mrcpp::root_pi*r1)
-              - std::erf(r1)/r2
-              - 1.0/(3.0*mrcpp::root_pi)
-              * (2.0*r1*std::exp(-r2) + 128.0*r1*std::exp(-4.0*r2));
+    } else if (r1 > 0.0001) {
+        // double r2 = r1*r1;
+        // out =   2.0*std::exp(-r2)/(mrcpp::root_pi*r1)
+        //       - std::erf(r1)/r2
+        //       - 1.0/(3.0*mrcpp::root_pi)
+        //       * (2.0*r1*std::exp(-r2) + 128.0*r1*std::exp(-4.0*r2));
+        // out = (r2 *(b + 2 * c * r1 - 2 * r1 * (a + b * r1 + c * r2)) - std::exp(r2) + 1) * std::exp(-r2) / r2;
+        out = -2 * r1 * (a + b*r1 + c * r2 + d * r1 * r2) * std::exp(-r2) + (b + 2*c*r1 + 3 * d * r2) * std::exp(-r2) - 1/r2 + exp(-r2)/r2;
     } else if (r1 > 0.0) {
-        double r2 = r1*r1;
         double r3 = r1*r2;
+        double r4 = r2 * r2;
         double r5 = r3*r2;
+        double r6 = r4*r2;
         double r7 = r5*r2;
         double r9 = r7*r2;
-        out = - 4.0/3.0*r1
-              + 4.0/5.0*r3
-              - 2.0/7.0*r5
-              + 2.0/27.0*r7
-              - 1.0/66.0*r9
-              - 1.0/(3.0*mrcpp::root_pi)
-              * (2.0*r1*std::exp(-r2) + 128.0*r1*std::exp(-4.0*r2));
+        // out = - 4.0/3.0*r1
+        //       + 4.0/5.0*r3
+        //       - 2.0/7.0*r5
+        //       + 2.0/27.0*r7
+        //       - 1.0/66.0*r9
+        //       - 1.0/(3.0*mrcpp::root_pi)
+        //       * (2.0*r1*std::exp(-r2) + 128.0*r1*std::exp(-4.0*r2));
+        out = -2 * r1 * (a + b*r1 + c * r2 + d * r1 * r2) * std::exp(-r2) + (b + 2*c*r1 + 3 * d * r2) * std::exp(-r2) + (4 * r2 - 2) * std::exp(-r2);
     } else {
         MSG_ABORT("Negative radius");
     }

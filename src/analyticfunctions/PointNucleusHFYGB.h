@@ -36,6 +36,18 @@ public:
     PointNucleusHFYGB() = default;
 
     double evalf(const mrcpp::Coord<3> &r) const override {
+        // double c1 = mrcpp::root_pi / ( 3.0 * M_PI - 8.0);
+        // double c2 = ( 3.0 * M_PI - 16) / ( 18.0 * M_PI - 48);
+        // double c3 = 0.0;
+
+        double c1 =  2.54008323534600;
+        double c2 =  -3.23551364544290;
+        double c3 =  0.991286230704572;
+        double a =  3.52158251244672;
+        double b =  -6.22207279615117;
+        double c =  3.52158251244672;
+        double d =  -0.623448488675065;
+
         double result = 0.0;
         for (int i = 0; i < this->nuclei.size(); i++) {
             const auto &R = this->nuclei[i].getCoord();
@@ -45,7 +57,16 @@ public:
             R1 /= S_i;
             double c = -1.0 / (3.0 * mrcpp::root_pi);
             double partResult = -std::erf(R1) / R1 + c * (std::exp(-R1 * R1) + 16.0 * std::exp(-4.0 * R1 * R1));
-            result += Z * partResult / S_i;
+            double oo;
+            if (R1 < 0.0001) {
+                oo = 2 * R1 * std::exp(-R1 * R1);
+            } else {
+                oo = + (1 - std::exp(-R1 * R1)) / R1;
+            }
+            // oo = - oo + 2.0 * c * std::exp(-R1 * R1);
+            oo = oo + (a + b*R1 + c * R1 * R1  + d * R1 * R1 * R1 ) * std::exp(-R1 * R1) + mrcpp::root_pi * (1. - erf(R1));
+            oo = - oo;
+            result += Z * oo / S_i;
         }
         return result;
     }
