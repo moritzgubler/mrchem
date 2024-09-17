@@ -121,14 +121,14 @@ private:
     std::shared_ptr<XCOperator> xc{nullptr};
     std::shared_ptr<ReactionOperator> Ro{nullptr};       // Reaction field operator
     std::shared_ptr<ElectricFieldOperator> ext{nullptr}; // Total external potential
-    std::shared_ptr<ZoraOperator> kappa{nullptr};
-    std::shared_ptr<ZoraOperator> kappa_inv{nullptr};
+    std::shared_ptr<ZoraOperator> chi{nullptr};
+    std::shared_ptr<ZoraOperator> chi_inv{nullptr};
 
     std::shared_ptr<QMPotential> collectZoraBasePotential();
     OrbitalVector buildHelmholtzArgumentZORA(OrbitalVector &Phi, OrbitalVector &Psi, DoubleVector eps, double prec);
     OrbitalVector buildHelmholtzArgumentNREL(OrbitalVector &Phi, OrbitalVector &Psi);
-    std::shared_ptr<QMPotential> kappaPot{nullptr};
-    std::shared_ptr<QMPotential> kappaInvPot{nullptr};
+    std::shared_ptr<QMPotential> chiPot{nullptr};
+    std::shared_ptr<QMPotential> chiInvPot{nullptr};
     std::shared_ptr<KappaGradientOperator> kappaGrad{nullptr};
 };
 

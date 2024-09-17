@@ -70,6 +70,7 @@ protected:
      * Initialize the azora potential based on the molecule.
      * This method would typically setup the real and imaginary function trees
      * representing the potential.
+     * sets up chi
      */
     void initAzoraPotential() {
 
@@ -83,7 +84,7 @@ protected:
             atomicPotentials.push_back(potentialSpline);
         }
 
-        mrcpp::ComplexFunction vtot;
+        mrcpp::ComplexFunction chi;
         auto kappa_analytic = [atomicPotentials, this](const mrcpp::Coord<3>& r) {
             double V = 0.0;
             // Loop over all atoms:
@@ -94,15 +95,15 @@ protected:
             }
             return 1 / (1 - V / (2.0 * c * c)) - 1;
         };
-        mrcpp::cplxfunc::project(vtot, kappa_analytic, mrcpp::NUMBER::Real, prec);
+        mrcpp::cplxfunc::project(chi, kappa_analytic, mrcpp::NUMBER::Real, prec);
         auto ttt = [](const mrcpp::Coord<3>& r) {
             return 1.0;
         };
         mrcpp::ComplexFunction const_func;
         mrcpp::cplxfunc::project(const_func, ttt, mrcpp::NUMBER::Real, prec);
         mrcpp::ComplexDouble one = 1.0;
-        vtot.add(one, const_func);
-        this->add(one, vtot);
+        // chi.add(one, const_func);
+        this->add(one, chi);
     }
 };
 

@@ -101,11 +101,12 @@ void FockBuilder::setup(double prec) {
         mrcpp::print::value(3, "Light speed", c, "(au)", 5);
         mrcpp::print::separator(3, '-');
         auto vz = collectZoraBasePotential();
-        this->kappa = std::make_shared<ZoraOperator>(*vz, c, prec, false);
-        this->kappa_inv = std::make_shared<ZoraOperator>(*vz, c, prec, true);
+        // chi = kappa - 1. See ZoraOperator.h for more information.
+        this->chi = std::make_shared<ZoraOperator>(*vz, c, prec, false);
+        this->chi_inv = std::make_shared<ZoraOperator>(*vz, c, prec, true);
         this->zora_base = RankZeroOperator(vz);
-        this->kappa->setup(prec);
-        this->kappa_inv->setup(prec);
+        this->chi->setup(prec);
+        this->chi_inv->setup(prec);
         this->zora_base.setup(prec);
         mrcpp::print::footer(3, t_zora, 2);
     }
@@ -140,18 +141,18 @@ void FockBuilder::setup(double prec) {
         }
 
 
-        kappaPot = std::make_shared<AZoraPotential>(nucs, adap, prec, azora_dir_final, share, c);
+        chiPot = std::make_shared<AZoraPotential>(nucs, adap, prec, azora_dir_final, share, c);
 
-        kappaInvPot = std::make_shared<QMPotential>(adap);
+        chiInvPot = std::make_shared<QMPotential>(adap);
 
-        mrcpp::cplxfunc::deep_copy(*kappaInvPot, *kappaPot);
+        mrcpp::cplxfunc::deep_copy(*chiInvPot, *chiPot);
 
-        kappaInvPot->real().map([](double val) { return 1.0 / val; });
+        chiInvPot->real().map([](double val) { return 1.0 / val; });
 
-        this->kappa = std::make_shared<ZoraOperator>(kappaPot, "kappa");
-        this->kappa_inv = std::make_shared<ZoraOperator>(kappaInvPot, "kappa_inv");
-        this->kappa->setup(prec);
-        this->kappa_inv->setup(prec);
+        this->chi = std::make_shared<ZoraOperator>(chiPot, "chi");
+        this->chi_inv = std::make_shared<ZoraOperator>(chiInvPot, "chi_inv");
+        this->chi->setup(prec);
+        this->chi_inv->setup(prec);
 
         this->kappaGrad = std::make_shared<KappaGradientOperator>(nucs, adap, prec, azora_dir_final, share);
         this->kappaGrad->setup(prec);
@@ -175,13 +176,13 @@ void FockBuilder::clear() {
     this->potential().clear();
     this->perturbation().clear();
     if (isZora()) {
-        this->kappa->clear();
-        this->kappa_inv->clear();
+        this->chi->clear();
+        this->chi_inv->clear();
         this->zora_base.clear();
     }
     if (isAZora()) {
-        kappa->clear();
-        kappa_inv->clear();
+        chi->clear();
+        chi_inv->clear();
         kappaGrad->clear();
     }
 }
@@ -240,7 +241,7 @@ SCFEnergy FockBuilder::trace(OrbitalVector &Phi, const Nuclei &nucs) {
 
     // Kinetic part
     if (isZora() || isAZora()) {
-        E_kin = qmoperator::calc_kinetic_trace(momentum(), *this->kappa, Phi).real();
+        E_kin = qmoperator::calc_kinetic_trace(momentum(), *this->chi, Phi).real() + qmoperator::calc_kinetic_trace(momentum(), Phi);
     } else {
         E_kin = qmoperator::calc_kinetic_trace(momentum(), Phi);
     }
@@ -265,7 +266,7 @@ ComplexMatrix FockBuilder::operator()(OrbitalVector &bra, OrbitalVector &ket) {
 
     ComplexMatrix T_mat = ComplexMatrix::Zero(bra.size(), ket.size());
     if (isZora() || isAZora()) {
-        T_mat = qmoperator::calc_kinetic_matrix(momentum(), *this->kappa, bra, ket);
+        T_mat = qmoperator::calc_kinetic_matrix(momentum(), *this->chi, bra, ket) + qmoperator::calc_kinetic_matrix(momentum(), bra, ket);
     } else {
         T_mat = qmoperator::calc_kinetic_matrix(momentum(), bra, ket);
     }
@@ -309,17 +310,17 @@ OrbitalVector FockBuilder::buildHelmholtzArgumentZORA(OrbitalVector &Phi, Orbita
     double two_cc = 2.0 * c * c;
     MomentumOperator &p = momentum();
     RankZeroOperator &V = potential();
-    RankZeroOperator &kappa = *this->kappa;
-    RankZeroOperator &kappa_m1 = *this->kappa_inv;
+    RankZeroOperator &chi = *this->chi;
+    RankZeroOperator &chi_m1 = *this->chi_inv;
 
     NablaOperator &n = *this->nabla;
     KappaGradientOperator &kG = *this->kappaGrad;
 
     std::shared_ptr<RankZeroOperator> operOne_p = nullptr;
     if (isZora()) {
-        operOne_p = std::make_shared<RankZeroOperator>(0.5 * tensor::dot(p(kappa), p));
+        operOne_p = std::make_shared<RankZeroOperator>(0.5 * tensor::dot(p(chi), p));
     } else {
-        operOne_p = std::make_shared<RankZeroOperator>(- 0.5 * tensor::dot(kG, n));
+        operOne_p = std::make_shared<RankZeroOperator>(-0.5 * tensor::dot(kG, n));
     }
 
     RankZeroOperator operOne = *operOne_p;
@@ -329,15 +330,15 @@ OrbitalVector FockBuilder::buildHelmholtzArgumentZORA(OrbitalVector &Phi, Orbita
 
     if (isZora()) {
         RankZeroOperator &V_zora = this->zora_base;
-        operThreePtr = std::make_shared<RankZeroOperator>(V_zora * kappa);
+        operThreePtr = std::make_shared<RankZeroOperator>(V_zora * chi + V_zora);
     } else if (isAZora()) { 
         /*
         Note that V_z * kappa = 2 c^2 * (kappa - 1)
         With this trick, the expensive projection of the potential is avoided
         */
         std::shared_ptr<QMPotential> vTimesKappa = std::make_shared<QMPotential>(0);
-        mrcpp::cplxfunc::deep_copy(*vTimesKappa, *kappaPot);
-        vTimesKappa->real().map([two_cc](double val) { return two_cc * (val - 1); });
+        mrcpp::cplxfunc::deep_copy(*vTimesKappa, *chiPot);
+        vTimesKappa->real().map([two_cc](double val) { return two_cc * (val); });
         operThreePtr = std::make_shared<RankZeroOperator>(vTimesKappa);
     } else {
         MSG_ABORT("At this point, the ZORA or AZORA operator should be set. Exiting.");
@@ -388,7 +389,11 @@ OrbitalVector FockBuilder::buildHelmholtzArgumentZORA(OrbitalVector &Phi, Orbita
     operOne.clear();
 
     Timer t_kappa;
-    auto out = kappa_m1(arg);
+    mrchem::OrbitalVector out = chi_m1(arg);
+    for (int i = 0; i < arg.size(); i++) {
+        if (not mrcpp::mpi::my_orb(out[i])) continue;
+        out[i].add(1.0, arg[i]);
+    }
     mrcpp::print::time(2, "Applying kappa inverse", t_kappa);
     return out;
 }
@@ -445,7 +450,7 @@ std::shared_ptr<QMPotential> FockBuilder::collectZoraBasePotential() {
     }
     if (zora_has_xc) {
         if (getXCOperator() != nullptr) {
-            getXCOperator()->setSpin(SPIN::Alpha);
+            getXCOperator()->setSpin(SPIN::Paired);
             auto &xc = static_cast<QMPotential &>(getXCOperator()->getRaw(0, 0));
             if (not xc.hasReal()) MSG_ERROR("ZORA: Adding empty XC potential");
             vz->add(1.0, xc);

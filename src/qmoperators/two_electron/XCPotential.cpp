@@ -144,6 +144,10 @@ FunctionTree<3> &XCPotential::getPotential(int spin) {
         pot_idx = 1;
     } else if (not spinFunctional) {
         pot_idx = 0;
+    } else if (spinFunctional and spin == SPIN::Paired) {
+        this->v_tot = std::make_shared<FunctionTree<3>>(*MRA);
+        mrcpp::add(prec(), *this->v_tot, this->potentials);
+        return *this->v_tot;
     } else {
         NOT_IMPLEMENTED_ABORT;
     }

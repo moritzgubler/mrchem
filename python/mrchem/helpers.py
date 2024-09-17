@@ -236,6 +236,7 @@ def write_scf_guess(user_dict, wf_dict):
         "external_field": wf_dict["external_name"],
         "screen": scf_dict["guess_screen"],
         "localize": scf_dict["localize"],
+        "rotate": scf_dict["guess_rotate"],
         "restricted": user_dict["WaveFunction"]["restricted"],
         "file_chk": f"{scf_dict['path_checkpoint']}/phi_scf",
         "file_basis": file_dict["guess_basis"],
@@ -555,10 +556,10 @@ def parse_wf_method(user_dict):
         else:
             raise RuntimeError("ZORA selected, but no ZORA potential included")
 
-        if user_dict["ZORA"]["include_xc"] and not restricted:
-            raise RuntimeError(
-                "ZORA (V_xc) not available for unrestricted wavefunctions"
-            )
+        # if user_dict["ZORA"]["include_xc"] and not restricted:
+        #     raise RuntimeError(
+        #         "ZORA (V_xc) not available for unrestricted wavefunctions"
+        #     )
 
     # Determine environment name label for print outs to the output file
     environment_name = "None"
