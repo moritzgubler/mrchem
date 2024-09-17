@@ -96,11 +96,11 @@ protected:
             return 1 / (1 - V / (2.0 * c * c)) - 1;
         };
         mrcpp::cplxfunc::project(chi, kappa_analytic, mrcpp::NUMBER::Real, prec);
-        auto ttt = [](const mrcpp::Coord<3>& r) {
-            return 1.0;
-        };
-        mrcpp::ComplexFunction const_func;
-        mrcpp::cplxfunc::project(const_func, ttt, mrcpp::NUMBER::Real, prec);
+        // auto ttt = [](const mrcpp::Coord<3>& r) {
+        //     return 1.0;
+        // };
+        // mrcpp::ComplexFunction const_func;
+        // mrcpp::cplxfunc::project(const_func, ttt, mrcpp::NUMBER::Real, prec);
         mrcpp::ComplexDouble one = 1.0;
         // chi.add(one, const_func);
         this->add(one, chi);

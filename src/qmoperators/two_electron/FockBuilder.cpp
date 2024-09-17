@@ -140,22 +140,28 @@ void FockBuilder::setup(double prec) {
             }
         }
 
-
+        std::cout << "Creating chipot" << std::endl;
         chiPot = std::make_shared<AZoraPotential>(nucs, adap, prec, azora_dir_final, share, c);
+        std::cout << "Creating chiinvpot" << std::endl;
 
         chiInvPot = std::make_shared<QMPotential>(adap);
 
         mrcpp::cplxfunc::deep_copy(*chiInvPot, *chiPot);
 
+        std::cout << "mapping chi" << std::endl;
         chiInvPot->real().map([](double val) { return 1.0 / val; });
 
+        std::cout << "making azoracih chi" << std::endl;
         this->chi = std::make_shared<ZoraOperator>(chiPot, "chi");
+        std::cout << "making azorachiinv chi" << std::endl;
         this->chi_inv = std::make_shared<ZoraOperator>(chiInvPot, "chi_inv");
         this->chi->setup(prec);
         this->chi_inv->setup(prec);
 
+        std::cout << "making kappaGrad" << std::endl;
         this->kappaGrad = std::make_shared<KappaGradientOperator>(nucs, adap, prec, azora_dir_final, share);
         this->kappaGrad->setup(prec);
+        std::cout << "done" << std::endl;
 
         mrcpp::print::footer(3, t_zora, 2);
     }
