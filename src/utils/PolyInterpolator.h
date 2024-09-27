@@ -50,9 +50,6 @@ class PolyInterpolator {
      */
     double ypxmin;
 
-    Eigen::VectorXd x_in_poly = Eigen::VectorXd(5);
-    Eigen::VectorXd y_in_poly = Eigen::VectorXd(5);
-
     public:
     /**
      * @brief Constructor
@@ -65,6 +62,7 @@ class PolyInterpolator {
         n = x_in.size();
         xmin = x_in(0);
         xmax = x_in(x_in.size() - 1);
+        Eigen::VectorXd x_in_poly(5), y_in_poly(5);
 
         int j = 0;
         for (int i = n - 5; i < n; i++) {
@@ -86,13 +84,14 @@ class PolyInterpolator {
      * Useful when the logarithm of the density is interpolated.
      * @param x x value at which to evaluate the function
      */
-    double evalfLeftNoRightLinear(const double &xval) {
+    double evalfLeftNoRightLinear(const double &xval) const{
         double y;
         if (xval > xmax) { // linear extrapolation
                 y = this->y(n - 1) + ypxmax*(xval - xmax);
             return y;
         }
 
+        Eigen::VectorXd x_in_poly(5), y_in_poly(5);
         int i = adjustIndexToBoundaries(binarySearch(this->x, xval));
         for (int k = 0; k < 5; k++) {
             x_in_poly(k) = this->x(i - 2 + k);
@@ -108,13 +107,15 @@ class PolyInterpolator {
      * Useful when the density is interpolated.
      * @param x x value at which to evaluate the function
      */
-    double evalfLeftNoRightZero(const double &xval) {
+    double evalfLeftNoRightZero(const double &xval) const{
         double y;
-        if (xval > xmax) { // linear extrapolation
+        if (xval > xmax) { // constant
             y = 0.0;
             return y;
         }
 
+        Eigen::VectorXd x_in_poly(5), y_in_poly(5);
+        int j = adjustIndexToBoundaries(binarySearch(this->x, xval));
         int i = adjustIndexToBoundaries(binarySearch(this->x, xval));
         for (int k = 0; k < 5; k++) {
             x_in_poly(k) = this->x(i - 2 + k);
@@ -127,7 +128,7 @@ class PolyInterpolator {
     int adjustIndexToBoundaries(int i) const {
         int j = i;
         if (i == 0) j = 2;
-        if (i == 1) i = 2;
+        if (i == 1) j = 2;
         if (i == n - 1) j = n - 3;
         if (i == n - 2) j = n - 3;
         return j;
