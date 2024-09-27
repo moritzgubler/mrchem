@@ -237,7 +237,7 @@ void initial_guess::sad::project_atomic_densities_new(double prec, Density &rho,
     } else {
         MSG_ABORT("Hirshfeld data directory not found");
     }
-    std::vector<std::shared_ptr<interpolation_utils::PolyInterpolator>> atomic_densities;
+    std::vector<interpolation_utils::PolyInterpolator> atomic_densities;
 
     for (const auto &nuc : nucs) {
         std::string element = nuc.getElement().getSymbol();
@@ -246,8 +246,7 @@ void initial_guess::sad::project_atomic_densities_new(double prec, Density &rho,
         Eigen::VectorXd rhoGrid, rGrid;
         mrchem::density::readAtomicDensity(file, rGrid, rhoGrid);
 
-        std::shared_ptr<interpolation_utils::PolyInterpolator> atomic_density 
-            = std::make_shared<interpolation_utils::PolyInterpolator>(rGrid, rhoGrid);
+        interpolation_utils::PolyInterpolator atomic_density(rGrid, rhoGrid);
         atomic_densities.push_back(atomic_density);
     }
     auto rho_analytic = [atomic_densities, nucs](const mrcpp::Coord<3> &r) {
@@ -257,16 +256,18 @@ void initial_guess::sad::project_atomic_densities_new(double prec, Density &rho,
             double rr = std::sqrt((r[0] - nucPos[0]) * (r[0] - nucPos[0])
                 + (r[1] - nucPos[1]) * (r[1] - nucPos[1])
                 + (r[2] - nucPos[2]) * (r[2] - nucPos[2]));
-            rho += atomic_densities[i]->evalfLeftNoRightZero(rr);
+            rho += atomic_densities[i].evalfLeftNoRightZero(rr);
         }
         return rho;
     };
+    
     mrcpp::ComplexFunction rho_MW;
-    mrcpp::cplxfunc::project(rho_MW, rho_analytic, NUMBER::Real, prec);
-    std::cout << "New fucking density" << std::endl;
+    mrcpp::cplxfunc::project(rho_MW, rho_analytic, mrcpp::NUMBER::Real, prec);
 
+    mrcpp::ComplexDouble integral = rho_MW.integrate();
+    double norm = integral.real();
+    std::cout << "Integral of initial charge density: " << norm << std::endl;
     rho.add(1.0, rho_MW);
-
     
 }
 
