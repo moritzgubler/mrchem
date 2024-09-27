@@ -29,6 +29,10 @@
 #include <MRCPP/Timer>
 #include <MRCPP/utils/details.h>
 
+#include <string>
+#include <vector>
+#include "utils/PolyInterpolator.h"
+
 #include "core.h"
 #include "gto.h"
 #include "sad.h"
@@ -57,6 +61,7 @@ namespace initial_guess {
 namespace sad {
 
 void project_atomic_densities(double prec, Density &rho_tot, const Nuclei &nucs, double screen = -1.0);
+void project_atomic_densities_new(double prec, Density &rho_tot, const Nuclei &nucs);
 
 } // namespace sad
 } // namespace initial_guess
@@ -100,7 +105,8 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     // Compute Coulomb density
     t_lap.start();
     Density &rho_j = J.getDensity();
-    initial_guess::sad::project_atomic_densities(prec, rho_j, nucs, screen);
+    // initial_guess::sad::project_atomic_densities(prec, rho_j, nucs, screen);
+    initial_guess::sad::project_atomic_densities_new(prec, rho_j, nucs);
 
     // Compute XC density
     Density &rho_xc = XC.getDensity(DensityType::Total);
@@ -178,7 +184,8 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     // Compute Coulomb density
     t_lap.start();
     Density &rho_j = J.getDensity();
-    initial_guess::sad::project_atomic_densities(prec, rho_j, nucs, screen);
+    // initial_guess::sad::project_atomic_densities(prec, rho_j, nucs, screen);
+    initial_guess::sad::project_atomic_densities_new(prec, rho_j, nucs);
 
     // Compute XC density
     Density &rho_xc = XC.getDensity(DensityType::Total);
@@ -216,6 +223,51 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     mrcpp::print::footer(2, t_tot, 2);
     if (plevel == 1) mrcpp::print::footer(1, t_tot, 2);
     return true;
+}
+
+void initial_guess::sad::project_atomic_densities_new(double prec, Density &rho, const Nuclei &nucs){
+    std::string source_dir = HIRSHFELD_SOURCE_DIR;
+    std::string install_dir = HIRSHFELD_INSTALL_DIR;
+    std::string data_dir = "";
+    // check if data_dir exists
+    if (std::filesystem::exists(install_dir)) {
+        data_dir = install_dir + "/lda/";
+    } else if (std::filesystem::exists(source_dir)) {
+        data_dir = source_dir + "/lda/";
+    } else {
+        MSG_ABORT("Hirshfeld data directory not found");
+    }
+    std::vector<std::shared_ptr<interpolation_utils::PolyInterpolator>> atomic_densities;
+
+    for (const auto &nuc : nucs) {
+        std::string element = nuc.getElement().getSymbol();
+        std::string file = data_dir + "/" + element + ".density";
+
+        Eigen::VectorXd rhoGrid, rGrid;
+        mrchem::density::readAtomicDensity(file, rGrid, rhoGrid);
+
+        std::shared_ptr<interpolation_utils::PolyInterpolator> atomic_density 
+            = std::make_shared<interpolation_utils::PolyInterpolator>(rGrid, rhoGrid);
+        atomic_densities.push_back(atomic_density);
+    }
+    auto rho_analytic = [atomic_densities, nucs](const mrcpp::Coord<3> &r) {
+        double rho = 0.0;
+        for (int i = 0; i < nucs.size(); i++) {
+            mrcpp::Coord<3> nucPos = nucs[i].getCoord();
+            double rr = std::sqrt((r[0] - nucPos[0]) * (r[0] - nucPos[0])
+                + (r[1] - nucPos[1]) * (r[1] - nucPos[1])
+                + (r[2] - nucPos[2]) * (r[2] - nucPos[2]));
+            rho += atomic_densities[i]->evalfLeftNoRightZero(rr);
+        }
+        return rho;
+    };
+    mrcpp::ComplexFunction rho_MW;
+    mrcpp::cplxfunc::project(rho_MW, rho_analytic, NUMBER::Real, prec);
+    std::cout << "New fucking density" << std::endl;
+
+    rho.add(1.0, rho_MW);
+
+    
 }
 
 void initial_guess::sad::project_atomic_densities(double prec, Density &rho_tot, const Nuclei &nucs, double screen) {
