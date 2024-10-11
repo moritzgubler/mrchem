@@ -196,10 +196,6 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     t_lap.start();
     OrbitalVector Psi;
     initial_guess::gto::project_ao(Psi, prec, nucs);
-    for (int i = 0; i < Psi.size(); i++) {
-        double norm = Psi[i].norm();
-        std::cout << "Norm of Psi[" << i << "] = " << norm << std::endl;
-    }
     
     if (plevel == 1) mrcpp::print::time(1, "Projecting GTO AOs", t_lap);
     if (plevel == 2) mrcpp::print::header(2, "Building Fock operator");
@@ -224,10 +220,6 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     Phi = orbital::adjoin(Phi, Phi_b);
     p.clear();
     V.clear();
-    for (int i = 0; i < Psi.size(); i++) {
-        double norm = Phi[i].norm();
-        std::cout << "Norm of Phi[" << i << "] = " << norm << std::endl;
-    }
 
     mrcpp::print::footer(2, t_tot, 2);
     if (plevel == 1) mrcpp::print::footer(1, t_tot, 2);
