@@ -177,8 +177,8 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
 
     int adap = 0;
     double c = 137.035999084;
-    AZoraPotential azoraPot(nucs, adap, prec, getAzoraDir(), false);
-    ZoraOperator zoraChi(azoraPot, c, prec, false);
+    std::shared_ptr<QMPotential> azoraPot = std::make_shared<AZoraPotential>(nucs, adap, prec, getAzoraDir(), false, c);
+    ZoraOperator zoraChi(azoraPot, "chi");
     zoraChi.setup(prec);
 
     MomentumOperator p(D_p);
