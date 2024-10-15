@@ -126,17 +126,7 @@ void FockBuilder::setup(double prec) {
         if (azora_dir != "") {
             azora_dir_final = azora_dir;
         } else {
-            // check if azora_dir_install directory exists using cpp standard library
-            if (std::filesystem::exists(azora_dir_install)) {
-                azora_dir_final = azora_dir_install;
-            } else {
-                // check if azora_dir_src directory exists using cpp standard library
-                if (std::filesystem::exists(azora_dir_src)) {
-                    azora_dir_final = azora_dir_src;
-                } else {
-                    MSG_ABORT("AZORA: No directory provided and no default directories found.");
-                }
-            }
+            azora_dir_final = mrchem::getAzoraDir();
         }
 
 

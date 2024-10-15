@@ -107,4 +107,26 @@ protected:
     }
 };
 
+/**
+ * Get the directory containing the azora potential data.
+ */
+inline std::string getAzoraDir() {
+    std::string azora_dir_src = AZORA_POTENTIALS_SOURCE_DIR;
+    std::string azora_dir_install = AZORA_POTENTIALS_INSTALL_DIR;
+
+    std::string azora_dir_final;
+    // check if azora_dir_install directory exists using cpp standard library
+    if (std::filesystem::exists(azora_dir_install)) {
+        azora_dir_final = azora_dir_install;
+    } else {
+        // check if azora_dir_src directory exists using cpp standard library
+        if (std::filesystem::exists(azora_dir_src)) {
+            azora_dir_final = azora_dir_src;
+        } else {
+            MSG_ABORT("AZORA: No directory provided and no default directories found.");
+        }
+    }
+    return azora_dir_final;
+}
+
 } // namespace mrchem

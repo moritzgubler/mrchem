@@ -1,3 +1,4 @@
+#pragma once
 #include <vector>
 #include <fstream>
 #include <Eigen/Dense>
@@ -15,7 +16,7 @@ typedef Eigen::SplineFitting<Spline1D> SplineFitting1D;
  * @param vZora Vector containing the ZORA potential
  * @param kappa Vector containing the kappa parameter
 */
-void readZoraPotential(const std::string path, Eigen::VectorXd &rGrid, Eigen::VectorXd &vZora, Eigen::VectorXd &kappa){
+inline void readZoraPotential(const std::string path, Eigen::VectorXd &rGrid, Eigen::VectorXd &vZora, Eigen::VectorXd &kappa){
     std::vector<double> r, v, k;
     bool file_exists = std::filesystem::exists(path);
     if (!file_exists) {

@@ -49,6 +49,8 @@
 #include "qmoperators/one_electron/NuclearOperator.h"
 #include "qmoperators/two_electron/CoulombOperator.h"
 #include "qmoperators/two_electron/XCOperator.h"
+#include "qmoperators/one_electron/AZoraPotential.h"
+#include "qmoperators/one_electron/ZoraOperator.h"
 
 #include "mrdft/Factory.h"
 
@@ -149,6 +151,7 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
 
 bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, const Nuclei &nucs) {
     if (Phi.size() == 0) return false;
+    bool zora = true;
 
     auto restricted = (orbital::size_singly(Phi)) ? false : true;
     mrcpp::print::separator(0, '~');
@@ -171,6 +174,13 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     xc_factory.setFunctional("SLATERX", 1.0);
     xc_factory.setFunctional("VWN5C", 1.0);
     auto mrdft_p = xc_factory.build();
+
+    int adap = 0;
+    double c = 137.035999084;
+    AZoraPotential azoraPot(nucs, adap, prec, getAzoraDir(), false);
+    ZoraOperator zoraChi(azoraPot, c, prec, false);
+    zoraChi.setup(prec);
+
     MomentumOperator p(D_p);
     NuclearOperator V_nuc(nucs, prec);
     CoulombOperator J(P_p);
@@ -207,7 +217,13 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
 
     // Compute Fock matrix
     mrcpp::print::header(2, "Diagonalizing Fock matrix");
-    ComplexMatrix U = initial_guess::core::diagonalize(Psi, p, V);
+
+    ComplexMatrix U;
+    if (zora) {
+        U = initial_guess::core::diagonalize_with_zora(Psi, p, V, zoraChi);
+    } else {
+        U = initial_guess::core::diagonalize(Psi, p, V);
+    }
 
     // Rotate orbitals and fill electrons by Aufbau
     t_lap.start();
@@ -220,6 +236,7 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     Phi = orbital::adjoin(Phi, Phi_b);
     p.clear();
     V.clear();
+    zoraChi.clear();
 
     mrcpp::print::footer(2, t_tot, 2);
     if (plevel == 1) mrcpp::print::footer(1, t_tot, 2);
