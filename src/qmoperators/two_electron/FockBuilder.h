@@ -107,8 +107,8 @@ private:
     std::shared_ptr<XCOperator> xc{nullptr};
     std::shared_ptr<ReactionOperator> Ro{nullptr};       // Reaction field operator
     std::shared_ptr<ElectricFieldOperator> ext{nullptr}; // Total external potential
-    std::shared_ptr<ZoraOperator> kappa{nullptr};
-    std::shared_ptr<ZoraOperator> kappa_inv{nullptr};
+    std::shared_ptr<ZoraOperator> chi{nullptr};
+    std::shared_ptr<ZoraOperator> chi_inv{nullptr};
     std::shared_ptr<ProjectorOperator> pp_projector{nullptr};
 
 

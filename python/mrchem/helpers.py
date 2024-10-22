@@ -224,6 +224,7 @@ def write_scf_guess(user_dict, wf_dict):
         "external_field": wf_dict["external_name"],
         "screen": scf_dict["guess_screen"],
         "localize": scf_dict["localize"],
+        "rotate": scf_dict["guess_rotate"],
         "restricted": user_dict["WaveFunction"]["restricted"],
         "file_chk": f"{scf_dict['path_checkpoint']}/phi_scf",
         "file_basis": file_dict["guess_basis"],
@@ -294,6 +295,12 @@ def write_scf_properties(user_dict, origin):
             "precision": user_dict["world_prec"],
             "smoothing": user_dict["Precisions"]["nuclear_prec"],
         }
+    if user_dict["Properties"]["hirshfeld_charges"]:
+        prop_dict["hirshfeld_charges"] = {}
+        prop_dict["hirshfeld_charges"]["hirshfeld-1"] = {
+            'precision': user_dict["world_prec"]
+        }
+
     return prop_dict
 
 
