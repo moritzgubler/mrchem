@@ -298,6 +298,12 @@ def write_scf_properties(user_dict, origin):
             "surface_integral_precision": user_dict["Forces"]["surface_integral_precision"],
             "radius_factor": user_dict["Forces"]["radius_factor"],
         }
+    if user_dict["Properties"]["hirshfeld_charges"]:
+        prop_dict["hirshfeld_charges"] = {}
+        prop_dict["hirshfeld_charges"]["hirshfeld-1"] = {
+            'precision': user_dict["world_prec"]
+        }
+
     return prop_dict
 
 
