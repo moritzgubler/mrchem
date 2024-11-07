@@ -78,10 +78,15 @@ public:
         nloc = std::stoi(words[1]);
         alpha_pp = 1.0 / (std::sqrt(2.0) * rloc);
 
+        std::cout << "rloc: " << rloc << std::endl;
+        std::cout << "alpha_pp: " << alpha_pp << std::endl;
+        std::cout << "nloc: " << nloc << std::endl;
+
         c = Eigen::VectorXd::Zero(nloc);
         for (int i = 0; i < nloc; i++) {
             c[i] = std::stod(words[2 + i]);
         }
+        std::cout << "c: " << c.transpose() << std::endl;
         // read nsep
         std::getline(file, line);
         words = splitStringToWords(line);
@@ -91,6 +96,7 @@ public:
             std::cerr << "Error: nsep must be between 1 and 3" << std::endl;
             return;
         }
+        std::cout << "nsep: " << nsep << std::endl;
 
         for (int l = 0; l < nsep; l++) {
             if (!std::getline(file, line)) {
