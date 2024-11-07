@@ -1090,7 +1090,7 @@ void driver::build_fock_operator(const json &json_fock, Molecule &mol, FockBuild
     }
     std::cout << "making projector operator" << std::endl;
     std::shared_ptr<ProjectorOperator> pp = std::make_shared<ProjectorOperator>(mol, 1e-4);
-    std::cout << "done making projector operator" << std::endl;
+    std::cout << "done making projector operatork;ljasdhfl;kajsd;flkasjd;flkj" << std::endl;
     F.getProjectorOperator() = pp;
     std::cout << "projector set" << std::endl;
 
