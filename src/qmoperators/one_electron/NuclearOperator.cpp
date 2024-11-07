@@ -92,10 +92,14 @@ NuclearOperator::NuclearOperator(const Nuclei &nucs, double proj_prec, double sm
         for(const Nucleus &nuc : nucs){
             std::string symb = nuc.getElement().getSymbol();
             std::string fname = "psppar." + symb;
+            std::cout << "fname: " << fname << std::endl;
             PseudopotentialData hgh(fname);
+            std::cout << "Pseudopotential data loaded for nucleus" << std::endl;
             pps.push_back(hgh);
         }
+        std::cout << "Pseudopotential data loaded for nucleus" << std::endl;
         f_loc = new PPNucleus(pps);
+        std::cout << "Nuclear operator constructed" << std::endl;
     } else {
         MSG_ABORT("Invalid nuclear model : " << model_copy);
     }
