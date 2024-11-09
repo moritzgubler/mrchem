@@ -7,6 +7,7 @@
 #include "qmfunctions/Orbital.h"
 #include "chemistry/Molecule.h"
 #include "qmfunctions/qmfunction_utils.h"
+#include "qmoperators/QMOperator.h"
 #include <string>
 
 class magneticQuantumNumberProjector {
@@ -27,20 +28,21 @@ class AtomProjector {
     int numberOfAngMom;
 };
 
-class ProjectorOperator final : public mrchem::RankZeroOperator {
+class ProjectorOperatorQM final : public mrchem::QMOperator {
 
     std::vector<PseudopotentialData> pp;
     std::vector<AtomProjector> proj;
     double prec;
 
 public:
-    ProjectorOperator(mrchem::Molecule &molecule, double prec){
+    ProjectorOperatorQM(mrchem::Molecule &molecule, double prec){
 
         mrchem::Nuclei nucs = molecule.getNuclei();
         for (int i = 0; i < nucs.size(); i++){
             std::string elem = nucs[i].getElement().getSymbol();
             std::string fname = "psppar." + elem;
             this->pp.push_back(PseudopotentialData(fname));
+            std::cout << "Pseudopotential data for atom " << i << " loaded" << std::endl;
             pp[i].print();
         }
 
@@ -90,6 +92,7 @@ public:
     void clear() {
     }
 
+protected:
 
 mrchem::Orbital apply(mrchem::Orbital phi) {
     std::cout << "Applying projector operator" << std::endl;
@@ -107,8 +110,12 @@ mrchem::Orbital apply(mrchem::Orbital phi) {
                 // loop over all projectors
                 Eigen::VectorXd dot_products(pp[iat].dim_h[l]);
                 for (int ip = 0; ip < pp[iat].dim_h[l]; ip++){
-                    dotComplex = mrchem::qmfunction::dot(phi, proj[iat].lProj[l].mProj[m].iProj[ip]);
+                    // dotComplex = mrchem::qmfunction::dot(phi, proj[iat].lProj[l].mProj[m].iProj[ip]);
+                    dotComplex = mrcpp::cplxfunc::dot(phi, proj[iat].lProj[l].mProj[m].iProj[ip]);
                     dot_products(ip) = dotComplex.real();
+                    std::cout << "Dot product " << ip << " " << dotComplex << std::endl;
+                    dotComplex = mrcpp::cplxfunc::dot(phi, phi);
+                    std::cout << "Norm of phi " << dotComplex.real() << std::endl;
                 }
                 dot_products = pp[iat].h[l] * dot_products;
                 // loop over all projectors
@@ -124,7 +131,14 @@ mrchem::Orbital apply(mrchem::Orbital phi) {
     mrchem::ComplexVector complexCoefficientsEigen = Eigen::Map<Eigen::VectorXcd>(complexCoefficients.data(), complexCoefficients.size());
 
     mrchem::Orbital result;
-    mrchem::qmfunction::linear_combination(result, complexCoefficientsEigen, complexFunctionVector, prec);
+    // result.add()
+    // mrchem::qmfunction::linear_combination(result, complexCoefficientsEigen, complexFunctionVector, prec);
+
+    for (int i = 0; i < complexCoefficients.size(); i++){
+        std::cout << "Adding to result " << i << " " << complexCoefficients[i] << std::endl;
+        result.add(complexCoefficients[i], complexFunctionVector[i]);
+    }
+
     return result;
 }
 
@@ -132,8 +146,24 @@ mrchem::Orbital dagger(mrchem::Orbital phi) {
     return apply(phi);
 }
 
+mrchem::ComplexDouble evalf(const mrcpp::Coord<3> &r) const {
+    return ComplexDouble(0.0, 0.0);
+}
+
 mrchem::QMOperatorVector apply(std::shared_ptr<mrchem::QMOperator> &O) {
     NOT_IMPLEMENTED_ABORT;
 }
+
+};
+
+class ProjectorOperator : public mrchem::RankZeroOperator {
+
+public:
+    ProjectorOperator(mrchem::Molecule &molecule, double prec) {
+        auto qmOperator = std::make_shared<ProjectorOperatorQM>(molecule, prec);
+        mrchem::RankZeroOperator &pp = (*this);
+        pp = qmOperator;
+    }
+
 
 };
