@@ -138,6 +138,9 @@ public:
      * Prints the pseudopotential.
      */
     void print() {
+        std::cout << std::endl;
+        std::cout << "----------------------------------------" << std::endl;
+        std::cout << "Pseudopotential data:" << std::endl;
         std::cout << "Zeff: " << zeff << std::endl;
         std::cout << "Zion: " << zion << std::endl;
         std::cout << "rloc: " << rloc << std::endl;
@@ -152,6 +155,8 @@ public:
             std::cout << "rl: " << rl[l] << std::endl;
             std::cout << "h: " << h[l] << std::endl;
         }
+        std::cout << "----------------------------------------" << std::endl;
+        std::cout << std::endl;
     }
 
 };
