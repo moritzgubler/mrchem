@@ -109,13 +109,13 @@ mrchem::Orbital apply(mrchem::Orbital phi) {
             for (int m = -l; m <= l; m++){
                 // loop over all projectors
                 Eigen::VectorXd dot_products(pp[iat].dim_h[l]);
+                std::cout << "Projector " << iat << " " << l << " " << m << std::endl;
+                std::cout << "Number of projectors " << pp[iat].dim_h[l] << std::endl;
                 for (int ip = 0; ip < pp[iat].dim_h[l]; ip++){
                     // dotComplex = mrchem::qmfunction::dot(phi, proj[iat].lProj[l].mProj[m].iProj[ip]);
                     dotComplex = mrcpp::cplxfunc::dot(phi, proj[iat].lProj[l].mProj[m].iProj[ip]);
                     dot_products(ip) = dotComplex.real();
                     std::cout << "Dot product " << ip << " " << dotComplex << std::endl;
-                    dotComplex = mrcpp::cplxfunc::dot(phi, phi);
-                    std::cout << "Norm of phi " << dotComplex.real() << std::endl;
                 }
                 dot_products = pp[iat].h[l] * dot_products;
                 // loop over all projectors
