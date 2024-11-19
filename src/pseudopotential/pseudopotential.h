@@ -108,18 +108,18 @@ public:
             dim_h.push_back(std::stoi(words[1]));
             std::cout << "dim_h: " << dim_h[l] << std::endl;
             h.push_back(Eigen::MatrixXd::Zero(dim_h[l], dim_h[l]));
-            std::cout << "h: " << h[l] << std::endl;
+            // std::cout << "h: " << h[l] << std::endl;
             for (int i = 0; i < dim_h[l]; i++) {
                 std::cout << "i: " << i << std::endl;
                 std::cout << "words: " << words[2 + i] << std::endl;
                 h[l](0, i) = std::stod(words[2 + i]);
                 h[l](i, 0) = h[l](0, i);
             }
-            std::cout << "h: " << h[l] << std::endl;
+            // std::cout << "h: " << h[l] << std::endl;
             for (int i = 1; i < dim_h[l]; i++) {
                 std::getline(file, line);
                 words = splitStringToWords(line);
-                for (int j = i; j < nsep; j++){
+                for (int j = i; j < dim_h[l]; j++){
                     h[l](i, j) = std::stod(words[j-i]);
                     h[l](j, i) = h[l](i, j);
                 }
