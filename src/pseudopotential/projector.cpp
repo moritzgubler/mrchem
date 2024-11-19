@@ -1,6 +1,11 @@
 
 #include "pseudopotential/projector.h"
 #include <math.h>
+#include <fstream>
+#include <iostream>
+
+#include <string>
+
 // #include "mrchem.h"
 
 /**
@@ -44,17 +49,31 @@ ProjectorFunction::ProjectorFunction(mrcpp::Coord<3> pos, double rl, int i, int 
     auto project_analytic = [this, prefactor, ii](const std::array<double, 3> &r) -> double {
         std::array<double, 3> rprime = {r[0] - this->pos[0], r[1] - this->pos[1], r[2] - this->pos[2]};
         double normr = std::sqrt( rprime[0] * rprime[0] + rprime[1] * rprime[1] + rprime[2] * rprime[2]);
-        return prefactor * std::pow(normr, this->l + 2 * (ii - 1)) * std::exp(- 0.5 * normr * normr / (this->rl * this-> rl) ) * this->s(rprime, normr);
+        return prefactor * std::pow(normr, 2 * (ii - 1)) * std::exp(- 0.5 * normr * normr / (this->rl * this-> rl) ) * this->s(rprime, normr);
     };
     auto op = (*this);
-    mrcpp::cplxfunc::project(op, project_analytic, mrcpp::NUMBER::Real, prec);
+    mrcpp::cplxfunc::project(op, project_analytic, mrcpp::NUMBER::Real, 0.01 * prec);
 
-    mrcpp::Coord<3> r = {0.1, 0.1, 0.1};
+    mrcpp::Coord<3> r = {0.0, 0.0, 0.3};
     std::cout << "ProjectorFunction at origin: " << this->real().evalf(r) << std::endl;
     std::cout << "analytic at origin: " << project_analytic(r) << std::endl;
     std::cout << "prefactor: " << prefactor << std::endl;
 
     std::cout << "ProjectorFunction constructed in constructor" << std::endl;
+
+    int nPoints = 200;
+    double dr = 0.01;
+    std::ofstream file;
+    std::string fname = "projector_" + std::to_string(l) + "_" + std::to_string(m) + "_" + std::to_string(i) + ".dat";
+    r[0] = 0.0;
+    r[1] = 0.0;
+    r[2] = 0.0;
+    file.open(fname);
+    for (int ijk = 0; ijk < nPoints; ijk++){
+        r[0] = ijk * dr;
+        file << r[0] << " " << this->real().evalf(r) << " " << project_analytic(r) << std::endl;
+    }
+    file.close();
 }
 
 void ProjectorFunction::switch_sperics(int l, int m){
