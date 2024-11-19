@@ -106,14 +106,19 @@ mrchem::Orbital apply(mrchem::Orbital phi) {
         // loop over all angular momenta
         for (int l = 0; l < pp[iat].nsep; l++){
             // loop over all magnetic quantum numbers
+            std::cout << "h: " << pp[iat].h[l] << std::endl;
             for (int m = -l; m <= l; m++){
+                int mm = m + l;
                 // loop over all projectors
                 Eigen::VectorXd dot_products(pp[iat].dim_h[l]);
                 std::cout << "Projector " << iat << " " << l << " " << m << std::endl;
                 std::cout << "Number of projectors " << pp[iat].dim_h[l] << std::endl;
                 for (int ip = 0; ip < pp[iat].dim_h[l]; ip++){
                     // dotComplex = mrchem::qmfunction::dot(phi, proj[iat].lProj[l].mProj[m].iProj[ip]);
-                    dotComplex = mrcpp::cplxfunc::dot(phi, proj[iat].lProj[l].mProj[m].iProj[ip]);
+                    std::cout << "computing dot product " << ip << std::endl;
+                    mrcpp::Coord<3> r = {0.0, 0.0, 0.3};
+                    std::cout << "projector value at origin: " << proj[iat].lProj[l].mProj[mm].iProj[ip].real().evalf(r) << std::endl;
+                    dotComplex = mrcpp::cplxfunc::dot(phi, proj[iat].lProj[l].mProj[mm].iProj[ip]);
                     dot_products(ip) = dotComplex.real();
                     std::cout << "Dot product " << ip << " " << dotComplex << std::endl;
                 }
@@ -121,7 +126,7 @@ mrchem::Orbital apply(mrchem::Orbital phi) {
                 // loop over all projectors
                 for (int ip = 0; ip < pp[iat].dim_h[l]; ip++){
                     complexCoefficients.push_back(dot_products(ip));
-                    complexFunctionVector.push_back(proj[iat].lProj[l].mProj[m].iProj[ip]);
+                    complexFunctionVector.push_back(proj[iat].lProj[l].mProj[mm].iProj[ip]);
                 }
             }
         }
@@ -133,6 +138,8 @@ mrchem::Orbital apply(mrchem::Orbital phi) {
     mrchem::Orbital result;
     // result.add()
     // mrchem::qmfunction::linear_combination(result, complexCoefficientsEigen, complexFunctionVector, prec);
+
+    std::cout << "size of complexCoefficients " << complexCoefficients.size() << std::endl;
 
     for (int i = 0; i < complexCoefficients.size(); i++){
         std::cout << "Adding to result " << i << " " << complexCoefficients[i] << std::endl;
