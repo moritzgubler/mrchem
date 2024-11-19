@@ -14,15 +14,15 @@ double s0(const std::array<double, 3> &r, const double &normr) {
 }
 
 double s1m1(const std::array<double, 3> &r, const double &normr) {
-    return std::sqrt(3.0 / (4.0 * M_PI)) * r[1] / normr;
+    return std::sqrt(3.0 / (4.0 * M_PI)) * r[1];
 }
 
 double s10(const std::array<double, 3> &r, const double &normr) {
-    return std::sqrt(3.0 / (4.0 * M_PI)) * r[2] / normr;
+    return std::sqrt(3.0 / (4.0 * M_PI)) * r[2];
 }
 
 double s11(const std::array<double, 3> &r, const double &normr) {
-    return std::sqrt(3.0 / (4.0 * M_PI)) * r[0] / normr;
+    return std::sqrt(3.0 / (4.0 * M_PI)) * r[0];
 }
 
 double s2m2(const std::array<double, 3> &r, const double &normr) {
