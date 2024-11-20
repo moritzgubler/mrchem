@@ -484,6 +484,13 @@ def write_rsp_solver(user_dict, wf_dict, d):
     return solver_dict
 
 
+def write_pseudo_potential(user_dict):
+    # import json
+    # with open("toto.json", "w") as f:
+    #     json.dump(user_dict, f, indent=4)
+    return user_dict['Pseudopotential']
+
+
 def parse_wf_method(user_dict):
     method_name = ""
     restricted = user_dict["WaveFunction"]["restricted"]
