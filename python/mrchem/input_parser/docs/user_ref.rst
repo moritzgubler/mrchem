@@ -353,6 +353,19 @@ User input reference
     **Predicates**
       - ``value.lower() in ['point_like', 'point_parabola', 'point_minimal', 'finite_gaussian', 'finite_sphere']``
   
+ :Pseudopotential: Define the pseudopotentials. 
+
+  :red:`Keywords`
+   :pp_files: Json string of pseudopotential files. The key can be the element symbol or a number. When the key is an element symbol, all atoms of that element will use the given pseudopotential. When the key is a number (index is 1 based), the corresponding atom will use the given pseudopotential. When the value is an empty string, an all electron calculation will  be performed for the corresponding atom or element. 
+  
+    **Type** ``str``
+  
+   :pp_prec: Precision parameter used in construction of pseudopotentials. 
+  
+    **Type** ``float``
+  
+    **Default** ``user['world_prec']``
+  
  :ZORA: Define required parameters for the ZORA Hamiltonian. 
 
   :red:`Keywords`
