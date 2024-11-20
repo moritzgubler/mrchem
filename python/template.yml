@@ -316,6 +316,23 @@ sections:
           Point-like (numerical smoothing): HFYGB (default), parabola or minimal.
           Finite models (physical smoothing): Gaussian or Homogeneous sphere
           Finite models are derived from nuclear RMS radius, Visscher (1997)
+  - name: Pseudopotential
+    docstring: |
+      Define the pseudopotentials.
+    keywords:
+      - name: pp_files
+        type: Dict[str, Any]
+        docstring: |
+          Dictionary of pseudopotential files. The key can be the element symbol or a number.
+          When the key is an element symbol, all atoms of that element will use the given pseudopotential.
+          When the key is a number (index is 1 based), the corresponding atom will use the given pseudopotential.
+          When the value is an empty string, an all electron calculation will 
+          be performed for the corresponding atom or element.
+      - name: pp_prec
+        type: float
+        default: user['world_prec']
+        docstring: |
+          Precision parameter used in construction of pseudopotentials.
   - name: ZORA
     docstring: |
       Define required parameters for the ZORA Hamiltonian.
