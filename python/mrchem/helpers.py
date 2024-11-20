@@ -484,11 +484,61 @@ def write_rsp_solver(user_dict, wf_dict, d):
     return solver_dict
 
 
-def write_pseudo_potential(user_dict):
-    # import json
-    # with open("toto.json", "w") as f:
-    #     json.dump(user_dict, f, indent=4)
-    return user_dict['Pseudopotential']
+def write_pseudo_potential(user_dict, mol_dict):
+    import json
+
+    pp_dict = json.loads(user_dict['Pseudopotential']['pp_files'])
+
+    # loop over keys in pp_dict and convert them to lower case
+    pp_dict = {k.lower(): v for k, v in pp_dict.items()}
+    all_elements = {k.lower() for k in user_dict["Elements"]}
+
+    int_keys = []
+    # check if all keys in pp_dict are valid elements and collect the integer keys
+    for key in pp_dict.keys():
+        if key not in all_elements:
+            try:
+                int_keys.append(int(key))
+            except ValueError:
+                raise RuntimeError(
+                    f"Invalid key in pseudopotential dictionary (neither a numeric value or an element): {key}"
+                )
+
+    nat = len(mol_dict["coords"])
+    atomNames = []
+    atomNamesSet = set()
+    for atom in mol_dict["coords"]:
+        atomNames.append(atom["atom"])
+        atomNamesSet.add(atom["atom"])
+    
+    pps = []
+    for i in range(nat):
+        key = ''
+        if i in int_keys:
+            key = str(i)
+        # check if the key is an element
+        elif atomNames[i] in pp_dict.keys():
+            key = atomNames[i]
+        # if none of the above, all electron calculation for atom i
+        else:
+            pp = {
+                "use_pp": False,
+            }
+            pps.append(pp)
+        
+        if key != "":
+            if pp_dict[key].lower() == "none" or pp_dict[key].lower() == "":
+                pp = {
+                    "use_pp": False,
+                }
+            else:
+                pp = {
+                    "use_pp": True,
+                    "file": pp_dict[key],
+                }
+            pps.append(pp)
+    print(pps)
+    return pps
 
 
 def parse_wf_method(user_dict):
