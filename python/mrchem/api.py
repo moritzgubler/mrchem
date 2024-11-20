@@ -27,7 +27,7 @@ import math
 
 from .helpers import (parse_wf_method, write_rsp_calc, write_scf_fock,
                       write_scf_guess, write_scf_plot, write_scf_properties,
-                      write_scf_solver)
+                      write_scf_solver, write_pseudo_potential)
 from .periodictable import PeriodicTable as PT
 from .periodictable import PeriodicTableByZ as PT_Z
 from .validators import MoleculeValidator
@@ -46,6 +46,7 @@ def translate_input(user_dict):
     mra_dict = write_mra(user_dict, mol_dict)
     scf_dict = write_scf_calculation(user_dict, origin)
     rsp_dict = write_rsp_calculations(user_dict, mol_dict, origin)
+    pseudo_potential_dict = write_pseudo_potential(user_dict)
 
     # piece everything together
     program_dict = {
@@ -59,6 +60,7 @@ def translate_input(user_dict):
         "rsp_calculations": rsp_dict,
         "geom_opt": user_dict['GeometryOptimizer'],
         "constants": user_dict["Constants"],
+        "pseudo_potential": pseudo_potential_dict,
     }
     return program_dict
 
