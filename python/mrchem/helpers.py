@@ -499,6 +499,102 @@ def write_rsp_solver(user_dict, wf_dict, d):
     return solver_dict
 
 
+def parse_psppar(filename):
+    """
+    Parses a PSPPAR pseudopotential file and returns the data as a dictionary.
+    
+    Args:
+        filename (str): Path to the PSPPAR file.
+
+    Returns:
+        dict: Parsed pseudopotential data.
+    """
+    psppar_data = dict()
+    psppar_data["local"] = dict()
+    psppar_data["nonlocal"] = dict()
+    import numpy as np
+    
+    with open(filename, 'r') as file:
+        # Skip the first line
+        next(file)
+        
+        # Read zion and zeff
+        line = file.readline().strip()
+        zion = float(line.split()[0])
+        zeff = float(line.split()[1])
+        psppar_data['zion'] = zion
+        psppar_data['zeff'] = zeff
+        
+        # Skip the next line
+        next(file)
+        
+        # Read rloc, nloc, and c coefficients
+        line = file.readline().strip()
+        tokens = line.split()
+        rloc = float(tokens[0])
+        nloc = int(tokens[1])
+        c_coefficients = list(map(float, tokens[2:2+nloc]))
+        
+        alpha_pp = 1.0 / (np.sqrt(2.0) * rloc)
+        psppar_data['local']['rloc'] = rloc
+        psppar_data['local']['alpha_pp'] = alpha_pp
+        psppar_data['local']['nloc'] = nloc
+        psppar_data['local']['c'] = c_coefficients
+        
+        # Read nsep
+        line = file.readline().strip()
+        nsep = int(line.split()[0])
+        if nsep < 0 or nsep > 3:
+            raise ValueError("Error: nsep must be between 1 and 3.")
+        psppar_data['nonlocal']['nsep'] = nsep
+        
+        # Initialize containers for projectors
+        rl = []
+        h = []
+        dim_h = []
+
+        
+        for l in range(nsep):
+            # Read projector radii and dimension
+            line = file.readline().strip()
+            tokens = line.split()
+            rl_l = float(tokens[0])
+            dim_h_l = int(tokens[1])
+            
+            rl.append(rl_l)
+            dim_h.append(dim_h_l)
+            
+            # Initialize h matrix
+            h_matrix = np.zeros((dim_h_l, dim_h_l))
+            # convert h_matrix to list of lists
+
+            for i in range(dim_h_l):
+                h_matrix[0, i] = float(line.split()[2 + i])
+                h_matrix[i, 0] = h_matrix[0, i]
+            
+            # Fill in the upper triangle of the h matrix
+            for i in range(1, dim_h_l):
+                line = file.readline().strip()
+                values = list(map(float, line.split()))
+                for j, value in enumerate(values):
+                    h_matrix[i, i + j] = value
+                    h_matrix[i + j, i] = value
+            
+            h_matrix = h_matrix.tolist()
+            h.append(h_matrix)
+            
+            # Skip irrelevant SOC lines if l > 0
+            # if l > 0:
+            #     for _ in range(dim_h_l):
+            #         file.readline()
+        
+        psppar_data['nonlocal']['rl'] = rl
+        psppar_data['nonlocal']['dim_h'] = dim_h
+        psppar_data['nonlocal']['h'] = h
+            
+    return psppar_data
+
+
 def write_pseudo_potential(user_dict, mol_dict):
     import json
 
@@ -551,8 +647,13 @@ def write_pseudo_potential(user_dict, mol_dict):
                     "use_pp": True,
                     "file": pp_dict[key],
                 }
+                # temp_string = json.dumps(temp_pp, indent=4, cls=NumpyEncoder)
+                # print("Parsed pseudopotential for element:", key, "\n \n")
+                # print(temp_string)
+                # print("\n \n \n")
+                pp['pseuodopotential'] = parse_psppar(pp["file"])
             pps.append(pp)
-    print(pps)
+    # print(pps)
     return pps
 
 
