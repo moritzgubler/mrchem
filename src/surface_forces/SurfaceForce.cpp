@@ -470,9 +470,10 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         // file.close();
     }
 
-    radius = 0.3;
+    // radius = 0.3;
     Eigen::Vector3d gp;
     for (int iAtom = 0; iAtom < numAtoms; iAtom++) {
+        radius = dist(iAtom) * 0.5;
         std::string fname = std::to_string(iAtom) + "_" +  nuclei[iAtom].getElement().getSymbol() + ".dat";
         std::ofstream file;
         file.open(fname);
@@ -483,8 +484,8 @@ Eigen::MatrixXd surface_forces(mrchem::Molecule &mol, mrchem::OrbitalVector &Phi
         center << coord[0], coord[1], coord[2];
         file << std::to_string(coord[0]) + " " + std::to_string(coord[1]) + " " + std::to_string(coord[2]) + "\n";
 
-        int ntheta = 40;
-        int nphi   = 40;
+        int ntheta = 160;
+        int nphi   = 160;
         int ntot = ntheta * nphi;
         VectorXd thetas(ntot);
         VectorXd phis(ntot);
