@@ -47,6 +47,7 @@ def translate_input(user_dict):
     scf_dict = write_scf_calculation(user_dict, origin)
     rsp_dict = write_rsp_calculations(user_dict, mol_dict, origin)
     pseudo_potential_dict = write_pseudo_potential(user_dict, mol_dict)
+    scf_dict["fock_operator"]["pseudopotentials"] = pseudo_potential_dict
 
     # piece everything together
     program_dict = {
@@ -60,7 +61,7 @@ def translate_input(user_dict):
         "rsp_calculations": rsp_dict,
         "geom_opt": user_dict['GeometryOptimizer'],
         "constants": user_dict["Constants"],
-        "pseudo_potentials": pseudo_potential_dict,
+        # "pseudo_potentials": pseudo_potential_dict,
     }
     return program_dict
 
