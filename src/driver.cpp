@@ -87,6 +87,7 @@
 #include "properties/hirshfeld/HirshfeldPartition.h"
 
 #include "pseudopotential/projectorOperator.h"
+#include "pseudopotential/pseudopotential.h"
 
 #include "mrdft/Factory.h"
 
@@ -1150,6 +1151,14 @@ void driver::build_fock_operator(const json &json_fock, Molecule &mol, FockBuild
             MSG_ABORT("Invalid perturbation order");
         }
     }
+    std::cout << "before getting ppsd   " << std::endl;
+    const auto &json_pp = json_fock["pseudopotentials"];
+    std::cout << "pseudopotentials" << std::endl;
+    PseudopotentialData pp_data(json_pp[0]);
+    pp_data.print();
+
+    exit(0);
+
     std::cout << "making projector operator" << std::endl;
     std::shared_ptr<ProjectorOperator> pp = std::make_shared<ProjectorOperator>(mol, 1e-5);
     pp->setup(1e-5);

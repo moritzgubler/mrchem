@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <Eigen/Dense>
+#include <nlohmann/json.hpp>
 
 /**
  * Splits a given string into a vector of words.
@@ -50,7 +51,38 @@ public:
     std::vector<int> dim_h; /** Dimension of projector matrices */
     int nsep; /** Number of different angular momenta from 0 to nsep - 1*/
 
-    
+
+    PseudopotentialData(nlohmann::json pp_json) {
+
+        std::cout << "PseudopotentialData(nlohmann::json pp_json)" << std::endl;
+
+        zeff = pp_json["zeff"];
+        zion = pp_json["zion"];
+        rloc = pp_json["local"]["rloc"];
+        nloc = pp_json["local"]["nloc"];
+        alpha_pp = pp_json["local"]["alpha_pp"];
+        std::vector<double> c_vec = pp_json["local"]["c"];
+        c = Eigen::Map<Eigen::VectorXd>(c_vec.data(), c_vec.size());
+        nsep = pp_json["nonlocal"]["nsep"];
+        std::vector<double> rl_vec = pp_json["nonlocal"]["rl"];
+        rl = rl_vec;
+        std::vector<int> dim_h_vec = pp_json["nonlocal"]["dim_h"];
+        dim_h = dim_h_vec;
+        // std::vector<std::vector<std::vector<double>>> h_vec = pp_json["nonlocal"]["h"];
+        for (int l = 0; l < nsep; l++) {
+            std::vector<std::vector<double>> h_l_vec = pp_json["nonlocal"]["h"][l];
+            Eigen::MatrixXd h_l_mat(dim_h[l], dim_h[l]);
+            for (int i = 0; i < dim_h[l]; i++) {
+                for (int j = 0; j < dim_h[l]; j++) {
+                    h_l_mat(i, j) = h_l_vec[i][j];
+                }
+            }
+            h.push_back(h_l_mat);
+        }
+
+    }
+
+
     PseudopotentialData(std::string filename) {
         std::ifstream file(filename);
         if (!file.is_open()) {
