@@ -1151,10 +1151,9 @@ void driver::build_fock_operator(const json &json_fock, Molecule &mol, FockBuild
             MSG_ABORT("Invalid perturbation order");
         }
     }
-    std::cout << "before getting ppsd   " << std::endl;
-    const auto &json_pp = json_fock["pseudopotentials"];
-    std::cout << "pseudopotentials" << std::endl;
-    PseudopotentialData pp_data(json_pp[0]);
+    json json_pp = json_fock["pseudopotentials"];
+    const nlohmann::json &json_pp_data = json_pp["pp_list"][0];
+    PseudopotentialData pp_data(json_pp_data);
     pp_data.print();
 
     exit(0);
