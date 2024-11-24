@@ -52,12 +52,17 @@ public:
     int nsep; /** Number of different angular momenta from 0 to nsep - 1*/
 
 
-    PseudopotentialData(nlohmann::json pp_json) {
+    PseudopotentialData(nlohmann::json pp_json_in) {
+
+        nlohmann::json pp_json = pp_json_in["pseuodopotential"];
 
         std::cout << "PseudopotentialData(nlohmann::json pp_json)" << std::endl;
-
+        std::cout << "pp_json: " << pp_json << std::endl;
+        std::cout << "pp_json[pp_json]: " << pp_json["pp_json"] << std::endl;
+        std::cout << "reading zeff and zion" << std::endl;
         zeff = pp_json["zeff"];
         zion = pp_json["zion"];
+        std::cout << "zeff: " << zeff << std::endl;
         rloc = pp_json["local"]["rloc"];
         nloc = pp_json["local"]["nloc"];
         alpha_pp = pp_json["local"]["alpha_pp"];
