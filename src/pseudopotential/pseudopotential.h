@@ -40,16 +40,7 @@ class PseudopotentialData {
 
 public:
 
-    int zeff; /** Effective charge of nucleus */
-    int zion; /** Atomic number of nucleus */
-    double rloc; /** Radius of local part of pseudopotential */
-    double alpha_pp;
-    int nloc; /** Number of local functions */
-    Eigen::VectorXd c; /** Coefficienst of local functions */
-    std::vector<double> rl; /** Radii of projectors (one for each angular momentum) */
-    std::vector<Eigen::MatrixXd> h; /** Projector matrices */
-    std::vector<int> dim_h; /** Dimension of projector matrices */
-    int nsep; /** Number of different angular momenta from 0 to nsep - 1*/
+
 
 
     PseudopotentialData(nlohmann::json pp_json_in) {
@@ -195,6 +186,99 @@ public:
         std::cout << "----------------------------------------" << std::endl;
         std::cout << std::endl;
     }
+
+    /**
+     * Returns the effective charge of the nucleus.
+     *
+     * @return The effective charge of the nucleus.
+     */
+    int getZeff() const {
+        return zeff;
+    }
+
+    /**
+     * Returns the atomic number of the nucleus.
+     *
+     * @return The atomic number of the nucleus.
+     */
+    int getZion() const {
+        return zion;
+    }
+
+    /**
+     * Returns the radius of the local part of the pseudopotential.
+     *
+     * @return The radius of the local part of the pseudopotential.
+     */
+    double getRloc() const {
+        return rloc;
+    }
+
+    /**
+     * Returns the number of local functions.
+     *
+     * @return The number of local functions.
+     */
+    int getNloc() const {
+        return nloc;
+    }
+
+    /**
+     * Returns the coefficients of the local functions.
+     *
+     * @return The coefficients of the local functions.
+     */
+    Eigen::VectorXd getC() const {
+        return c;
+    }
+
+    /**
+     * Returns the radii of the projectors.
+     *
+     * @return The radii of the projectors.
+     */
+    std::vector<double> getRl() const {
+        return rl;
+    }
+
+    /**
+     * Returns the projector matrices.
+     *
+     * @return The projector matrices.
+     */
+    std::vector<Eigen::MatrixXd> getH() const {
+        return h;
+    }
+
+    /**
+     * Returns the dimension of the projector matrices.
+     *
+     * @return The dimension of the projector matrices.
+     */
+    std::vector<int> getDimH() const {
+        return dim_h;
+    }
+
+    /**
+     * Returns the number of separable components.
+     *
+     * @return The number of separable components.
+     */
+    int getNsep() const {
+        return nsep;
+    }
+
+
+    int zeff; /** Effective charge of nucleus */
+    int zion; /** Atomic number of nucleus */
+    double rloc; /** Radius of local part of pseudopotential */
+    double alpha_pp;
+    int nloc; /** Number of local functions */
+    Eigen::VectorXd c; /** Coefficienst of local functions */
+    std::vector<double> rl; /** Radii of projectors (one for each angular momentum) */
+    std::vector<Eigen::MatrixXd> h; /** Projector matrices */
+    std::vector<int> dim_h; /** Dimension of projector matrices */
+    int nsep; /** Number of different angular momenta from 0 to nsep - 1*/
 
 };
 
