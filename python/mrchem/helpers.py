@@ -583,9 +583,14 @@ def parse_psppar(filename):
 def write_pseudo_potential(user_dict, mol_dict):
     import json
 
-    if "Pseudopotential" not in user_dict:
-        return []
-    
+    pp_dict_out = {
+        "use_pp": False,
+        "pp_prec": user_dict["Pseudopotential"]["pp_prec"],
+    }
+
+    # if "Pseudopotential" not in user_dict:
+    #     return []
+
     pp_dict = json.loads(user_dict['Pseudopotential']['pp_files'])
 
     # loop over keys in pp_dict and convert them to lower case
@@ -635,6 +640,7 @@ def write_pseudo_potential(user_dict, mol_dict):
                     "use_pp": True,
                     "file": pp_dict[key],
                 }
+                pp_dict_out["use_pp"] = True
                 # temp_string = json.dumps(temp_pp, indent=4, cls=NumpyEncoder)
                 # print("Parsed pseudopotential for element:", key, "\n \n")
                 # print(temp_string)
@@ -642,7 +648,8 @@ def write_pseudo_potential(user_dict, mol_dict):
                 pp['pseuodopotential'] = parse_psppar(pp["file"])
             pps.append(pp)
     # print(pps)
-    return pps
+    pp_dict_out["pp_list"] = pps
+    return pp_dict_out
 
 
 def parse_wf_method(user_dict):

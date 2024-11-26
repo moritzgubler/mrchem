@@ -1079,13 +1079,17 @@ void driver::build_fock_operator(const json &json_fock, Molecule &mol, FockBuild
         auto smooth_prec = json_fock["nuclear_operator"]["smooth_prec"];
         auto shared_memory = json_fock["nuclear_operator"]["shared_memory"];
         std::cout << "nuclear operator before constructor" << std::endl;
-        // auto V_p = std::make_shared<NuclearOperator>(nuclei, proj_prec, smooth_prec, shared_memory, nuc_model);
-        NuclearOperator all_el = NuclearOperator(all_electron_nuclei, proj_prec, smooth_prec, shared_memory, nuc_model);
-        std::string nuc_model_pp = "pp";
-        NuclearOperator pp = NuclearOperator(pp_nuclei, proj_prec, smooth_prec, shared_memory, nuc_model_pp);
-        all_el.add(pp);
-        std::shared_ptr<NuclearOperator> V_p = std::make_shared<NuclearOperator>(all_el);
-
+        std::shared_ptr<NuclearOperator> V_p;
+        if (json_fock.contains("pseudopotential")) {
+            NuclearOperator all_el = NuclearOperator(all_electron_nuclei, proj_prec, smooth_prec, shared_memory, nuc_model);
+            std::string nuc_model_pp = "pp";
+            NuclearOperator pp = NuclearOperator(pp_nuclei, proj_prec, smooth_prec, shared_memory, nuc_model_pp);
+            all_el.add(pp);
+            V_p = std::make_shared<NuclearOperator>(all_el);
+        }
+        else {
+            V_p = std::make_shared<NuclearOperator>(nuclei, proj_prec, smooth_prec, shared_memory, nuc_model);
+        }
         F.getNuclearOperator() = V_p;
 
         std::cout << "nuclear operator set" << std::endl;
@@ -1119,19 +1123,14 @@ void driver::build_fock_operator(const json &json_fock, Molecule &mol, FockBuild
             MSG_ABORT("Invalid perturbation order");
         }
     }
-    // json json_pp = json_fock["pseudopotentials"];
-    // const nlohmann::json &json_pp_data = json_pp["pp_list"][0];
-    // PseudopotentialData pp_data(json_pp_data);
-    // pp_data.print();
 
-    // exit(0);
-
-    std::cout << "making projector operator" << std::endl;
-    std::shared_ptr<ProjectorOperator> pp = std::make_shared<ProjectorOperator>(pp_nuclei, 1e-5);
-    pp->setup(1e-5);
-    std::cout << "done making projector operatork;ljasdhfl;kajsd;flkasjd;flkj" << std::endl;
-    F.getProjectorOperator() = pp;
-    std::cout << "projector set" << std::endl;
+    if (json_fock.contains("pseudopotential")) {
+        std::cout << "making projector operator" << std::endl;
+        std::shared_ptr<ProjectorOperator> pp = std::make_shared<ProjectorOperator>(pp_nuclei, json_fock["pseudopotential"]["pp_prec"]);
+        pp->setup(json_fock["pseudopotential"]["pp_prec"]);
+        F.getProjectorOperator() = pp;
+        std::cout << "projector set" << std::endl;
+    }
 
     ///////////////////////////////////////////////////////////
     //////////////////   Reaction Operator   ///////////////////

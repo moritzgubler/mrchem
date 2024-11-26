@@ -328,7 +328,7 @@ sections:
           When the key is a number (index is 1 based), the corresponding atom will use the given pseudopotential.
           When the value is an empty string, an all electron calculation will 
           be performed for the corresponding atom or element.
-          default: "{}"
+        default: '{}'
       - name: pp_prec
         type: float
         default: user['world_prec']
