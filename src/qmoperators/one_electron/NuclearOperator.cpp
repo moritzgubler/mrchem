@@ -68,40 +68,37 @@ NuclearOperator::NuclearOperator(const Nuclei &nucs, double proj_prec, double sm
     Timer t_loc;
     NuclearFunction *f_loc = nullptr;
 
-    std::string model_copy = "pp";
-    // model_copy = model;
-
-    if (model_copy == "point_like") {
+    if (model == "point_like") {
         mrcpp::print::header(1, "Projecting nuclear potential (point-like HFYGB)");
         f_loc = new PointNucleusHFYGB();
-    } else if (model_copy == "point_parabola") {
+    } else if (model == "point_parabola") {
         mrcpp::print::header(1, "Projecting nuclear potential (point-like parabola)");
         f_loc = new PointNucleusParabola();
-    } else if (model_copy == "point_minimum") {
+    } else if (model == "point_minimum") {
         mrcpp::print::header(1, "Projecting nuclear potential (point-like minimum)");
         f_loc = new PointNucleusMinimum();
-    } else if (model_copy == "finite_gaussian") {
+    } else if (model == "finite_gaussian") {
         mrcpp::print::header(1, "Projecting nuclear potential (finite Gaussian)");
         f_loc = new FiniteNucleusGaussian();
-    } else if (model_copy == "finite_sphere") {
+    } else if (model == "finite_sphere") {
         mrcpp::print::header(1, "Projecting nuclear potential (finite homogeneous sphere)");
         f_loc = new FiniteNucleusSphere();
-    } else if (model_copy == "pp") {
+    } else if (model == "pp") {
         mrcpp::print::header(1, "Projecting nuclear potential (Pseudo-potential)");
-        std::vector<PseudopotentialData> pps;
-        for(const Nucleus &nuc : nucs){
-            std::string symb = nuc.getElement().getSymbol();
-            std::string fname = "psppar." + symb;
-            std::cout << "fname: " << fname << std::endl;
-            PseudopotentialData hgh(fname);
-            std::cout << "Pseudopotential data loaded for nucleus" << std::endl;
-            pps.push_back(hgh);
-        }
-        std::cout << "Pseudopotential data loaded for nucleus" << std::endl;
-        f_loc = new PPNucleus(pps);
+        // std::vector<PseudopotentialData> pps;
+        // for(const Nucleus &nuc : nucs){
+        //     std::string symb = nuc.getElement().getSymbol();
+        //     std::string fname = "psppar." + symb;
+        //     std::cout << "fname: " << fname << std::endl;
+        //     PseudopotentialData hgh(fname);
+        //     std::cout << "Pseudopotential data loaded for nucleus" << std::endl;
+        //     pps.push_back(hgh);
+        // }
+        // std::cout << "Pseudopotential data loaded for nucleus" << std::endl;
+        f_loc = new PPNucleus(nucs);
         std::cout << "Nuclear operator constructed" << std::endl;
     } else {
-        MSG_ABORT("Invalid nuclear model : " << model_copy);
+        MSG_ABORT("Invalid nuclear model : " << model);
     }
     setupLocalPotential(*f_loc, nucs, smooth_prec);
 
