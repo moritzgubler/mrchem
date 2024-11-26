@@ -45,6 +45,12 @@ public:
             , coord(r)
             , element(&elm) {}
 
+    Nucleus(const Element &elm, double z, const mrcpp::Coord<3> &r,double rms = -1.0)
+            : charge(z)
+            , radius(rms)
+            , coord(r)
+            , element(&elm) {}
+
     Nucleus(const Element &elm, const mrcpp::Coord<3> &r, std::shared_ptr<PseudopotentialData> pp_data, double rms = -1.0) {
         charge = pp_data->getZeff();
         radius = rms;
