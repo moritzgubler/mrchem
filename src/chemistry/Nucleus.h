@@ -100,6 +100,11 @@ public:
         return this->pp_data_ptr;
     }
 
+    /**
+     * Check if the nucleus has pseudopotential data.
+     */
+    bool hasPseudopotential() const { return this->has_pp_data; }
+
 
     double getRMSRadius() const { return this->radius; }
     const mrcpp::Coord<3> &getCoord() const { return this->coord; }
@@ -130,6 +135,11 @@ public:
     void push_back(const std::string &atom, const mrcpp::Coord<3> &xyz, double rms = -1.0) {
         PeriodicTable pt;
         Nucleus nuc(pt.getElement(atom.c_str()), xyz, rms);
+        std::vector<Nucleus>::push_back(nuc);
+    }
+    void push_back(const std::string &atom, const mrcpp::Coord<3> &xyz, std::shared_ptr<PseudopotentialData> pp_data, double rms = -1.0) {
+        PeriodicTable pt;
+        Nucleus nuc(pt.getElement(atom.c_str()), xyz, pp_data, rms);
         std::vector<Nucleus>::push_back(nuc);
     }
 };
