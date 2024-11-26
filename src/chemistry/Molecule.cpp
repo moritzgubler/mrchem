@@ -86,7 +86,7 @@ void Molecule::initPerturbedOrbitals(bool dynamic) {
 /** @brief Return number of electrons */
 int Molecule::getNElectrons() const {
     auto totZ = 0;
-    for (auto i = 0; i < getNNuclei(); i++) totZ += getNuclei()[i].getElement().getZ();
+    for (auto i = 0; i < getNNuclei(); i++) totZ += getNuclei()[i].getCharge();
     return totZ - this->charge;
 }
 
