@@ -583,6 +583,9 @@ def parse_psppar(filename):
 def write_pseudo_potential(user_dict, mol_dict):
     import json
 
+    if "Pseudopotential" not in user_dict:
+        return []
+    
     pp_dict = json.loads(user_dict['Pseudopotential']['pp_files'])
 
     # loop over keys in pp_dict and convert them to lower case

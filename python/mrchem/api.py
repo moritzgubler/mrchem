@@ -64,7 +64,6 @@ def translate_input(user_dict):
         "rsp_calculations": rsp_dict,
         "geom_opt": user_dict['GeometryOptimizer'],
         "constants": user_dict["Constants"],
-        # "pseudo_potentials": pseudo_potential_dict,
     }
     return program_dict
 
