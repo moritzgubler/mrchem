@@ -146,11 +146,24 @@ void driver::init_molecule(const json &json_mol, Molecule &mol) {
     mol.setMultiplicity(multiplicity);
 
     auto &nuclei = mol.getNuclei();
+    const auto &json_pp = json_mol["pseudopotentials"];
+    bool json_pp_empty = json_pp.empty(); // if pseudopotential is empty in input make sure to not use it for backward compatibility
+
+    int i = 0;
     for (const auto &coord : json_mol["coords"]) {
         auto atom = coord["atom"];
         auto xyz = coord["xyz"];
         auto rms = coord["r_rms"];
-        nuclei.push_back(atom, xyz, rms);
+
+        const nlohmann::json &temp = json_pp["pp_list"][i];
+
+        if (json_pp_empty | (temp["use_pp"] == false)) { // No pseudopotential
+            nuclei.push_back(atom, xyz, rms);
+        } else { // Pseudopotential; add to nucleus
+            PseudopotentialData pp_data(temp);
+            nuclei.push_back(atom, xyz, std::make_shared<PseudopotentialData>(pp_data), rms);
+        }
+        i++;
     }
     mol.printGeometry();
 
@@ -1151,10 +1164,10 @@ void driver::build_fock_operator(const json &json_fock, Molecule &mol, FockBuild
             MSG_ABORT("Invalid perturbation order");
         }
     }
-    json json_pp = json_fock["pseudopotentials"];
-    const nlohmann::json &json_pp_data = json_pp["pp_list"][0];
-    PseudopotentialData pp_data(json_pp_data);
-    pp_data.print();
+    // json json_pp = json_fock["pseudopotentials"];
+    // const nlohmann::json &json_pp_data = json_pp["pp_list"][0];
+    // PseudopotentialData pp_data(json_pp_data);
+    // pp_data.print();
 
     exit(0);
 

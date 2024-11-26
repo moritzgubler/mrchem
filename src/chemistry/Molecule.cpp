@@ -90,6 +90,26 @@ int Molecule::getNElectrons() const {
     return totZ - this->charge;
 }
 
+/** @brief Get all-electron nuclei */
+Nuclei Molecule::getAllElectronNuclei() {
+    Nuclei nuclei_ae;
+    for (auto i = 0; i < getNNuclei(); i++) {
+        const auto &nuc = getNuclei()[i];
+        if (!nuc.hasPseudopotential()) nuclei_ae.push_back(nuc);
+    }
+    return nuclei_ae;
+}
+
+/** @brief Get pseudo-potential nuclei */
+Nuclei Molecule::getPseudoPotentialNuclei() {
+    Nuclei nuclei_pp;
+    for (auto i = 0; i < getNNuclei(); i++) {
+        const auto &nuc = getNuclei()[i];
+        if (nuc.hasPseudopotential()) nuclei_pp.push_back(nuc);
+    }
+    return nuclei_pp;
+}
+
 /** @brief Compute nuclear center of mass */
 Coord<3> Molecule::calcCenterOfMass() const {
     Coord<3> COM;

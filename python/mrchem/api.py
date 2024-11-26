@@ -47,8 +47,10 @@ def translate_input(user_dict):
     scf_dict = write_scf_calculation(user_dict, origin)
     rsp_dict = write_rsp_calculations(user_dict, mol_dict, origin)
     pseudo_potential_dict = write_pseudo_potential(user_dict, mol_dict)
-    scf_dict["fock_operator"]["pseudopotentials"] = dict()
-    scf_dict["fock_operator"]["pseudopotentials"]["pp_list"] = pseudo_potential_dict
+    # scf_dict["fock_operator"]["pseudopotentials"] = dict()
+    # scf_dict["fock_operator"]["pseudopotentials"]["pp_list"] = pseudo_potential_dict
+    mol_dict["pseudopotentials"] = dict()
+    mol_dict["pseudopotentials"]["pp_list"] = pseudo_potential_dict
 
     # piece everything together
     program_dict = {
