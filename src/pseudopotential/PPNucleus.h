@@ -26,6 +26,8 @@
 #pragma once
 
 #include "analyticfunctions/NuclearFunction.h"
+#include "chemistry/Nucleus.h"
+#include "MRCPP/Printer"
 
 #include "utils/math_utils.h"
 // #include "pseudopotential/HGH.hpp"
@@ -47,8 +49,13 @@ public:
      * @brief Constructs a PPNucleus object with the given pseudopotential data.
      * @param pps The pseudopotential data. (One for each nucleus)
      */
-    PPNucleus(std::vector<PseudopotentialData> pps) : NuclearFunction(){
-        this->pps = pps;
+    PPNucleus(const Nuclei &nucs) : NuclearFunction(){
+        for(int i = 0; i < nucs.size(); i++) {
+            if (! nucs[i].hasPseudopotential()) {
+                MSG_ABORT("Nucleus has no pseudopotential data in constroctur of PPNucleus");
+            }
+            this->pps.push_back(*nucs[i].getPseudopotentialData());
+        }
     }
 
     /**
