@@ -75,7 +75,6 @@ public:
             }
             h.push_back(h_l_mat);
         }
-
     }
 
 

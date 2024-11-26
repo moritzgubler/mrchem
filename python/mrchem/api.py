@@ -34,6 +34,11 @@ from .validators import MoleculeValidator
 
 
 def translate_input(user_dict):
+
+    import json
+    with open("user.json", "w") as f:
+        json.dump(user_dict, f, indent=4)
+
     # get the origin in the desired units of measure
     origin = user_dict["world_origin"]
     pc = user_dict["Constants"]
@@ -47,10 +52,12 @@ def translate_input(user_dict):
     scf_dict = write_scf_calculation(user_dict, origin)
     rsp_dict = write_rsp_calculations(user_dict, mol_dict, origin)
     pseudo_potential_dict = write_pseudo_potential(user_dict, mol_dict)
-    # scf_dict["fock_operator"]["pseudopotentials"] = dict()
-    # scf_dict["fock_operator"]["pseudopotentials"]["pp_list"] = pseudo_potential_dict
-    mol_dict["pseudopotentials"] = dict()
-    mol_dict["pseudopotentials"]["pp_list"] = pseudo_potential_dict
+    mol_dict["pseudopotentials"] = pseudo_potential_dict
+
+    if mol_dict["pseudopotentials"]["use_pp"]:
+        scf_dict["fock_operator"]["pseudopotential"] = {
+            "pp_prec": mol_dict["pseudopotentials"]["pp_prec"]
+        }
 
     # piece everything together
     program_dict = {
