@@ -10,6 +10,8 @@
 #include "qmoperators/QMOperator.h"
 #include <string>
 
+#include "MRCPP/Printer"
+
 class magneticQuantumNumberProjector {
     public:
     std::vector<ProjectorFunction> iProj;
@@ -35,27 +37,34 @@ class ProjectorOperatorQM final : public mrchem::QMOperator {
     double prec;
 
 public:
-    ProjectorOperatorQM(mrchem::Molecule &molecule, double prec){
+    ProjectorOperatorQM(mrchem::Nuclei &nucs, double prec){
 
-        mrchem::Nuclei nucs = molecule.getNuclei();
+        // mrchem::Nuclei nucs = molecule.getNuclei();
+        // for (int i = 0; i < nucs.size(); i++){
+        //     std::string elem = nucs[i].getElement().getSymbol();
+        //     std::string fname = "psppar." + elem;
+        //     this->pp.push_back(PseudopotentialData(fname));
+        //     std::cout << "Pseudopotential data for atom " << i << " loaded" << std::endl;
+        //     pp[i].print();
+        // }
+
+        // std::cout << "Pseudopotential data loaded" << std::endl;
         for (int i = 0; i < nucs.size(); i++){
-            std::string elem = nucs[i].getElement().getSymbol();
-            std::string fname = "psppar." + elem;
-            this->pp.push_back(PseudopotentialData(fname));
-            std::cout << "Pseudopotential data for atom " << i << " loaded" << std::endl;
-            pp[i].print();
+            if (!nucs[i].hasPseudopotential()){
+                MSG_ABORT("No pseudopotential for atom " + std::to_string(i));
+            }
+            this->pp.push_back(*nucs[i].getPseudopotentialData());
+            nucs[i].getPseudopotentialData()->print();
         }
-
-        std::cout << "Pseudopotential data loaded" << std::endl;
 
         this->pp = pp;
         this->prec = prec;
         int npp = 0;
 
         // loop over all atoms and create projectors
-        for (int i = 0; i < molecule.getNNuclei(); i++) {
+        for (int i = 0; i < nucs.size(); i++) {
             std::cout << "Creating projectors for atom " << i << std::endl << std::endl;
-            mrcpp::Coord<3> pos = molecule.getNuclei()[i].getCoord();
+            mrcpp::Coord<3> pos = nucs[i].getCoord();
             proj.push_back(AtomProjector());
             for (int l = 0; l < pp[i].nsep; l++) {
                 std::cout << "Creating angular momentum projectors for momentum " << l << std::endl;
@@ -166,8 +175,8 @@ mrchem::QMOperatorVector apply(std::shared_ptr<mrchem::QMOperator> &O) {
 class ProjectorOperator : public mrchem::RankZeroOperator {
 
 public:
-    ProjectorOperator(mrchem::Molecule &molecule, double prec) {
-        auto qmOperator = std::make_shared<ProjectorOperatorQM>(molecule, prec);
+    ProjectorOperator(mrchem::Nuclei &nucs, double prec) {
+        auto qmOperator = std::make_shared<ProjectorOperatorQM>(nucs, prec);
         mrchem::RankZeroOperator &pp = (*this);
         pp = qmOperator;
     }
