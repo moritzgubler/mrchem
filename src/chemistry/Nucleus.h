@@ -65,7 +65,9 @@ public:
             : charge(nuc.charge)
             , radius(nuc.radius)
             , coord(nuc.coord)
-            , element(nuc.element) {}
+            , element(nuc.element)
+            , pp_data_ptr(nuc.pp_data_ptr)
+            , has_pp_data(nuc.has_pp_data) {}
     
     Nucleus &operator=(const Nucleus &nuc) {
         if (this != &nuc) {
@@ -73,6 +75,8 @@ public:
             this->radius = nuc.radius;
             this->coord = nuc.coord;
             this->element = nuc.element;
+            this->pp_data_ptr = nuc.pp_data_ptr;
+            this->has_pp_data = nuc.has_pp_data;
         }
         return *this;
     }
