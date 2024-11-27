@@ -95,6 +95,12 @@ public:
      */
     Nuclei getPseudoPotentialNuclei();
 
+
+    /**
+     * @brief return true if the molecule has a pseudopotential, false otherwise
+     */
+    bool hasPseudopotential() const;
+
     /**
      * @brief get all electron nuclei
      */

@@ -100,6 +100,15 @@ Nuclei Molecule::getAllElectronNuclei() {
     return nuclei_ae;
 }
 
+/** @brief Check if molecule has pseudopotential */
+bool Molecule::hasPseudopotential() const {
+    for (auto i = 0; i < getNNuclei(); i++) {
+        const auto &nuc = getNuclei()[i];
+        if (nuc.hasPseudopotential()) return true;
+    }
+    return false;
+}
+
 /** @brief Get pseudo-potential nuclei */
 Nuclei Molecule::getPseudoPotentialNuclei() {
     Nuclei nuclei_pp;
