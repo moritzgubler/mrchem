@@ -7,6 +7,7 @@
 #include <string>
 #include <Eigen/Dense>
 #include <nlohmann/json.hpp>
+#include "MRCPP/Printer"
 
 /**
  * Splits a given string into a vector of words.
@@ -75,6 +76,13 @@ public:
             }
             h.push_back(h_l_mat);
         }
+
+        if (pp_json.contains("nlcc")) {
+            this->has_nlcc = true;
+            this->qnlcc = pp_json["nlcc"]["qcore"];
+            this->rnlcc = pp_json["nlcc"]["rcore"];
+        }
+
     }
 
 
@@ -267,6 +275,34 @@ public:
         return nsep;
     }
 
+    /**
+     * Returns whether the pseudopotential has a non-local core correction.
+     *
+     * @return Whether the pseudopotential has a non-local core correction.
+     */
+    bool getHasNlcc() const {
+        return has_nlcc;
+    }
+
+    /**
+     * Returns the radius of the non-local core correction.
+     */
+    double getRnlcc() const {
+        if (!has_nlcc) {
+            MSG_WARN("Pseudopotential does not have a non-local core correction but getRnlcc() is called");
+        }
+        return rnlcc;
+    }
+
+    /**
+     * Returns the charge of the non-local core correction. (c_core in the paper)
+     */
+    double getQnlcc() const {
+        if (!has_nlcc) {
+            MSG_WARN("Pseudopotential does not have a non-local core correction but getQnlcc() is called");
+        }
+        return qnlcc;
+    }
 
     int zeff; /** Effective charge of nucleus */
     int zion; /** Atomic number of nucleus */
@@ -278,6 +314,12 @@ public:
     std::vector<Eigen::MatrixXd> h; /** Projector matrices */
     std::vector<int> dim_h; /** Dimension of projector matrices */
     int nsep; /** Number of different angular momenta from 0 to nsep - 1*/
+
+    private:
+    
+    bool has_nlcc = false; /** Whether the pseudopotential has a non-local core correction */
+    double rnlcc = 0.0; /** Radius of non-local core correction */
+    double qnlcc = 0.0; /** Charge of non-local core correction */
 
 };
 
