@@ -497,7 +497,6 @@ def parse_psppar(filename):
     psppar_data = dict()
     psppar_data["local"] = dict()
     psppar_data["nonlocal"] = dict()
-    import numpy as np
     
     with open(filename, 'r') as file:
         # Skip the first line
@@ -520,7 +519,7 @@ def parse_psppar(filename):
         nloc = int(tokens[1])
         c_coefficients = list(map(float, tokens[2:2+nloc]))
         
-        alpha_pp = 1.0 / (np.sqrt(2.0) * rloc)
+        alpha_pp = 1.0 / (sqrt(2.0) * rloc)
         psppar_data['local']['rloc'] = rloc
         psppar_data['local']['alpha_pp'] = alpha_pp
         psppar_data['local']['nloc'] = nloc
@@ -550,22 +549,24 @@ def parse_psppar(filename):
             dim_h.append(dim_h_l)
             
             # Initialize h matrix
-            h_matrix = np.zeros((dim_h_l, dim_h_l))
+            h_matrix = []
+            for _ in range(dim_h_l):
+                h_matrix.append([0.0] * dim_h_l)
             # convert h_matrix to list of lists
 
             for i in range(dim_h_l):
-                h_matrix[0, i] = float(line.split()[2 + i])
-                h_matrix[i, 0] = h_matrix[0, i]
+                h_matrix[0][i] = float(line.split()[2 + i])
+                h_matrix[i][0] = h_matrix[0][i]
             
             # Fill in the upper triangle of the h matrix
             for i in range(1, dim_h_l):
                 line = file.readline().strip()
                 values = list(map(float, line.split()))
                 for j, value in enumerate(values):
-                    h_matrix[i, i + j] = value
-                    h_matrix[i + j, i] = value
+                    h_matrix[i][i + j] = value
+                    h_matrix[i + j][i] = value
             
-            h_matrix = h_matrix.tolist()
+            # h_matrix = h_matrix.tolist()
             h.append(h_matrix)
             
             # Skip irrelevant SOC lines if l > 0
