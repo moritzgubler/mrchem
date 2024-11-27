@@ -72,7 +72,7 @@ public:
 
             temp_exp = std::exp(-this->pps[i].alpha_pp * this->pps[i].alpha_pp * R1 * R1);
 
-            result -= this->pps[i].zion / R1 * std::erf(this->pps[i].alpha_pp * R1);
+            result -= this->pps[i].getZeff() / R1 * std::erf(this->pps[i].alpha_pp * R1);
 
             double temp = 1.0;
             double temp_square = 2.0 * R1 * R1 * this->pps[i].alpha_pp * this->pps[i].alpha_pp;
