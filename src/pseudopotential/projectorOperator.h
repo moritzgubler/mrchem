@@ -67,25 +67,25 @@ public:
             mrcpp::Coord<3> pos = nucs[i].getCoord();
             proj.push_back(AtomProjector());
             for (int l = 0; l < pp[i].nsep; l++) {
-                std::cout << "Creating angular momentum projectors for momentum " << l << std::endl;
+                // std::cout << "Creating angular momentum projectors for momentum " << l << std::endl;
                 proj[i].lProj.push_back(angularMomentumProjector());
                 for (int m = -l; m <= l; m++) {
-                    std::cout << "Creating magnetic quantum number projectors for magnetic quantum number " << m << std::endl;
+                    // std::cout << "Creating magnetic quantum number projectors for magnetic quantum number " << m << std::endl;
                     int mIndex = m + l;
                     proj[i].lProj[l].mProj.push_back(magneticQuantumNumberProjector());
                     for (int idim = 0; idim < pp[i].dim_h[l]; idim++){
                         // proj.push_back(ProjectorFunction(pos, pp[i].rl[l], isep, l, m, prec));
-                        std::cout << "Creating ProjectorFunction " << l << " " << m << " " << idim << std::endl;
+                        // std::cout << "Creating ProjectorFunction " << l << " " << m << " " << idim << std::endl;
                         proj[i].lProj[l].mProj[mIndex].iProj.push_back(ProjectorFunction(pos, pp[i].rl[l], idim, l, m, prec));
-                        std::cout << "ProjectorFunction constructed " << i << std::endl;
+                        // std::cout << "ProjectorFunction constructed " << i << std::endl;
                         std::cout << "i = " << i << std::endl;
                         std::cout << "nsep = " << pp[i].nsep << std::endl;
                         proj[i].numberOfAngMom = pp[i].nsep;
-                        std::cout << "ProjectorFunction added to projector" << std::endl;
+                        // std::cout << "ProjectorFunction added to projector" << std::endl;
                         proj[i].lProj[l].nM = 2*pp[i].nsep + 1;
-                        std::cout << "ProjectorFunction added to projector" << std::endl;
+                        // std::cout << "ProjectorFunction added to projector" << std::endl;
                         proj[i].lProj[l].mProj[mIndex].nProj = pp[i].dim_h[l];
-                        std::cout << "End of loopsss" << std::endl << std::endl;
+                        // std::cout << "End of loopsss" << std::endl << std::endl;
                         npp++;
                     }
                 }
@@ -104,7 +104,7 @@ public:
 protected:
 
 mrchem::Orbital apply(mrchem::Orbital phi) {
-    std::cout << "Applying projector operator" << std::endl;
+    // std::cout << "Applying projector operator" << std::endl;
     // loop over all atoms
     ComplexDouble dotComplex;
 
@@ -115,21 +115,21 @@ mrchem::Orbital apply(mrchem::Orbital phi) {
         // loop over all angular momenta
         for (int l = 0; l < pp[iat].nsep; l++){
             // loop over all magnetic quantum numbers
-            std::cout << "h: " << pp[iat].h[l] << std::endl;
+            // std::cout << "h: " << pp[iat].h[l] << std::endl;
             for (int m = -l; m <= l; m++){
                 int mm = m + l;
                 // loop over all projectors
                 Eigen::VectorXd dot_products(pp[iat].dim_h[l]);
-                std::cout << "Projector " << iat << " " << l << " " << m << std::endl;
-                std::cout << "Number of projectors " << pp[iat].dim_h[l] << std::endl;
+                // std::cout << "Projector " << iat << " " << l << " " << m << std::endl;
+                // std::cout << "Number of projectors " << pp[iat].dim_h[l] << std::endl;
                 for (int ip = 0; ip < pp[iat].dim_h[l]; ip++){
                     // dotComplex = mrchem::qmfunction::dot(phi, proj[iat].lProj[l].mProj[m].iProj[ip]);
-                    std::cout << "computing dot product " << ip << std::endl;
+                    // std::cout << "computing dot product " << ip << std::endl;
                     mrcpp::Coord<3> r = {0.0, 0.0, 0.3};
-                    std::cout << "projector value at origin: " << proj[iat].lProj[l].mProj[mm].iProj[ip].real().evalf(r) << std::endl;
+                    // std::cout << "projector value at origin: " << proj[iat].lProj[l].mProj[mm].iProj[ip].real().evalf(r) << std::endl;
                     dotComplex = mrcpp::cplxfunc::dot(phi, proj[iat].lProj[l].mProj[mm].iProj[ip]);
                     dot_products(ip) = dotComplex.real();
-                    std::cout << "Dot product " << ip << " " << dotComplex << std::endl;
+                    // std::cout << "Dot product " << ip << " " << dotComplex << std::endl;
                 }
                 dot_products = pp[iat].h[l] * dot_products;
                 // loop over all projectors
@@ -148,10 +148,10 @@ mrchem::Orbital apply(mrchem::Orbital phi) {
     // result.add()
     // mrchem::qmfunction::linear_combination(result, complexCoefficientsEigen, complexFunctionVector, prec);
 
-    std::cout << "size of complexCoefficients " << complexCoefficients.size() << std::endl;
+    // std::cout << "size of complexCoefficients " << complexCoefficients.size() << std::endl;
 
     for (int i = 0; i < complexCoefficients.size(); i++){
-        std::cout << "Adding to result " << i << " " << complexCoefficients[i] << std::endl;
+        // std::cout << "Adding to result " << i << " " << complexCoefficients[i] << std::endl;
         result.add(complexCoefficients[i], complexFunctionVector[i]);
     }
 
