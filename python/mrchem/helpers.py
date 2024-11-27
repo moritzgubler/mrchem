@@ -584,9 +584,21 @@ def parse_psppar(filename):
             h.append(h_matrix)
             
             # Skip irrelevant SOC lines if l > 0
-            # if l > 0:
-            #     for _ in range(dim_h_l):
-            #         file.readline()
+            if l > 0:
+                for _ in range(dim_h_l):
+                    file.readline()
+            
+        # check if file is at the end
+        line = file.readline()
+        if line: # try to read rcore and qcore
+            words = line.split()
+            if len(words) >= 2:
+                rcore = float(words[0])
+                qcore = float(words[1])
+                psppar_data['nlcc'] = dict()
+                psppar_data['nlcc']['rcore'] = rcore
+                psppar_data['nlcc']['qcore'] = qcore
+            
         
         psppar_data['nonlocal']['rl'] = rl
         psppar_data['nonlocal']['dim_h'] = dim_h
