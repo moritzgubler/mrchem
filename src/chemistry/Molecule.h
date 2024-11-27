@@ -102,6 +102,16 @@ public:
     bool hasPseudopotential() const;
 
     /**
+     * @brief return true if the molecule has a NLCC pseudopotential, false otherwise
+     */
+    bool hasNLCCPseudopotential() const;
+
+    /**
+     * @brief return trun if the molecule has a pseudopotential with projectors, false otherwise
+     */
+    bool hasProjectorPseudopotential() const;
+
+    /**
      * @brief get all electron nuclei
      */
     Nuclei getAllElectronNuclei();
