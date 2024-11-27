@@ -109,6 +109,28 @@ bool Molecule::hasPseudopotential() const {
     return false;
 }
 
+/** @brief Check if molecule has NLCC pseudopotential */
+bool Molecule::hasNLCCPseudopotential() const {
+    for (auto i = 0; i < getNNuclei(); i++) {
+        const auto &nuc = getNuclei()[i];
+        if (nuc.hasPseudopotential()) {
+            if (nuc.getPseudopotentialData()->getHasNlcc()) return true;
+        }
+    }
+    return false;
+}
+
+/** @brief Check if molecule has projector pseudopotential */
+bool Molecule::hasProjectorPseudopotential() const {
+    for (auto i = 0; i < getNNuclei(); i++) {
+        const auto &nuc = getNuclei()[i];
+        if (nuc.hasPseudopotential()) {
+            if (nuc.getPseudopotentialData()->getNsep() > 0) return true;
+        }
+    }
+    return false;
+}
+
 /** @brief Get pseudo-potential nuclei */
 Nuclei Molecule::getPseudoPotentialNuclei() {
     Nuclei nuclei_pp;

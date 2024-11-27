@@ -27,6 +27,7 @@
 
 #include "qmoperators/QMPotential.h"
 #include "qmfunctions/Density.h"
+#include "chemistry/Nucleus.h"
 
 #include "mrdft/MRDFT.h"
 
@@ -65,12 +66,18 @@ public:
 
     friend class XCOperator;
 
+    void setNuclei(std::shared_ptr<Nuclei> nucs)  {
+        this->nucs = nucs;
+    }
+
 protected:
     double energy;                           ///< XC energy
     std::vector<Density> densities;          ///< XC densities (total or alpha/beta)
     mrcpp::FunctionTreeVector<3> potentials; ///< XC Potential functions collected in a vector
     std::shared_ptr<OrbitalVector> orbitals; ///< External set of orbitals used to build the density
     std::unique_ptr<mrdft::MRDFT> mrdft;     ///< External XC functional to be used
+
+    std::shared_ptr<Nuclei> nucs{nullptr}; // Nuclei for the XC operator for nlcc pseudopotential calculations
 
     double getEnergy() const { return this->energy; }
     Density &getDensity(DensityType spin, int pert_idx);

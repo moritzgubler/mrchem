@@ -1267,6 +1267,10 @@ void driver::build_fock_operator(const json &json_fock, Molecule &mol, FockBuild
 
         if (order == 0) {
             auto XC_p = std::make_shared<XCOperator>(mrdft_p, Phi_p, shared_memory);
+            if (mol.hasNLCCPseudopotential()) {
+                std::shared_ptr<Nuclei> nuclei = std::make_shared<Nuclei>(mol.getPseudoPotentialNuclei());
+                XC_p->setNuclei(nuclei);
+            }
             F.getXCOperator() = XC_p;
         } else if (order == 1) {
             auto XC_p = std::make_shared<XCOperator>(mrdft_p, Phi_p, X_p, Y_p, shared_memory);
