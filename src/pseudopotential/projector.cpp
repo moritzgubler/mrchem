@@ -1,8 +1,8 @@
 
 #include "pseudopotential/projector.h"
 #include <math.h>
-#include <fstream>
-#include <iostream>
+// #include <fstream>
+// #include <iostream>
 
 #include <string>
 
@@ -21,7 +21,7 @@
  * @param prec The precision of the projector.
  */
 ProjectorFunction::ProjectorFunction(mrcpp::Coord<3> pos, double rl, int i, int l, int m, double prec) {
-    std::cout << "Constructing ProjectorFunction" << std::endl;
+    // std::cout << "Constructing ProjectorFunction" << std::endl;
     this->pos = pos;
     this->rl = rl;
     this->i = i;
@@ -32,17 +32,17 @@ ProjectorFunction::ProjectorFunction(mrcpp::Coord<3> pos, double rl, int i, int 
     // select the spherical harmonic function based on the angular momentum and magnetic quantum number
     switch_sperics(l, m);
     double prefactor = std::sqrt(2.0) / (std::pow(rl, l + (4.0 * ii - 1) / 2.0) * std::sqrt(tgamma( l + (4.0 * ii - 1.0) / 2.0 )) );
-    std::cout << "prefactor: " << prefactor << std::endl;
-    std::cout << "rl: " << rl << std::endl;
-    std::cout << "pow " << std::pow(rl, l + (4.0 * ii - 1) / 2.0) << std::endl;
+    // std::cout << "prefactor: " << prefactor << std::endl;
+    // std::cout << "rl: " << rl << std::endl;
+    // std::cout << "pow " << std::pow(rl, l + (4.0 * ii - 1) / 2.0) << std::endl;
 
     // debug with prints why prefactor is nan:
-    std::cout << "prefactor: " << prefactor << std::endl;
-    std::cout << "rl: " << rl << std::endl;
-    std::cout << "l: " << l << std::endl;
-    std::cout << "i: " << ii << std::endl;
-    std::cout << "tgamma: " << tgamma( l + (4.0 * ii - 1.0) / 2.0 ) << std::endl;
-    std::cout << "arg of tgamma: " << l + (4.0 * ii - 1.0) / 2.0 << std::endl;
+    // std::cout << "prefactor: " << prefactor << std::endl;
+    // std::cout << "rl: " << rl << std::endl;
+    // std::cout << "l: " << l << std::endl;
+    // std::cout << "i: " << ii << std::endl;
+    // std::cout << "tgamma: " << tgamma( l + (4.0 * ii - 1.0) / 2.0 ) << std::endl;
+    // std::cout << "arg of tgamma: " << l + (4.0 * ii - 1.0) / 2.0 << std::endl;
 
 
 
@@ -52,28 +52,28 @@ ProjectorFunction::ProjectorFunction(mrcpp::Coord<3> pos, double rl, int i, int 
         return prefactor * std::pow(normr, 2 * (ii - 1)) * std::exp(- 0.5 * normr * normr / (this->rl * this-> rl) ) * this->s(rprime, normr);
     };
     auto op = (*this);
-    mrcpp::cplxfunc::project(op, project_analytic, mrcpp::NUMBER::Real, 0.01 * prec);
+    mrcpp::cplxfunc::project(op, project_analytic, mrcpp::NUMBER::Real, prec);
 
-    mrcpp::Coord<3> r = {0.0, 0.0, 0.3};
-    std::cout << "ProjectorFunction at origin: " << this->real().evalf(r) << std::endl;
-    std::cout << "analytic at origin: " << project_analytic(r) << std::endl;
-    std::cout << "prefactor: " << prefactor << std::endl;
+    // mrcpp::Coord<3> r = {0.0, 0.0, 0.3};
+    // std::cout << "ProjectorFunction at origin: " << this->real().evalf(r) << std::endl;
+    // std::cout << "analytic at origin: " << project_analytic(r) << std::endl;
+    // std::cout << "prefactor: " << prefactor << std::endl;
 
-    std::cout << "ProjectorFunction constructed in constructor" << std::endl;
+    // std::cout << "ProjectorFunction constructed in constructor" << std::endl;
 
-    int nPoints = 200;
-    double dr = 0.01;
-    std::ofstream file;
-    std::string fname = "projector_" + std::to_string(l) + "_" + std::to_string(m) + "_" + std::to_string(i) + ".dat";
-    r[0] = 0.0;
-    r[1] = 0.0;
-    r[2] = 0.0;
-    file.open(fname);
-    for (int ijk = 0; ijk < nPoints; ijk++){
-        r[0] = ijk * dr;
-        file << r[0] << " " << this->real().evalf(r) << " " << project_analytic(r) << std::endl;
-    }
-    file.close();
+    // int nPoints = 200;
+    // double dr = 0.01;
+    // std::ofstream file;
+    // std::string fname = "projector_" + std::to_string(l) + "_" + std::to_string(m) + "_" + std::to_string(i) + ".dat";
+    // r[0] = 0.0;
+    // r[1] = 0.0;
+    // r[2] = 0.0;
+    // file.open(fname);
+    // for (int ijk = 0; ijk < nPoints; ijk++){
+    //     r[0] = ijk * dr;
+    //     file << r[0] << " " << this->real().evalf(r) << " " << project_analytic(r) << std::endl;
+    // }
+    // file.close();
 }
 
 void ProjectorFunction::switch_sperics(int l, int m){

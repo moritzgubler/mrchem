@@ -63,7 +63,7 @@ public:
 
         // loop over all atoms and create projectors
         for (int i = 0; i < nucs.size(); i++) {
-            std::cout << "Creating projectors for atom " << i << std::endl << std::endl;
+            // std::cout << "Creating projectors for atom " << i << std::endl << std::endl;
             mrcpp::Coord<3> pos = nucs[i].getCoord();
             proj.push_back(AtomProjector());
             for (int l = 0; l < pp[i].nsep; l++) {
@@ -78,8 +78,8 @@ public:
                         // std::cout << "Creating ProjectorFunction " << l << " " << m << " " << idim << std::endl;
                         proj[i].lProj[l].mProj[mIndex].iProj.push_back(ProjectorFunction(pos, pp[i].rl[l], idim, l, m, prec));
                         // std::cout << "ProjectorFunction constructed " << i << std::endl;
-                        std::cout << "i = " << i << std::endl;
-                        std::cout << "nsep = " << pp[i].nsep << std::endl;
+                        // std::cout << "i = " << i << std::endl;
+                        // std::cout << "nsep = " << pp[i].nsep << std::endl;
                         proj[i].numberOfAngMom = pp[i].nsep;
                         // std::cout << "ProjectorFunction added to projector" << std::endl;
                         proj[i].lProj[l].nM = 2*pp[i].nsep + 1;
@@ -91,7 +91,7 @@ public:
                 }
             }
         }
-        std::cout << "ProjectorOperator constructed                      aasdfa asdf" << std::endl;
+        // std::cout << "ProjectorOperator constructed                      aasdfa asdf" << std::endl;
     }
 
     void setup(double prec) {
