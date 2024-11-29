@@ -190,6 +190,11 @@ public:
             std::cout << "rl: " << rl[l] << std::endl;
             std::cout << "h: " << h[l] << std::endl;
         }
+        if (has_nlcc) {
+            std::cout << "Non linear core correction: " << std::endl;
+            std::cout << "qnlcc: " << qnlcc << std::endl;
+            std::cout << "rnlcc: " << rnlcc << std::endl;
+        }
         std::cout << "----------------------------------------" << std::endl;
         std::cout << std::endl;
     }
