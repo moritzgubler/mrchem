@@ -72,3 +72,41 @@ double s32(const std::array<double, 3> &r, const double &normr) {
 double s33(const std::array<double, 3> &r, const double &normr) {
     return 0.25 * std::sqrt(35.0 / ( 2 * M_PI)) * (r[0] * r[0] * r[0] - 3 * r[1] * r[1] * r[0]);
 }
+
+double s4m4(const std::array<double, 3> &r, const double &normr) {
+    return .75 * std::sqrt(35.0 / ( M_PI)) * (r[0] * r[1]) * (r[0] * r[0] - r[1] * r[1]);
+}
+
+double s4m3(const std::array<double, 3> &r, const double &normr) {
+    return .75 * std::sqrt(35.0 / ( 2 * M_PI)) * r[1] * (3 * r[0] * r[0] - r[1] * r[1]) * r[2];
+}
+
+double s4m2(const std::array<double, 3> &r, const double &normr) {
+    return .75 * std::sqrt(5.0 / ( M_PI)) * r[0] * r[1] * (7 * r[2] * r[2] - normr * normr);
+}
+
+double s4m1(const std::array<double, 3> &r, const double &normr) {
+    return .75 * std::sqrt(5.0 / ( 2 * M_PI)) * r[1] * (7 * r[2] * r[2] * r[2] - 3 * r[2] * normr * normr);
+}
+
+double s40(const std::array<double, 3> &r, const double &normr) {
+    return (3. / 16.) * std::sqrt(1.0 / ( M_PI)) * (35 * r[2] * r[2] * r[2] * r[2] - 30 * r[2] * r[2] * normr * normr + 3 * normr * normr * normr * normr);
+}
+
+double s41(const std::array<double, 3> &r, const double &normr) {
+    return .75 * std::sqrt(5.0 / (2.0 * M_PI)) * r[0] * (7 * r[2] * r[2] * r[2] - 3 * r[2] * normr * normr);
+}
+
+double s42(const std::array<double, 3> &r, const double &normr) {
+    return (3. / 8.) * std::sqrt(5.0 / ( M_PI)) * (r[0] * r[0] - r[1] * r[1]) * (7 * r[2] * r[2] - normr * normr);
+}
+
+double s43(const std::array<double, 3> &r, const double &normr) {
+    return .75 * std::sqrt(35.0 / ( 2 * M_PI)) * r[0] * (r[0] * r[0] - 3 * r[1] * r[1]) * r[2];
+}
+
+double s44(const std::array<double, 3> &r, const double &normr) {
+    return (3. / 16.) * std::sqrt(35.0 / ( M_PI)) * ( 
+        r[0] * r[0] * ( r[0] * r[0] - 3 * r[1] * r[1] ) -
+        r[1] * r[1] * ( 3 * r[0] * r[0] - r[1] * r[1] ));
+}

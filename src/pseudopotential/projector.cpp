@@ -142,5 +142,36 @@ void ProjectorFunction::switch_sperics(int l, int m){
                     break;
             }
             break;
+        case 4:
+            switch (m) {
+                case -4:
+                    s = s4m4;
+                    break;
+                case -3:
+                    s = s4m3;
+                    break;
+                case -2:
+                    s = s4m2;
+                    break;
+                case -1:
+                    s = s4m1;
+                    break;
+                case 0:
+                    s = s40;
+                    break;
+                case 1:
+                    s = s41;
+                    break;
+                case 2:
+                    s = s42;
+                    break;
+                case 3:
+                    s = s43;
+                    break;
+                case 4:
+                    s = s44;
+                    break;
+            }
+            break;
     }
 }
