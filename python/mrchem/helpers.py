@@ -528,8 +528,8 @@ def parse_psppar(filename):
         # Read nsep
         line = file.readline().strip()
         nsep = int(line.split()[0])
-        if nsep < 0 or nsep > 3:
-            raise ValueError("Error: nsep must be between 1 and 3.")
+        if nsep < 0 or nsep > 4:
+            raise ValueError("Error: nsep must be between 0 and 4.")
         psppar_data['nonlocal']['nsep'] = nsep
         
         # Initialize containers for projectors
