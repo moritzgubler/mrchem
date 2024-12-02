@@ -37,7 +37,7 @@ class ProjectorOperatorQM final : public mrchem::QMOperator {
     double prec;
 
 public:
-    ProjectorOperatorQM(mrchem::Nuclei &nucs, double prec){
+    ProjectorOperatorQM(mrchem::Nuclei const &nucs, double prec){
 
         // mrchem::Nuclei nucs = molecule.getNuclei();
         // for (int i = 0; i < nucs.size(); i++){
@@ -54,7 +54,7 @@ public:
                 MSG_ABORT("No pseudopotential for atom " + std::to_string(i));
             }
             this->pp.push_back(*nucs[i].getPseudopotentialData());
-            nucs[i].getPseudopotentialData()->print();
+            // nucs[i].getPseudopotentialData()->print();
         }
 
         this->pp = pp;
@@ -175,7 +175,7 @@ mrchem::QMOperatorVector apply(std::shared_ptr<mrchem::QMOperator> &O) {
 class ProjectorOperator : public mrchem::RankZeroOperator {
 
 public:
-    ProjectorOperator(mrchem::Nuclei &nucs, double prec) {
+    ProjectorOperator(mrchem::Nuclei const &nucs, double prec) {
         auto qmOperator = std::make_shared<ProjectorOperatorQM>(nucs, prec);
         mrchem::RankZeroOperator &pp = (*this);
         pp = qmOperator;
