@@ -375,25 +375,33 @@ void initial_guess::sad::project_atomic_densities_new(double prec, Density &rho,
 
         if (mrcpp::my_orb(i)) {
             bool need_rescale = nucs[i].getCharge() != nucs[i].getAtomicNumber();
-            auto rho_analytic = [atomic_densities, nucs, i, need_rescale](const mrcpp::Coord<3> &r) {
-                double k = 10;
-                mrcpp::Coord<3> nucPos = nucs[i].getCoord();
-                double rr = std::sqrt((r[0] - nucPos[0]) * (r[0] - nucPos[0])
-                    + (r[1] - nucPos[1]) * (r[1] - nucPos[1])
-                    + (r[2] - nucPos[2]) * (r[2] - nucPos[2]));
-                double rho = atomic_densities[i].evalfLeftNoRightZero(rr);
-                if (need_rescale){ // dampen the density at the core
-                    double cm =nucs[i].getPseudopotentialData()->getMaxRpp() * .5;
-                    rho = rho * ((1.0 / (1.0 + std::exp(-k * (rr - cm)))) - (1.0 / (1.0 + std::exp(cm * k))));
-                }
-                return rho;
-            };
             mrcpp::ComplexFunction atomic_density_mw;
-            mrcpp::cplxfunc::project(atomic_density_mw, rho_analytic, mrcpp::NUMBER::Real, prec);
+
             if (need_rescale) {
+                double cm = nucs[i].getPseudopotentialData()->getMaxRpp() * .5;
+                double k = 10;
+                double temp = - (1.0 / (1.0 + std::exp(cm * k)));
+                mrcpp::Coord<3> nucPos = nucs[i].getCoord();
+                auto rho_analytic = [atomic_densities, nucPos, cm, k, i, temp](const mrcpp::Coord<3> &r) {
+                    double rr = std::sqrt((r[0] - nucPos[0]) * (r[0] - nucPos[0])
+                        + (r[1] - nucPos[1]) * (r[1] - nucPos[1])
+                        + (r[2] - nucPos[2]) * (r[2] - nucPos[2]));
+                    return atomic_densities[i].evalfLeftNoRightZero(rr) * ((1.0 / (1.0 + std::exp(-k * (rr - cm)))) + temp);
+                };
+                mrcpp::cplxfunc::project(atomic_density_mw, rho_analytic, mrcpp::NUMBER::Real, prec);
                 ComplexDouble integral = atomic_density_mw.integrate();
                 double rescale = nucs[i].getCharge() / integral.real();
+                // std::cout << "rescale: " << rescale << " integral: " << integral.real() << std::endl;
                 atomic_density_mw.rescale(rescale);
+            } else {
+                mrcpp::Coord<3> nucPos = nucs[i].getCoord();
+                auto rho_analytic = [atomic_densities, nucPos, i](const mrcpp::Coord<3> &r) {
+                    double rr = std::sqrt((r[0] - nucPos[0]) * (r[0] - nucPos[0])
+                        + (r[1] - nucPos[1]) * (r[1] - nucPos[1])
+                        + (r[2] - nucPos[2]) * (r[2] - nucPos[2]));
+                    return atomic_densities[i].evalfLeftNoRightZero(rr);
+                };
+                mrcpp::cplxfunc::project(atomic_density_mw, rho_analytic, mrcpp::NUMBER::Real, prec);
             }
             rho_loc.add(1.0, atomic_density_mw);
         }
