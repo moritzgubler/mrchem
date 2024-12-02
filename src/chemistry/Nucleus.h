@@ -96,9 +96,14 @@ public:
     void setCoord(const mrcpp::Coord<3> &r) { this->coord = r; }
 
     /**
-     * Get the charge of the nucleus. Return the effective charge if a pseudopotential is used.
+     * Get the charge of the nucleus. Returns the effective charge if a pseudopotential is used.
      */
     double getCharge() const { return this->charge; }
+
+    /**
+     * get the atomic number of the nucleus. When pseudopotentials are used the output is different from getCharge()
+     */
+    double getAtomicNumber() const { return this->element->getZ(); }
 
     /**
      * Get the pseudopotential data of the nucleus.
