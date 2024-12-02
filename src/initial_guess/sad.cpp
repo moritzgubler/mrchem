@@ -37,6 +37,7 @@
 #include "chemistry/Nucleus.h"
 // #include "initial_guess/core.h"
 #include "pseudopotential/projectorOperator.h"
+#include "utils/PolyInterpolator.h"
 
 #include <vector>
 #include <string>
@@ -64,6 +65,7 @@ namespace sad {
 
 void project_atomic_densities(double prec, Density &rho_tot, const Nuclei &nucs, double screen = -1.0);
 // void project_hydrogen_densities(double prec, Density &rho, const Nuclei &nucs, int totalCharge);
+void project_atomic_densities_new(double prec, Density &rho_tot, const Nuclei &nucs);
 
 } // namespace sad
 } // namespace initial_guess
@@ -108,7 +110,7 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     t_lap.start();
     Density &rho_j = J.getDensity();
     // initial_guess::sad::project_hydrogen_densities(prec, rho_j, nucs, 0);
-    initial_guess::sad::project_atomic_densities(prec, rho_j, nucs, screen);
+    initial_guess::sad::project_atomic_densities_new(prec, rho_j, nucs);
 
     // Compute XC density
     Density &rho_xc = XC.getDensity(DensityType::Total);
@@ -194,21 +196,23 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     t_lap.start();
     Density &rho_j = J.getDensity();
 
-    initial_guess::sad::project_atomic_densities(prec, rho_j, nucs, screen);
+    initial_guess::sad::project_atomic_densities_new(prec, rho_j, nucs);
 
-    int sum = 0;
-    int sum_eff = 0;
-    for (int i = 0; i < nucs.size(); i++) {
-        sum += nucs[i].getAtomicNumber();
-        sum_eff += nucs[i].getCharge();
-    }
-    if (sum != sum_eff) {
-        double rescale = (double)sum_eff / (double)sum;
-        rho_j.rescale(rescale);
-        ComplexDouble charge = rho_j.integrate();
-        std::cout << "rescale: " << rescale << std::endl;
-        std::cout << "Total charge now for real: " << charge.real() << std::endl;
-    }
+    // int sum = 0;
+    // int sum_eff = 0;
+    // for (int i = 0; i < nucs.size(); i++) {
+    //     sum += nucs[i].getAtomicNumber();
+    //     sum_eff += nucs[i].getCharge();
+    // }
+    // if (sum != sum_eff) {
+    //     double rescale = (double)sum_eff / (double)sum;
+    //     rho_j.rescale(rescale);
+    //     ComplexDouble charge = rho_j.integrate();
+    //     std::cout << "rescale: " << rescale << std::endl;
+    //     std::cout << "Total charge now for real: " << charge.real() << std::endl;
+    // }
+    ComplexDouble charge = rho_j.integrate();
+    std::cout << "Total charge now for real: " << charge.real() << std::endl;
 
     // Compute XC density
     Density &rho_xc = XC.getDensity(DensityType::Total);
@@ -356,6 +360,77 @@ void initial_guess::sad::project_atomic_densities(double prec, Density &rho_tot,
     print_utils::qmfunction(2, "Allreduce density", rho_tot, t_com);
     mrcpp::print::footer(2, t_tot, 2);
 }
+
+void initial_guess::sad::project_atomic_densities_new(double prec, Density &rho, const Nuclei &nucs){
+    std::string source_dir = HIRSHFELD_SOURCE_DIR;
+    std::string install_dir = HIRSHFELD_INSTALL_DIR;
+    std::string data_dir = "";
+    // check if data_dir exists
+    if (std::filesystem::exists(install_dir)) {
+        data_dir = install_dir + "/lda/";
+    } else if (std::filesystem::exists(source_dir)) {
+        data_dir = source_dir + "/lda/";
+    } else {
+        MSG_ABORT("Hirshfeld data directory not found");
+    }
+    std::vector<interpolation_utils::PolyInterpolator> atomic_densities;
+
+    std::vector<double> sigmas;
+    std::vector<double> prefacts;
+    int i = 0;
+    for (const auto &nuc : nucs) {
+        std::string element = nuc.getElement().getSymbol();
+        std::string file = data_dir + "/" + element + ".density";
+
+        Eigen::VectorXd rhoGrid, rGrid;
+        mrchem::density::readAtomicDensity(file, rGrid, rhoGrid);
+
+        interpolation_utils::PolyInterpolator atomic_density(rGrid, rhoGrid);
+        atomic_densities.push_back(atomic_density);
+        if (nuc.getCharge() != nuc.getAtomicNumber()) {
+            double sigma = (- nuc.getCharge() + nuc.getAtomicNumber()) / atomic_density.evalfLeftNoRightZero(0.0) / std::pow(2 * M_PI, 1.5);
+            sigma = std::pow(sigma, 1.0 / 3.0);
+            sigmas.push_back(sigma);
+            double prefactor = ( - nuc.getCharge() + nuc.getAtomicNumber()) / std::pow(2 * M_PI, 1.5) / std::pow(sigma, 3);
+            prefacts.push_back(prefactor);
+        } else {
+            sigmas.push_back(- 1.0);
+            prefacts.push_back(- 1.0);
+        }
+        std::cout << "Prefactor: " << prefacts[i] << " Sigma: " << sigmas[i] << std::endl;
+        i++;
+    }
+    auto rho_analytic = [atomic_densities, nucs, prefacts, sigmas](const mrcpp::Coord<3> &r) {
+        double rho = 0.0;
+        for (int i = 0; i < nucs.size(); i++) {
+            mrcpp::Coord<3> nucPos = nucs[i].getCoord();
+            double rr = std::sqrt((r[0] - nucPos[0]) * (r[0] - nucPos[0])
+                + (r[1] - nucPos[1]) * (r[1] - nucPos[1])
+                + (r[2] - nucPos[2]) * (r[2] - nucPos[2]));
+            rho += atomic_densities[i].evalfLeftNoRightZero(rr);
+            if (prefacts[i] > 0) {
+                rho -= prefacts[i] * std::exp(- rr * rr / (2 * sigmas[i] * sigmas[i]));
+            }
+            if (rho < 0)
+            {
+                // std::cout << "Negative density at r = " << rr << " for atom " << i << std::endl;
+                rho = 0;
+            }
+            
+        }
+        return rho;
+    };
+    
+    mrcpp::ComplexFunction rho_MW;
+    mrcpp::cplxfunc::project(rho_MW, rho_analytic, mrcpp::NUMBER::Real, prec);
+
+    mrcpp::ComplexDouble integral = rho_MW.integrate();
+    double norm = integral.real();
+    std::cout << "Integral of initial charge density: " << norm << std::endl;
+    rho.add(1.0, rho_MW);
+}
+
+
 
 // void initial_guess::sad::project_hydrogen_densities(double prec, Density &rho, const Nuclei &nucs, int totalCharge){
 
