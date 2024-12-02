@@ -198,22 +198,6 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
 
     initial_guess::sad::project_atomic_densities_new(prec, rho_j, nucs);
 
-    // int sum = 0;
-    // int sum_eff = 0;
-    // for (int i = 0; i < nucs.size(); i++) {
-    //     sum += nucs[i].getAtomicNumber();
-    //     sum_eff += nucs[i].getCharge();
-    // }
-    // if (sum != sum_eff) {
-    //     double rescale = (double)sum_eff / (double)sum;
-    //     rho_j.rescale(rescale);
-    //     ComplexDouble charge = rho_j.integrate();
-    //     std::cout << "rescale: " << rescale << std::endl;
-    //     std::cout << "Total charge now for real: " << charge.real() << std::endl;
-    // }
-    ComplexDouble charge = rho_j.integrate();
-    std::cout << "Total charge now for real: " << charge.real() << std::endl;
-
     // Compute XC density
     Density &rho_xc = XC.getDensity(DensityType::Total);
     mrcpp::cplxfunc::deep_copy(rho_xc, rho_j);
@@ -375,9 +359,7 @@ void initial_guess::sad::project_atomic_densities_new(double prec, Density &rho,
     }
     std::vector<interpolation_utils::PolyInterpolator> atomic_densities;
 
-    std::vector<double> sigmas;
-    std::vector<double> prefacts;
-    int i = 0;
+    Density rho_loc(false);
     for (const auto &nuc : nucs) {
         std::string element = nuc.getElement().getSymbol();
         std::string file = data_dir + "/" + element + ".density";
@@ -387,151 +369,36 @@ void initial_guess::sad::project_atomic_densities_new(double prec, Density &rho,
 
         interpolation_utils::PolyInterpolator atomic_density(rGrid, rhoGrid);
         atomic_densities.push_back(atomic_density);
-        if (nuc.getCharge() != nuc.getAtomicNumber()) {
-            double sigma = (- nuc.getCharge() + nuc.getAtomicNumber()) / atomic_density.evalfLeftNoRightZero(0.0) / std::pow(2 * M_PI, 1.5);
-            sigma = std::pow(sigma, 1.0 / 3.0);
-            sigmas.push_back(sigma);
-            double prefactor = ( - nuc.getCharge() + nuc.getAtomicNumber()) / std::pow(2 * M_PI, 1.5) / std::pow(sigma, 3);
-            prefacts.push_back(prefactor);
-        } else {
-            sigmas.push_back(- 1.0);
-            prefacts.push_back(- 1.0);
-        }
-        std::cout << "Prefactor: " << prefacts[i] << " Sigma: " << sigmas[i] << std::endl;
-        i++;
     }
-    auto rho_analytic = [atomic_densities, nucs, prefacts, sigmas](const mrcpp::Coord<3> &r) {
-        double rho = 0.0;
-        for (int i = 0; i < nucs.size(); i++) {
-            mrcpp::Coord<3> nucPos = nucs[i].getCoord();
-            double rr = std::sqrt((r[0] - nucPos[0]) * (r[0] - nucPos[0])
-                + (r[1] - nucPos[1]) * (r[1] - nucPos[1])
-                + (r[2] - nucPos[2]) * (r[2] - nucPos[2]));
-            rho += atomic_densities[i].evalfLeftNoRightZero(rr);
-            if (prefacts[i] > 0) {
-                rho -= prefacts[i] * std::exp(- rr * rr / (2 * sigmas[i] * sigmas[i]));
+
+    for (int i = 0; i < nucs.size(); i++) {
+
+        if (mrcpp::my_orb(i)) {
+            bool need_rescale = nucs[i].getCharge() != nucs[i].getAtomicNumber();
+            auto rho_analytic = [atomic_densities, nucs, i, need_rescale](const mrcpp::Coord<3> &r) {
+                double k = 10;
+                mrcpp::Coord<3> nucPos = nucs[i].getCoord();
+                double rr = std::sqrt((r[0] - nucPos[0]) * (r[0] - nucPos[0])
+                    + (r[1] - nucPos[1]) * (r[1] - nucPos[1])
+                    + (r[2] - nucPos[2]) * (r[2] - nucPos[2]));
+                double rho = atomic_densities[i].evalfLeftNoRightZero(rr);
+                if (need_rescale){ // dampen the density at the core
+                    double cm =nucs[i].getPseudopotentialData()->getMaxRpp() * .5;
+                    rho = rho * ((1.0 / (1.0 + std::exp(-k * (rr - cm)))) - (1.0 / (1.0 + std::exp(cm * k))));
+                }
+                return rho;
+            };
+            mrcpp::ComplexFunction atomic_density_mw;
+            mrcpp::cplxfunc::project(atomic_density_mw, rho_analytic, mrcpp::NUMBER::Real, prec);
+            if (need_rescale) {
+                ComplexDouble integral = atomic_density_mw.integrate();
+                double rescale = nucs[i].getCharge() / integral.real();
+                atomic_density_mw.rescale(rescale);
             }
-            if (rho < 0)
-            {
-                // std::cout << "Negative density at r = " << rr << " for atom " << i << std::endl;
-                rho = 0;
-            }
-            
+            rho_loc.add(1.0, atomic_density_mw);
         }
-        return rho;
-    };
-    
-    mrcpp::ComplexFunction rho_MW;
-    mrcpp::cplxfunc::project(rho_MW, rho_analytic, mrcpp::NUMBER::Real, prec);
-
-    mrcpp::ComplexDouble integral = rho_MW.integrate();
-    double norm = integral.real();
-    std::cout << "Integral of initial charge density: " << norm << std::endl;
-    rho.add(1.0, rho_MW);
+    }
+    density::allreduce_density(prec, rho, rho_loc);
 }
-
-
-
-// void initial_guess::sad::project_hydrogen_densities(double prec, Density &rho, const Nuclei &nucs, int totalCharge){
-
-//     std::cout << "a;lksjdf;lkajsd;flk" << std::endl;
-
-//     class Orb{
-//         public:
-//         Orb(int n, int l, int m, double occ, int z) : n(n), l(l), m(m), occ(occ), z(z) {}
-
-//         int n, l, m;
-//         double occ;
-//         int z;
-//     };
-
-//     int PT[29][2] = {
-//          /*s*/
-//         {1, 0},                      /*p*/
-//         {2, 0},                     {2, 1},
-//         {3, 0},               /*d*/ {3, 1},
-//         {4, 0},              {3, 2},{4, 1},
-//         {5, 0},        /*f*/ {4, 2},{5, 1},
-//         {6, 0},       {4, 3},{5, 2},{6, 1},
-//         {7, 0}, /*g*/ {5, 3},{6, 2},{7, 1},
-//         {8, 0},{5, 4},{6, 3},{7, 2},{8, 1},
-//         {9, 0},{6, 4},{7, 3},{8, 2},{9, 1}
-//     };
-
-//     Eigen::VectorXi nl(5);
-//     nl << 2, 6, 10, 14, 18;
-
-//     OrbitalVector Psi;
-//     // loop over nuclei
-//     for (int i = 0; i < nucs.size(); i++) {
-//         const Nucleus &nuc = nucs[i];
-//         int z = nuc.getAtomicNumber();
-
-//         std::vector<Orb> orbs;
-
-//         // find number of shells
-//         int nShells = 0;
-//         int tempCharge = 0;
-//         int j = 0;
-//         while (tempCharge < z) {
-//             tempCharge += nl[PT[j][1]];
-//             nShells++;
-//             j++;
-//         }
-//         std::cout << "nShells = " << nShells << std::endl;
-//         int n;
-//         int l;
-//         int M;
-//         for (int ishell = 0; ishell < nShells - 1; ishell++ ) {
-//             n = PT[ishell][0];
-//             l = PT[ishell][1];
-//             M = 2 * l + 1;
-//             for (int m = -l; m <= l; m++) {
-//                 std::cout << "n = " << n << " l = " << l << " m = " << m << std::endl;
-//                 orbs.push_back(Orb(n, l, m, 2.0, z));
-//             }
-//         }
-//         n = PT[nShells - 1][0];
-//         l = PT[nShells - 1][1];
-//         M = 2 * l + 1;
-//         int remainingCharge = z - 2 * orbs.size();
-//         double occ = (1.0 * remainingCharge) / M;
-//         for (int m = 0; m < M; m++) {
-//             orbs.push_back(Orb(n, l, m, occ, z));
-//         }
-
-//         double charge = 0.0;
-//         for (int ii = 0; ii< orbs.size(); ii++) {
-//             std::cout << "Orb " << ii << " n = " << orbs[ii].n << " l = " << orbs[ii].l << " m = " << orbs[ii].m << " occ = " << orbs[ii].occ << std::endl;
-//             charge += orbs[ii].occ;
-//         }
-//         std::cout << "Total charge = " << charge << " Z = " << z << std::endl;
-        
-//         int pp_charge = z - nuc.getCharge();
-//         if (pp_charge %2 != 0) {
-//             MSG_ABORT("Pseudopotential charge must be even");
-//         }
-
-//         int i_start = pp_charge / 2;
-//         std::cout << "i_start = " << i_start << std::endl;
-//         for (int iorb = i_start; iorb < orbs.size(); iorb++) {
-//             Orb &orb = orbs[iorb];
-//             std::cout << "Orb " << iorb << " n = " << orb.n << " l = " << orb.l << " m = " << orb.m << " occ = " << orb.occ << std::endl;
-//             HydrogenFunction h_func(orb.n, orb.l, orb.m, orb.z, nuc.getCoord());
-//             Psi.push_back(Orbital(SPIN::Paired, occ = 1));
-//             Psi.back().setRank(Psi.size() - 1);
-//             mrcpp::cplxfunc::project(Psi.back(), h_func, NUMBER::Real, prec);
-//             Psi.back().rescale(std::sqrt(orb.occ));
-//         }
-//         std::cout << "end of loop" << std::endl << std::endl;
-//     }
-
-//     density::compute(prec, rho, Psi, DensityType::Total);
-
-//     ComplexDouble charge = rho.integrate();
-//     std::cout << "Total charge (integral) = " << charge.real() << std::endl;
-
-//     // exit(0);
-// }
 
 } // namespace mrchem
