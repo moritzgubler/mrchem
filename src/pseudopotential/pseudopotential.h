@@ -309,6 +309,24 @@ public:
         return qnlcc;
     }
 
+    /**
+     * Returns the maximum radius of the pseudopotential.
+     */
+    double getMaxRpp() const {
+        double max_r_pp = rloc;
+        for (int l = 0; l < nsep; l++) {
+            if (rl[l] > max_r_pp) {
+                max_r_pp = rl[l];
+            }
+        }
+        if (getHasNlcc()) {
+            if (rnlcc > max_r_pp) {
+                max_r_pp = rnlcc;
+            }
+        }
+        return max_r_pp;
+    }
+
     int zeff; /** Effective charge of nucleus */
     int zion; /** Atomic number of nucleus */
     double rloc; /** Radius of local part of pseudopotential */
