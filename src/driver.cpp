@@ -399,12 +399,12 @@ bool driver::scf::guess_orbitals(const json &json_guess, Molecule &mol) {
 
     auto success = true;
 
-    if (mol.hasPseudopotential()) {
-        type = "core";
-        if (zeta <= 0) {
-            zeta = 1;
-        }
-    }
+    // if (mol.hasPseudopotential()) {
+    //     type = "core";
+    //     if (zeta <= 0) {
+    //         zeta = 1;
+    //     }
+    // }
 
     if (type == "chk") {
         success = initial_guess::chk::setup(Phi, file_chk);
