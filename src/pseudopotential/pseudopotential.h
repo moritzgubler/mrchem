@@ -48,13 +48,13 @@ public:
 
         nlohmann::json pp_json = pp_json_in["pseuodopotential"];
 
-        std::cout << "PseudopotentialData(nlohmann::json pp_json)" << std::endl;
-        std::cout << "pp_json: " << pp_json << std::endl;
+        // std::cout << "PseudopotentialData(nlohmann::json pp_json)" << std::endl;
+        // std::cout << "pp_json: " << pp_json << std::endl;
         // std::cout << "pp_json[pp_json]: " << pp_json["pp_json"] << std::endl;
-        std::cout << "reading zeff and zion" << std::endl;
+        // std::cout << "reading zeff and zion" << std::endl;
         zeff = pp_json["zeff"];
         zion = pp_json["zion"];
-        std::cout << "zeff: " << zeff << std::endl;
+        // std::cout << "zeff: " << zeff << std::endl;
         rloc = pp_json["local"]["rloc"];
         nloc = pp_json["local"]["nloc"];
         alpha_pp = pp_json["local"]["alpha_pp"];
@@ -92,6 +92,8 @@ public:
             std::cerr << "Error: Could not open file " << filename << std::endl;
             return;
         }
+
+        MSG_ERROR("PseudopotentialData(std::string filename) is deprecated. Use PseudopotentialData(nlohmann::json pp_json) instead.");
 
         std::string line;
         std::vector<std::string> words;
