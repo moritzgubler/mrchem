@@ -13,7 +13,7 @@ TEST_CASE("sperical_harmonics", "[spherical_harmonics]") {
     // const double thrs = 1.0e-12;
 
     SECTION("calc spherical harmonics") {
-        double alpha = 1.0;
+        double alpha = .5;
         OrbitalVector Phi;
         for (int l = 0; l < 5; l++) {
             for (int m = -l; m <= l; m++) {
@@ -105,7 +105,7 @@ TEST_CASE("sperical_harmonics", "[spherical_harmonics]") {
         }
         Eigen::MatrixXd S_ref = Eigen::MatrixXd::Zero(Phi.size(), Phi.size());
         for (int i = 0; i < Phi.size(); i++) {
-            S_ref(i, i) = 1.0 / (4.0 * alpha * alpha * alpha);
+            S_ref(i, i) = 1.0 / (4.0 * alpha*alpha*alpha);
         }
         int iorb = 0;
         int jorb = 0;
