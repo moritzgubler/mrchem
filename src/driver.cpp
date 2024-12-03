@@ -395,6 +395,17 @@ bool driver::scf::guess_orbitals(const json &json_guess, Molecule &mol) {
     for (auto p = 0; p < Np; p++) Phi.push_back(Orbital(SPIN::Paired));
     for (auto a = 0; a < Na; a++) Phi.push_back(Orbital(SPIN::Alpha));
     for (auto b = 0; b < Nb; b++) Phi.push_back(Orbital(SPIN::Beta));
+    
+    if (restricted) {
+        Phi.push_back(Orbital(SPIN::Paired, 0));
+        Phi.push_back(Orbital(SPIN::Paired, 0));
+    } else {
+        Phi.push_back(Orbital(SPIN::Alpha, 0));
+        Phi.push_back(Orbital(SPIN::Alpha, 0));
+        Phi.push_back(Orbital(SPIN::Beta, 0));
+        Phi.push_back(Orbital(SPIN::Beta, 0));
+    }
+
     Phi.distribute();
 
     auto success = true;
