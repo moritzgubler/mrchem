@@ -35,10 +35,6 @@ from .validators import MoleculeValidator
 
 def translate_input(user_dict):
 
-    import json
-    with open("user.json", "w") as f:
-        json.dump(user_dict, f, indent=4)
-
     # get the origin in the desired units of measure
     origin = user_dict["world_origin"]
     pc = user_dict["Constants"]
