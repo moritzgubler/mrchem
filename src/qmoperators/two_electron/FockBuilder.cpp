@@ -230,7 +230,12 @@ SCFEnergy FockBuilder::trace(OrbitalVector &Phi, const Nuclei &nucs) {
     if (this->ex != nullptr) E_x = -this->exact_exchange * this->ex->trace(Phi).real();
     if (this->xc != nullptr) E_xc = this->xc->getEnergy();
     if (this->ext != nullptr) E_eext = this->ext->trace(Phi).real();
-    if (this->pp_projector != nullptr) E_nl = this->pp_projector->trace(Phi).real();
+    if (getProjectorOperator() != nullptr) {
+        E_nl = this->pp_projector->trace(Phi).real();
+        std::cout << "E_nl: " << E_nl << std::endl;
+    } else {
+        std::cout << "No projector operator set" << std::endl;
+    }
     // std::cout << "E_nl: " << E_nl << std::endl;
 
     mrcpp::print::footer(2, t_tot, 2);
