@@ -3,6 +3,7 @@
 #include <math.h>
 // #include <fstream>
 // #include <iostream>
+#include <MRCPP/Printer>
 
 #include <string>
 
@@ -52,7 +53,32 @@ ProjectorFunction::ProjectorFunction(mrcpp::Coord<3> pos, double rl, int i, int 
         return prefactor * std::pow(normr, 2 * (ii - 1)) * std::exp(- 0.5 * normr * normr / (this->rl * this-> rl) ) * this->s(rprime, normr);
     };
     auto op = (*this);
+
+
+ 
+
     mrcpp::cplxfunc::project(op, project_analytic, mrcpp::NUMBER::Real, prec);
+
+    double nrm = op.norm();
+    if (abs(nrm - 1.0) > 10 * prec) {
+        std::cout << "Projecting function " << i << " with l = " << l << " and m = " << m << " failed." << std::endl;
+        std::cout << "Number of nodes: " << op.getNNodes(mrcpp::NUMBER::Total) << std::endl;
+        std::cout << "Try again" <<std::endl;
+        double sigma = 0.6;
+        auto gauss = [sigma, this](const std::array<double, 3> &r) -> double {
+            std::array<double, 3> rprime = {r[0] - this->pos[0], r[1] - this->pos[1], r[2] - this->pos[2]};
+            double normr = std::sqrt( rprime[0] * rprime[0] + rprime[1] * rprime[1] + rprime[2] * rprime[2]);
+            double prefactor = 1.0 / (std::pow(2.0 * M_PI, 1.5) * sigma * sigma * sigma);
+            return std::exp(- 0.5 * normr * normr / (sigma * sigma) ) * prefactor;
+        };
+        mrcpp::cplxfunc::project(op, gauss, mrcpp::NUMBER::Real, prec);
+        std::cout << "integral of gauss function: " << op.integrate() << std::endl;
+        std::cout << "number of nodes: " << op.getNNodes(mrcpp::NUMBER::Total) << std::endl;
+        mrcpp::cplxfunc::project(op, project_analytic, mrcpp::NUMBER::Real, prec);
+        nrm = op.norm();
+        std ::cout << "norm of projector fixed: " << nrm << std::endl;
+        std::cout << "Number of nodes: " << op.getNNodes(mrcpp::NUMBER::Total) << std::endl;
+    } 
 
     // mrcpp::Coord<3> r = {0.0, 0.0, 0.3};
     // std::cout << "ProjectorFunction at origin: " << this->real().evalf(r) << std::endl;
