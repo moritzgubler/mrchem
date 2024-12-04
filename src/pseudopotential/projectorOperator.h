@@ -136,9 +136,7 @@ mrchem::Orbital apply(mrchem::Orbital phi) {
                 // loop over all projectors
                 for (int ip = 0; ip < pp[iat].dim_h[l]; ip++){
                     complexCoefficients.push_back(dot_products(ip));
-                    mrcpp::ComplexFunction temp;
-                    mrcpp::cplxfunc::deep_copy(temp, *proj[iat].lProj[l].mProj[mm].iProj[ip].projector_ptr);
-                    complexFunctionVector.push_back(temp);
+                    complexFunctionVector.push_back(*proj[iat].lProj[l].mProj[mm].iProj[ip].projector_ptr);
                 }
             }
         }
