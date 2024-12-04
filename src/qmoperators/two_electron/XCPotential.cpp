@@ -98,8 +98,22 @@ void XCPotential::setup(double prec) {
                 }
                 return rho;
             };
+            double sigma = 0.6;
+            auto gauss = [sigma, nlccCoords](const mrcpp::Coord<3> &r) {
+                int n = nlccCoords.size();
+                double rho = 0.0;
+                for (int i = 0; i < n; i++) {
+                    double rr = std::sqrt((r[0] - nlccCoords[i][0]) * (r[0] - nlccCoords[i][0])
+                        + (r[1] - nlccCoords[i][1]) * (r[1] - nlccCoords[i][1])
+                        + (r[2] - nlccCoords[i][2]) * (r[2] - nlccCoords[i][2]));
+                    rho += std::exp(-rr * rr / (2 * sigma * sigma));
+                }
+                double gaussNormalization = 1.0 / (std::pow(2 * M_PI, 1.5) * std::pow(sigma, 3.0));
+                return rho * gaussNormalization;
+            };
             mrcpp::AnalyticFunction<3> rho_analytic_func(rho_analytic);
             mrcpp::ComplexFunction rho_nlcc;
+            mrcpp::cplxfunc::project(rho_nlcc, gauss, mrcpp::NUMBER::Real, prec);
             mrcpp::cplxfunc::project(rho_nlcc, rho_analytic_func, mrcpp::NUMBER::Real, prec);
 
             if (pairedDensity) {
