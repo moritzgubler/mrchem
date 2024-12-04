@@ -14,8 +14,10 @@ public:
     int m;
     double rl;
     double prec;
-    mrcpp::ComplexFunction projector;
-    // std::shared_ptr<mrcpp::ComplexFunction> projector_ptr;
+    // mrcpp::ComplexFunction projector;
+    std::shared_ptr<mrcpp::ComplexFunction> projector_ptr;
+
+    
 
     // destructor
     // ~ProjectorFunction(){

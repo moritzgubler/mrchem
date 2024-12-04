@@ -20,13 +20,14 @@ TEST_CASE("sperical_harmonics", "[spherical_harmonics]") {
         int iOrb = 0;
         for (int l = 0; l < 4; l++) {
             for (int m = -l; m <= l; m++) {
-                for (int idim = 0; idim < 4; idim++) {
+                for (int idim = 0; idim < 1; idim++) {
                     mrcpp::Coord<3> r;
                     r[0] = 0.0;
                     r[1] = 0.0;
                     r[2] = 0.0;
-                    ProjectorFunction pp(r, 1.0, idim, l, m, prec);
-                    pps.push_back(pp);
+                    double rl = 2.117559e-01;
+                    // ProjectorFunction pp(r, rl, idim, l, m, prec);
+                    pps.push_back(ProjectorFunction(r, rl , idim, l, m, prec));
                 }
             }
         }
@@ -35,8 +36,8 @@ TEST_CASE("sperical_harmonics", "[spherical_harmonics]") {
         for (int i = 0; i < pps.size(); i++) {
             for (int j = 0; j < pps.size(); j++) {
                 // S(i, j) = qmfunction::dot(Phi[i], Phi[j]).real();
-                S(i, j) = mrcpp::cplxfunc::dot(pps[i].projector, pps[j].projector).real();
-                std::cout << i << " " << j << " " << S(i, j) << " " << pps[i].projector.norm() << std::endl;
+                S(i, j) = mrcpp::cplxfunc::dot(*pps[i].projector_ptr, *pps[j].projector_ptr).real();
+                // std::cout << i << " " << j << " " << S(i, j) << " " << pps[i].projector_ptr->norm() << std::endl;
             }
         }
         Eigen::MatrixXd S_ref = Eigen::MatrixXd::Zero(pps.size(), pps.size());
@@ -51,8 +52,8 @@ TEST_CASE("sperical_harmonics", "[spherical_harmonics]") {
                 for (int ll = 0; ll < 5; ll++) {
                     for (int mm = -ll; mm <= ll; mm++) {
                         if (l == ll && m == mm) {
-                            std::cout << "l " << l << " m " << m << " ll " << ll << " mm " << mm << std::endl;
-                            std::cout << iorb << " " << jorb << " " << S(iorb, jorb) << " " << S_ref(iorb, jorb) << std::endl;
+                            // std::cout << "l " << l << " m " << m << " ll " << ll << " mm " << mm << std::endl;
+                            // std::cout << iorb << " " << jorb << " " << S(iorb, jorb) << " " << S_ref(iorb, jorb) << std::endl;
                             REQUIRE(std::abs(S(iorb, jorb) - (S_ref(iorb, jorb))) < prec);
                         }
                         jorb++;

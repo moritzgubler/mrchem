@@ -3,6 +3,7 @@
 #include <math.h>
 #include <fstream>
 #include <iostream>
+#include <MRCPP/Printer>
 
 #include <string>
 
@@ -53,50 +54,20 @@ ProjectorFunction::ProjectorFunction(mrcpp::Coord<3> pos, double rl, int i, int 
     };
     // auto op = (*this);
     // mrcpp::ComplexFunction f;
-    mrcpp::cplxfunc::project(projector, project_analytic, mrcpp::NUMBER::Real, prec);
+    projector_ptr = std::make_shared<mrcpp::ComplexFunction>();
+    mrcpp::cplxfunc::project(*projector_ptr, project_analytic, mrcpp::NUMBER::Real, prec);
     // mrcpp::cplxfunc::deep_copy(op, f);
 
-    std::cout << "Norm of projector: " << projector.norm() << std::endl;
-    if (projector.norm() < 0.99 || projector.norm() > 1.01){
-        std::cout << "Norm of projector is not 1" << std::endl;
-        std::cout << "rl = " << rl << std::endl;
-        std::cout << "l = " << l << std::endl;
-        std::cout << "m = " << m << std::endl;
-        std::cout << "i = " << i << std::endl;
-        std::cout << "prefactor: " << prefactor << std::endl;
+    double nrm = projector_ptr->norm();
+
+
+    if (std::abs(nrm - 1.0) > 10 * prec) {
+        std::cout << "Norm of projector " << nrm << std::endl;
+        std::cout << "Number of nodes " << projector_ptr->getNNodes(mrcpp::NUMBER::Total);
+        std::cout << "l: " << l << " m: " << m << std::endl;
         std::cout << "rl: " << rl << std::endl;
-        std::cout << "pow " << std::pow(rl, l + (4.0 * ii - 1) / 2.0) << std::endl;
-
-        // debug with prints why prefactor is nan:
-        std::cout << "prefactor: " << prefactor << std::endl;
-        std::cout << "rl: " << rl << std::endl;
-        std::cout << "l: " << l << std::endl;
-        std::cout << "ii: " << ii << std::endl;
-        std::cout << "tgamma: " << tgamma( l + (4.0 * ii - 1.0) / 2.0 ) << std::endl;
-        std::cout << "arg of tgamma: " << l + (4.0 * ii - 1.0) / 2.0 << std::endl;
-
-    mrcpp::Coord<3> r = {0.0, 0.0, 0.0};
-    std::cout << "ProjectorFunction at origin: " << projector.real().evalf(r) << std::endl;
-    std::cout << "analytic at origin: " << project_analytic(r) << std::endl;
-    std::cout << "prefactor: " << prefactor << std::endl;
-
-    std::cout << "ProjectorFunction constructed in constructor" << std::endl;
-
-    int nPoints = 200;
-    double dr = 0.01;
-    std::ofstream file;
-    std::string fname = "projector_" + std::to_string(l) + "_" + std::to_string(m) + "_" + std::to_string(i) + ".dat";
-    r[0] = 0.0;
-    r[1] = 0.0;
-    r[2] = 0.0;
-    file.open(fname);
-    for (int ijk = 0; ijk < nPoints; ijk++){
-        r[0] = ijk * dr;
-        file << r[0] << " " << projector.real().evalf(r) << " " << project_analytic(r) << std::endl;
-    }
-    file.close();
-        exit(1);
-
+        std::cout << "i: " << i << std::endl;
+        MSG_ABORT("Projection of projector failed");
     }
 
 }

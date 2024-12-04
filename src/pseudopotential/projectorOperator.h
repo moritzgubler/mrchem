@@ -128,7 +128,7 @@ mrchem::Orbital apply(mrchem::Orbital phi) {
                     // std::cout << "computing dot product " << ip << std::endl;
                     mrcpp::Coord<3> r = {0.0, 0.0, 0.3};
                     // std::cout << "projector value at origin: " << proj[iat].lProj[l].mProj[mm].iProj[ip].real().evalf(r) << std::endl;
-                    dotComplex = mrcpp::cplxfunc::dot(phi, proj[iat].lProj[l].mProj[mm].iProj[ip].projector);
+                    dotComplex = mrcpp::cplxfunc::dot(phi, *proj[iat].lProj[l].mProj[mm].iProj[ip].projector_ptr);
                     dot_products(ip) = dotComplex.real();
                     // std::cout << "Dot product " << ip << " " << dotComplex << std::endl;
                 }
@@ -137,7 +137,7 @@ mrchem::Orbital apply(mrchem::Orbital phi) {
                 for (int ip = 0; ip < pp[iat].dim_h[l]; ip++){
                     complexCoefficients.push_back(dot_products(ip));
                     mrcpp::ComplexFunction temp;
-                    mrcpp::cplxfunc::deep_copy(temp, proj[iat].lProj[l].mProj[mm].iProj[ip].projector);
+                    mrcpp::cplxfunc::deep_copy(temp, *proj[iat].lProj[l].mProj[mm].iProj[ip].projector_ptr);
                     complexFunctionVector.push_back(temp);
                 }
             }
