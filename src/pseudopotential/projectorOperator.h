@@ -76,7 +76,8 @@ public:
                     for (int idim = 0; idim < pp[i].dim_h[l]; idim++){
                         // proj.push_back(ProjectorFunction(pos, pp[i].rl[l], isep, l, m, prec));
                         // std::cout << "Creating ProjectorFunction " << l << " " << m << " " << idim << std::endl;
-                        proj[i].lProj[l].mProj[mIndex].iProj.push_back(ProjectorFunction(pos, pp[i].rl[l], idim, l, m, prec));
+                        ProjectorFunction pppp(pos, pp[i].rl[l], idim, l, m, prec);
+                        proj[i].lProj[l].mProj[mIndex].iProj.push_back(pppp);
                         // std::cout << "ProjectorFunction constructed " << i << std::endl;
                         // std::cout << "i = " << i << std::endl;
                         // std::cout << "nsep = " << pp[i].nsep << std::endl;
@@ -127,7 +128,7 @@ mrchem::Orbital apply(mrchem::Orbital phi) {
                     // std::cout << "computing dot product " << ip << std::endl;
                     mrcpp::Coord<3> r = {0.0, 0.0, 0.3};
                     // std::cout << "projector value at origin: " << proj[iat].lProj[l].mProj[mm].iProj[ip].real().evalf(r) << std::endl;
-                    dotComplex = mrcpp::cplxfunc::dot(phi, proj[iat].lProj[l].mProj[mm].iProj[ip]);
+                    dotComplex = mrcpp::cplxfunc::dot(phi, proj[iat].lProj[l].mProj[mm].iProj[ip].projector);
                     dot_products(ip) = dotComplex.real();
                     // std::cout << "Dot product " << ip << " " << dotComplex << std::endl;
                 }
@@ -135,7 +136,9 @@ mrchem::Orbital apply(mrchem::Orbital phi) {
                 // loop over all projectors
                 for (int ip = 0; ip < pp[iat].dim_h[l]; ip++){
                     complexCoefficients.push_back(dot_products(ip));
-                    complexFunctionVector.push_back(proj[iat].lProj[l].mProj[mm].iProj[ip]);
+                    mrcpp::ComplexFunction temp;
+                    mrcpp::cplxfunc::deep_copy(temp, proj[iat].lProj[l].mProj[mm].iProj[ip].projector);
+                    complexFunctionVector.push_back(temp);
                 }
             }
         }
