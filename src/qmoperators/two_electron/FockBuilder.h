@@ -91,6 +91,8 @@ public:
 
     SCFEnergy trace(OrbitalVector &Phi, const Nuclei &nucs);
     ComplexMatrix operator()(OrbitalVector &bra, OrbitalVector &ket);
+    ComplexMatrix kineticMatrix(OrbitalVector &bra, OrbitalVector &ket);
+    ComplexMatrix potentialMatrix(OrbitalVector &bra, OrbitalVector &ket);
 
     OrbitalVector buildHelmholtzArgument(double prec, OrbitalVector Phi, ComplexMatrix F_mat, ComplexMatrix L_mat);
 

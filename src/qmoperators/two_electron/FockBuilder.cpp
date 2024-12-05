@@ -264,6 +264,18 @@ ComplexMatrix FockBuilder::operator()(OrbitalVector &bra, OrbitalVector &ket) {
     return T_mat + V_mat;
 }
 
+ComplexMatrix FockBuilder::kineticMatrix(OrbitalVector &bra, OrbitalVector &ket) {
+    if (isZora() || isAZora()) {
+        return qmoperator::calc_kinetic_matrix(momentum(), *this->chi, bra, ket) + qmoperator::calc_kinetic_matrix(momentum(), bra, ket);
+    } else {
+        return qmoperator::calc_kinetic_matrix(momentum(), bra, ket);
+    }
+}
+
+ComplexMatrix FockBuilder::potentialMatrix(OrbitalVector &bra, OrbitalVector &ket) {
+    return potential()(bra, ket);
+}
+
 OrbitalVector FockBuilder::buildHelmholtzArgument(double prec, OrbitalVector Phi, ComplexMatrix F_mat, ComplexMatrix L_mat) {
     Timer t_tot;
     auto plevel = Printer::getPrintLevel();
