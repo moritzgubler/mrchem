@@ -52,6 +52,7 @@
 #include "qmoperators/one_electron/NuclearOperator.h"
 #include "qmoperators/two_electron/CoulombOperator.h"
 #include "qmoperators/two_electron/XCOperator.h"
+#include "qmoperators/qmoperator_utils.h"
 
 #include "mrdft/Factory.h"
 
@@ -196,11 +197,12 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     t_lap.start();
     Density &rho_j = J.getDensity();
 
-    initial_guess::sad::project_atomic_densities_new(prec, rho_j, nucs);
+    Density rho_new(false);
+    initial_guess::sad::project_atomic_densities_new(prec, rho_new, nucs);
 
     // Compute XC density
     Density &rho_xc = XC.getDensity(DensityType::Total);
-    mrcpp::cplxfunc::deep_copy(rho_xc, rho_j);
+    // mrcpp::cplxfunc::deep_copy(rho_j, rho_j);
 
     if (use_pp) {
         XC.setNuclei(std::make_shared<Nuclei>(nucs));
@@ -235,23 +237,70 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     if (plevel == 2) mrcpp::print::header(2, "Building Fock operator");
     t_lap.start();
     p.setup(prec);
-    V.setup(prec);
     if (plevel == 2) mrcpp::print::footer(2, t_lap, 2);
     if (plevel == 1) mrcpp::print::time(1, "Building Fock operator", t_lap);
 
-    // Compute Fock matrix
-    mrcpp::print::header(2, "Diagonalizing Fock matrix");
+    double alpha = 0.4;
+    for (int iorb = 0; iorb < Phi.size(); iorb++) {
+        Psi[iorb].setOcc(Phi[iorb].occ());
+    }
+    for (int iorb = Phi.size(); iorb < Psi.size(); iorb++) {
+        Psi[iorb].setOcc(0);
+    }
+    
+    ComplexMatrix t_tilde = qmoperator::calc_kinetic_matrix(p, Psi, Psi);
+    // std::cout << "t_tilde: " << t_tilde << std::endl;
+
+    p.clear();
+
+    int nGauss = 10;
+
+    // mrcpp::cplxfunc::deep_copy(rho_new, rho_j);
+    for (int iGauss = 0; iGauss < nGauss; iGauss++) {
+        std::cout << "Mixing iteration " << iGauss << std::endl;
+        // Compute Fock matrix
+        mrcpp::print::header(2, "Diagonalizing Fock matrix");
+
+        mrcpp::cplxfunc::deep_copy(rho_j, rho_new);
+        mrcpp::cplxfunc::deep_copy(rho_xc, rho_new);
+
+        V.setup(prec);
+        ComplexMatrix U = initial_guess::core::diagonalize(Psi, t_tilde, V);
+        // std::cout << "diagonalized " << std::endl;
+        initial_guess::core::rotate_orbitals(Phi, prec, U, Psi);
+        // std::cout << "rotated " << std::endl;
+        density::compute(prec, rho_new, Phi, DensityType::Total);
+        rho_new.rescale(1 - alpha);
+        rho_new.add(alpha, rho_j);
+        V.clear();
+    }
+
+    mrcpp::cplxfunc::deep_copy(rho_j, rho_new);
+    mrcpp::cplxfunc::deep_copy(rho_xc, rho_new);
+    p.setup(prec);
+    V.setup(prec);
+
+    // std::cout << "before U " << std::endl;
+
+
     ComplexMatrix U = initial_guess::core::diagonalize(Psi, p, V);
+    // std::cout << "diagonalized " << std::endl;
 
     // Rotate orbitals and fill electrons by Aufbau
     t_lap.start();
     auto Phi_a = orbital::disjoin(Phi, SPIN::Alpha);
     auto Phi_b = orbital::disjoin(Phi, SPIN::Beta);
+    // std::cout << "disjoined " << std::endl;
     initial_guess::core::rotate_orbitals(Phi, prec, U, Psi);
+    // std::cout << "rotated Phi " << std::endl;
     initial_guess::core::rotate_orbitals(Phi_a, prec, U, Psi);
+    // std::cout << "rotated Phi_a " << std::endl;
     initial_guess::core::rotate_orbitals(Phi_b, prec, U, Psi);
+    // std::cout << "rotated Phi_b " << std::endl;
     Phi = orbital::adjoin(Phi, Phi_a);
+    // std::cout << "adjoined " << std::endl;
     Phi = orbital::adjoin(Phi, Phi_b);
+    // std::cout << "adjoined " << std::endl;
     p.clear();
     V.clear();
 
