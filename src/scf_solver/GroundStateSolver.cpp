@@ -29,6 +29,9 @@
 #include "GroundStateSolver.h"
 #include "HelmholtzVector.h"
 #include "KAIN.h"
+#include "initial_guess/gto.h"
+#include "initial_guess/core.h"
+#include "qmfunctions/density_utils.h"
 
 #include "chemistry/Molecule.h"
 #include "qmfunctions/Orbital.h"
@@ -36,6 +39,8 @@
 #include "qmoperators/one_electron/ZoraOperator.h"
 #include "qmoperators/two_electron/FockBuilder.h"
 #include "qmoperators/two_electron/ReactionOperator.h"
+#include "qmoperators/two_electron/CoulombOperator.h"
+#include "qmoperators/two_electron/XCOperator.h"
 
 using mrcpp::Printer;
 using mrcpp::Timer;
@@ -268,6 +273,111 @@ json GroundStateSolver::optimize(Molecule &mol, FockBuilder &F) {
         printConvergenceHeader("Total energy");
         printConvergenceRow(0);
     }
+
+    double prec = this->orbPrec[2];
+    double alpha = 0.5;
+    int nGauss = 4;
+    Density rho_mix(false);
+    Density rho_new(false);
+    OrbitalVector Phi_gauss; // = Phi_n;
+    initial_guess::gto::project_ao(Phi_gauss, prec, nucs);
+    
+
+    int nOrbs = Phi_n.size();
+    for (int i = 0; i < nOrbs; i++) {
+        Phi_gauss[i].setOcc(Phi_n[i].occ());
+    }
+    for (int i = nOrbs; i < Phi_gauss.size(); i++) {
+        Phi_gauss[i].setOcc(0);
+    }
+    std::cout << "Size of Phi_gauss " << Phi_gauss.size() << std::endl;
+    // for (int i = 0; i < Phi_gauss.size(); i++) {
+    //     std::cout << "norm " << Phi_gauss[i].norm() << " occ " << Phi_gauss[i].occ() << std::endl;
+    // }
+
+    density::compute(prec, rho_mix, Phi_n, DensityType::Total);
+
+    std::cout << "rho mix charge inital " << rho_mix.integrate().real() << std::endl;
+
+    ComplexMatrix tmat;
+
+    F.clear();
+    for (int i = 0; i < nGauss; i++) {
+        std::cout << "Mixing iteration " << i << std::endl;
+        Density &rho_j = F.getCoulombOperator()->getDensity();
+        Density &rho_xc = F.getXCOperator()->getDensity(DensityType::Total);
+        mrcpp::cplxfunc::deep_copy(rho_xc, rho_mix);
+        mrcpp::cplxfunc::deep_copy(rho_j, rho_mix);
+        F.setup(prec);
+        if (i == 0) {
+            
+            tmat = F.kineticMatrix(Phi_gauss, Phi_gauss);
+        }
+
+        // ComplexMatrix fm = F(Phi_gauss, Phi_gauss);
+        tmat = F.kineticMatrix(Phi_gauss, Phi_gauss);
+        ComplexMatrix vmat = F.potentialMatrix(Phi_gauss, Phi_gauss);
+
+        ComplexMatrix fm = tmat + vmat;
+        ComplexMatrix um = orbital::diagonalize(prec, Phi_gauss, fm);
+        F.rotate(um);
+
+        // OrbitalVector g_new = orbital::rotate(Phi_gauss, um);
+        F.clear();
+        F.setup(prec);
+        SCFEnergy E_n = F.trace(Phi_gauss, nucs);
+        this->energy.push_back(E_n);
+        this->property.push_back(E_n.getTotalEnergy());
+        std::cout << "Energy: " << E_n.getTotalEnergy() << std::endl;
+        // E_n.print("Gauss");
+
+        density::compute(prec, rho_new, Phi_gauss, DensityType::Total);
+        std::cout << "Rho new: before mixing " << rho_new.integrate().real() << std::endl;
+        std::cout << "Rho mix: before mixing " << rho_mix.integrate().real() << std::endl;
+        rho_mix.rescale(1.0 - alpha);
+        rho_mix.add(alpha, rho_new);
+        std::cout << "Rho mix: after mixing " << rho_mix.integrate().real() << std::endl;
+
+        F.clear();
+    }
+
+    std::cout << "Mixing iterations done" << std::endl;
+    rho_mix.free(NUMBER::Total);
+    rho_new.free(NUMBER::Total);
+    // rho_j.free(NUMBER::Total);
+    // rho_xc.free(NUMBER::Total);
+    // rho_j.free();
+    // rho_new.free();
+    // rho_xc.free();
+    // remove all unoccupied orbitals
+     for (int i = Phi_gauss.size() -1; i >= 0; i--) {
+        if (Phi_gauss[i].occ() == 0) {
+            Phi_gauss.erase(Phi_gauss.begin() + i);   
+        }
+     }    
+    std::cout << "Size of Phi_n " << Phi_n.size() << std::endl;
+    auto Phi_a = orbital::disjoin(Phi_gauss, SPIN::Alpha);
+    std::cout << "Size of Phi_a " << Phi_a.size() << std::endl;
+    auto Phi_b = orbital::disjoin(Phi_gauss, SPIN::Beta);
+    std::cout << "Size of Phi_b " << Phi_b.size() << std::endl;
+    // initial_guess::core::rotate_orbitals(Phi, prec, U, Psi);
+    // initial_guess::core::rotate_orbitals(Phi_a, prec, U, Psi);
+    // initial_guess::core::rotate_orbitals(Phi_b, prec, U, Psi);
+    Phi_n.clear();
+    std::cout << "Size of Phi_n " << Phi_n.size() << std::endl;
+    Phi_n = orbital::adjoin(Phi_n, Phi_gauss);
+    std::cout << "Size of Phi_n " << Phi_n.size() << std::endl;
+    Phi_n = orbital::adjoin(Phi_n, Phi_a);
+    std::cout << "Size of Phi_n " << Phi_n.size() << std::endl;
+    Phi_n = orbital::adjoin(Phi_n, Phi_b);
+    std::cout << "Size of Phi_n " << Phi_n.size() << std::endl;
+
+    F.setup(prec);
+    ComplexMatrix fm = F(Phi_n, Phi_n);
+    ComplexMatrix um = orbital::diagonalize(prec, Phi_n, fm);
+    E_n = F.trace(Phi_n, nucs);
+    F.rotate(um);
+    F.clear();
 
     int nIter = 0;
     bool converged = false;
