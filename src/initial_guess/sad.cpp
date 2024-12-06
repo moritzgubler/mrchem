@@ -35,6 +35,7 @@
 
 // #include "analyticfunctions/HydrogenFunction.h"
 #include "chemistry/Nucleus.h"
+#include "chemistry/chemistry_utils.h"
 // #include "initial_guess/core.h"
 #include "pseudopotential/projectorOperator.h"
 #include "utils/PolyInterpolator.h"
@@ -204,6 +205,9 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     Density &rho_xc = XC.getDensity(DensityType::Total);
     // mrcpp::cplxfunc::deep_copy(rho_j, rho_j);
 
+    std::shared_ptr<NuclearOperator> V_nuc;
+    std::shared_ptr<ProjectorOperator> P;
+
     if (use_pp) {
         XC.setNuclei(std::make_shared<Nuclei>(nucs));
         Nuclei nucs_pp;
@@ -215,16 +219,20 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
                 nucs_all_el.push_back(nucs[i]);
             }
         }
-        ProjectorOperator P(nucs_pp, prec);
+        P = std::make_shared<ProjectorOperator>(nucs_pp, prec);
         std::string model_pp = "point_like";
-        NuclearOperator V_nuc_all_el(nucs_all_el, prec, prec, false, model_pp);
+        // NuclearOperator V_nuc_all_el(nucs_all_el, prec, prec, false, model_pp);
+        V_nuc = std::make_shared<NuclearOperator>(nucs_all_el, prec, prec, false, model_pp);
         model_pp = "pp";
         NuclearOperator pp_nuc(nucs_pp, prec, prec, false,  model_pp);
-        V_nuc_all_el.add(pp_nuc);
-        V = V + V_nuc_all_el + P;
+        V_nuc->add(pp_nuc);
+        V = V + *V_nuc + *P;
+        // V_nuc_ptr = std::make_shared<NuclearOperator>(V_nuc_all_el);
     } else{
-        NuclearOperator V_nuc(nucs, prec);
-        V = V + V_nuc;
+        // NuclearOperator V_nuc(nucs, prec);
+        // std::make_shared<NuclearOperator>(V_nuc);
+        V_nuc = std::make_shared<NuclearOperator>(nucs, prec);
+        V = V + *V_nuc;
     }
 
     if (plevel == 1) mrcpp::print::time(1, "Projecting GTO density", t_lap);
@@ -250,7 +258,7 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     ComplexMatrix t_tilde = qmoperator::calc_kinetic_matrix(p, Psi, Psi);
     // std::cout << "t_tilde: " << t_tilde << std::endl;
 
-    p.clear();
+    // p.clear();
 
     int nGauss = 20;
     double alpha = 0.5;
@@ -265,6 +273,22 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
         mrcpp::cplxfunc::deep_copy(rho_xc, rho_new);
 
         V.setup(prec);
+
+        if (iGauss > 0) {
+            double e_kin = qmoperator::calc_kinetic_trace(p, Phi);
+            double e_en = V_nuc->trace(Phi).real();
+            double e_ee = 0.5 * J.trace(Phi).real();
+            double e_xc = XC.getEnergy();
+            // double e_pot = V.trace(Phi).real();
+            double e_nl = 0.0;
+            if (use_pp) {
+                e_nl = P->trace(Phi).real();
+            }
+            double e_nuc = chemistry::compute_nuclear_repulsion(nucs);
+            double e_tot = e_kin + e_en + e_ee + e_xc + e_nuc + e_nl;
+            std::cout << "Initial LDA energy: " << e_tot << std::endl;
+        }
+
         ComplexMatrix U = initial_guess::core::diagonalize(Psi, t_tilde, V);
         // std::cout << "diagonalized " << std::endl;
         initial_guess::core::rotate_orbitals(Phi, prec, U, Psi);
@@ -277,7 +301,7 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
 
     mrcpp::cplxfunc::deep_copy(rho_j, rho_new);
     mrcpp::cplxfunc::deep_copy(rho_xc, rho_new);
-    p.setup(prec);
+    // p.setup(prec);
     V.setup(prec);
 
     // std::cout << "before U " << std::endl;
