@@ -42,6 +42,9 @@
 
 #include <vector>
 #include <string>
+#include <nlohmann/json.hpp>
+#include <iostream>
+#include <fstream>
 
 #include "utils/print_utils.h"
 
@@ -501,7 +504,14 @@ void initial_guess::sad::project_atomic_orbitals(double prec, OrbitalVector &Phi
 
     std::cout << "Marco implement this" << std::endl;
 
-
+    for (int iNuc = 0; iNuc < nucs.size(); iNuc++) {
+        std::string element = nucs[iNuc].getElement().getSymbol();
+        std::string file = data_dir + "/" + element + ".json";
+        std::ifstream ifs(file);
+        nlohmann::json orbs_json = nlohmann::json::parse(ifs);
+        ifs.close();
+        std::cout << "Orbitals for " << element << " are: " << orbs_json << std::endl;
+    }
 
     exit(0);
 
