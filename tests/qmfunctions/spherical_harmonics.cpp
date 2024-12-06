@@ -11,6 +11,7 @@ using namespace mrchem;
 namespace density_tests {
 
 TEST_CASE("sperical_harmonics", "[spherical_harmonics]") {
+    int lmax = 4;
     const double prec = 1.0e-5;
     // const double thrs = 1.0e-12;
 
@@ -18,7 +19,7 @@ TEST_CASE("sperical_harmonics", "[spherical_harmonics]") {
         double alpha = .5;
         std::vector<ProjectorFunction> pps;
         int iOrb = 0;
-        for (int l = 0; l < 4; l++) {
+        for (int l = 0; l < lmax; l++) {
             for (int m = -l; m <= l; m++) {
                 for (int idim = 0; idim < 1; idim++) {
                     mrcpp::Coord<3> r;
@@ -46,10 +47,10 @@ TEST_CASE("sperical_harmonics", "[spherical_harmonics]") {
         }
         int iorb = 0;
         int jorb = 0;
-        for (int l = 0; l < 4; l++) {
+        for (int l = 0; l < lmax; l++) {
             for (int m = -l; m <= l; m++) {
                 jorb = 0;
-                for (int ll = 0; ll < 5; ll++) {
+                for (int ll = 0; ll < lmax; ll++) {
                     for (int mm = -ll; mm <= ll; mm++) {
                         if (l == ll && m == mm) {
                             // std::cout << "l " << l << " m " << m << " ll " << ll << " mm " << mm << std::endl;
