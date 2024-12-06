@@ -24,6 +24,7 @@
  */
 
 #include <MRCPP/MWOperators>
+#include <MRCPP/MWFunctions>
 #include <MRCPP/Parallel>
 #include <MRCPP/Printer>
 #include <MRCPP/Timer>
@@ -38,6 +39,7 @@
 #include "chemistry/chemistry_utils.h"
 // #include "initial_guess/core.h"
 #include "pseudopotential/projectorOperator.h"
+#include "pseudopotential/sphericalHarmonics.h"
 #include "utils/PolyInterpolator.h"
 
 #include <vector>
@@ -244,8 +246,8 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     // Project AO basis of hydrogen functions
     t_lap.start();
     OrbitalVector Psi;
-    initial_guess::gto::project_ao(Psi, prec, nucs);
-    // initial_guess::sad::project_atomic_orbitals(prec, Psi, nucs);
+    // initial_guess::gto::project_ao(Psi, prec, nucs);
+    initial_guess::sad::project_atomic_orbitals(prec, Psi, nucs);
     if (plevel == 1) mrcpp::print::time(1, "Projecting GTO AOs", t_lap);
     if (plevel == 2) mrcpp::print::header(2, "Building Fock operator");
     t_lap.start();
@@ -487,6 +489,42 @@ void initial_guess::sad::project_atomic_densities_new(double prec, Density &rho,
     density::allreduce_density(prec, rho, rho_loc);
 }
 
+class AnalyticOrbital : public mrcpp::RepresentableFunction<3> {
+public:
+    AnalyticOrbital(int l, int m, const mrcpp::Coord<3> &pos, interpolation_utils::PolyInterpolator rad) {
+        this->l = l;
+        this->m = m;
+        this->pos = pos;
+        this->spherical_harmonic = get_spherical_harmonics(l, m);
+        this->radial_function = std::make_shared<interpolation_utils::PolyInterpolator>(rad);
+    }
+
+    double evalf(const mrcpp::Coord<3> &r) const override {
+        double rnorm = std::sqrt((r[0] - pos[0]) * (r[0] - pos[0])
+            + (r[1] - pos[1]) * (r[1] - pos[1])
+            + (r[2] - pos[2]) * (r[2] - pos[2]));
+        mrcpp::Coord<3> rp = {r[0] - pos[0], r[1] - pos[1], r[2] - pos[2]};
+        return radial_function->evalfLeftNoRightZero(rnorm) * spherical_harmonic(r, rnorm) / (std::pow(rnorm, l));
+        
+    }
+    protected:
+    // bool isVisibleAtScale(int scale, int nQuadPts) const {
+    // double stdDeviation = 0.1;
+    // auto visibleScale = static_cast<int>(-std::floor(std::log2(nQuadPts * 0.5 * stdDeviation)));     
+    // if (scale < visibleScale) return false;
+    // return true;
+    // }
+
+private:
+    int l;
+    int m;
+    mrcpp::Coord<3> pos;
+    std::shared_ptr<interpolation_utils::PolyInterpolator> radial_function;
+
+    double (*spherical_harmonic)(const std::array<double, 3> &r, const double &normr);
+
+};
+
 void initial_guess::sad::project_atomic_orbitals(double prec, OrbitalVector &Phi, const Nuclei &nucs) {
     std::string source_dir = HIRSHFELD_SOURCE_DIR;
     std::string install_dir = HIRSHFELD_INSTALL_DIR;
@@ -500,20 +538,59 @@ void initial_guess::sad::project_atomic_orbitals(double prec, OrbitalVector &Phi
         MSG_ABORT("Hirshfeld data directory not found");
     }
 
-    std::cout << "Data is in: " << data_dir << std::endl;
-
-    std::cout << "Marco implement this" << std::endl;
-
     for (int iNuc = 0; iNuc < nucs.size(); iNuc++) {
         std::string element = nucs[iNuc].getElement().getSymbol();
         std::string file = data_dir + "/" + element + ".json";
         std::ifstream ifs(file);
         nlohmann::json orbs_json = nlohmann::json::parse(ifs);
         ifs.close();
-        std::cout << "Orbitals for " << element << " are: " << orbs_json << std::endl;
+        // std::cout << "Orbitals for " << element << " are: " << orbs_json << std::endl;
+        std::vector<double> r_vec = orbs_json["rgrid"];
+        Eigen::VectorXd rGrid(r_vec.size());
+        for (int i = 0; i < r_vec.size(); i++) {
+            rGrid(i) = r_vec[i];
+        }
+        for (auto it=orbs_json.begin(); it!=orbs_json.end(); it++) {
+            if (it.key() == "rgrid") continue;
+            std::cout << "key: " << it.key() << std::endl;
+            char ang_mom_char = it.key()[1];
+            std::string ang_mom = std::string(1, ang_mom_char);
+            int l;
+            if (ang_mom == "s") l = 0;
+            else if (ang_mom == "p") l = 1;
+            else if (ang_mom == "d") l = 2;
+            else if (ang_mom == "f") l = 3;
+            else if (ang_mom == "g") l = 4;
+            else l = -1;
+            std::vector<double> coeffs = it.value();
+            Eigen::VectorXd coeffVec(coeffs.size());
+            std::cout << "ang_mom: " << ang_mom << " l: " << l << std::endl;
+            std::cout << "coeffs: " << coeffs.size() << std::endl;
+            for (int i = 0; i < coeffs.size(); i++) {
+                coeffVec(i) = coeffs[i];
+            }
+            interpolation_utils::PolyInterpolator rad_func(rGrid, coeffVec);
+            for (int m = -l; m <= l; m++) {
+                mrcpp::Coord<3> pos = nucs[iNuc].getCoord();
+                AnalyticOrbital orb(l, m, pos, rad_func);
+
+                std::cout << orb.evalf(pos) << std::endl;
+                // pos[0] += 0.1;
+                // std::cout << orb.evalf(pos) << std::endl;
+                // for (int i =0; i < 100; i++) {
+                //     std::cout << 0.01 * i << " " << orb.evalf({0.01 * i, 0.0, 0.0}) << std::endl;
+                // }
+
+                mrcpp::ComplexFunction orb_mw;
+                mrcpp::cplxfunc::project(orb_mw, orb, mrcpp::NUMBER::Real, prec);
+                std::cout << "n nodes " << orb_mw.getNNodes(mrcpp::NUMBER::Total) << std::endl;
+                std::cout << "norm " << orb_mw.norm() << std::endl;
+                Phi.push_back(orb_mw);
+            }
+        } 
     }
 
-    exit(0);
+    // exit(0);
 
 }
 
