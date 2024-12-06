@@ -8,6 +8,41 @@
 #include "pseudopotential/sphericalHarmonics.h"
 #include <cmath>
 #include <array>
+#include <iostream>
+
+// double (*)(const std::array<double, 3> &r, const double &normr) get_spherical_harmonics(const int &l, const int &m) {
+double (*get_spherical_harmonics(const int &l, const int &m))(const std::array<double, 3> &r, const double &normr){
+    if (l == 0 && m == 0) return s0;
+    else if (l == 0 && m == -1) return s1m1;
+    else if (l == 1 && m == 0) return s10;
+    else if (l == 1 && m == 1) return s11;
+    else if (l == 2 && m == -2) return s2m2;
+    else if (l == 2 && m == -1) return s2m1;
+    else if (l == 2 && m == 0) return s20;
+    else if (l == 2 && m == 1) return s21;
+    else if (l == 2 && m == 2) return s22;
+    else if (l == 3 && m == -3) return s3m3;
+    else if (l == 3 && m == -2) return s3m2;
+    else if (l == 3 && m == -1) return s3m1;
+    else if (l == 3 && m == 0) return s30;
+    else if (l == 3 && m == 1) return s31;
+    else if (l == 3 && m == 2) return s32;
+    else if (l == 3 && m == 3) return s33;
+    else if (l == 4 && m == -4) return s4m4;
+    else if (l == 4 && m == -3) return s4m3;
+    else if (l == 4 && m == -2) return s4m2;
+    else if (l == 4 && m == -1) return s4m1;
+    else if (l == 4 && m == 0) return s40;
+    else if (l == 4 && m == 1) return s41;
+    else if (l == 4 && m == 2) return s42;
+    else if (l == 4 && m == 3) return s43;
+    else if (l == 4 && m == 4) return s44;
+    else {
+        std::cerr << "Spherical harmonic function not found for l = " << l << " and m = " << m << std::endl;
+        std::cerr << "Returning nullptr" << std::endl;
+        return nullptr;
+    }
+}
 
 double s0(const std::array<double, 3> &r, const double &normr) {
     return 0.5 * std::sqrt(1.0 / M_PI);

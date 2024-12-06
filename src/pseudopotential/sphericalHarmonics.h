@@ -8,6 +8,10 @@
  */
 #include <array>
 
+// double (*)(const std::array<double, 3> &r, const double &normr) get_spherical_harmonics(const int &l, const int &m);
+double (*get_spherical_harmonics(const int &l, const int &m))(const std::array<double, 3> &r, const double &normr);
+
+
 double s0(const std::array<double, 3> &r, const double &normr);
 
 double s1m1(const std::array<double, 3> &r, const double &normr);
