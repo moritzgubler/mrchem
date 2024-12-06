@@ -68,6 +68,7 @@ namespace sad {
 void project_atomic_densities(double prec, Density &rho_tot, const Nuclei &nucs, double screen = -1.0);
 // void project_hydrogen_densities(double prec, Density &rho, const Nuclei &nucs, int totalCharge);
 void project_atomic_densities_new(double prec, Density &rho_tot, const Nuclei &nucs);
+void project_atomic_orbitals(double prec, OrbitalVector &Phi, const Nuclei &nucs);
 
 } // namespace sad
 } // namespace initial_guess
@@ -240,7 +241,8 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     // Project AO basis of hydrogen functions
     t_lap.start();
     OrbitalVector Psi;
-    initial_guess::gto::project_ao(Psi, prec, nucs);
+    // initial_guess::gto::project_ao(Psi, prec, nucs);
+    initial_guess::sad::project_atomic_orbitals(prec, Psi, nucs);
     if (plevel == 1) mrcpp::print::time(1, "Projecting GTO AOs", t_lap);
     if (plevel == 2) mrcpp::print::header(2, "Building Fock operator");
     t_lap.start();
@@ -480,6 +482,29 @@ void initial_guess::sad::project_atomic_densities_new(double prec, Density &rho,
         }
     }
     density::allreduce_density(prec, rho, rho_loc);
+}
+
+void initial_guess::sad::project_atomic_orbitals(double prec, OrbitalVector &Phi, const Nuclei &nucs) {
+    std::string source_dir = HIRSHFELD_SOURCE_DIR;
+    std::string install_dir = HIRSHFELD_INSTALL_DIR;
+    std::string data_dir = "";
+    // check if data_dir exists
+    if (std::filesystem::exists(install_dir)) {
+        data_dir = install_dir + "/lda/";
+    } else if (std::filesystem::exists(source_dir)) {
+        data_dir = source_dir + "/lda/";
+    } else {
+        MSG_ABORT("Hirshfeld data directory not found");
+    }
+
+    std::cout << "Data is in: " << data_dir << std::endl;
+
+    std::cout << "Marco implement this" << std::endl;
+
+
+
+    exit(0);
+
 }
 
 } // namespace mrchem
