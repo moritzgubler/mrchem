@@ -240,7 +240,6 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     if (plevel == 2) mrcpp::print::footer(2, t_lap, 2);
     if (plevel == 1) mrcpp::print::time(1, "Building Fock operator", t_lap);
 
-    double alpha = 0.4;
     for (int iorb = 0; iorb < Phi.size(); iorb++) {
         Psi[iorb].setOcc(Phi[iorb].occ());
     }
@@ -253,7 +252,8 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
 
     p.clear();
 
-    int nGauss = 10;
+    int nGauss = 20;
+    double alpha = 0.5;
 
     // mrcpp::cplxfunc::deep_copy(rho_new, rho_j);
     for (int iGauss = 0; iGauss < nGauss; iGauss++) {
