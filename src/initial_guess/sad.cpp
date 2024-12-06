@@ -244,8 +244,8 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     // Project AO basis of hydrogen functions
     t_lap.start();
     OrbitalVector Psi;
-    // initial_guess::gto::project_ao(Psi, prec, nucs);
-    initial_guess::sad::project_atomic_orbitals(prec, Psi, nucs);
+    initial_guess::gto::project_ao(Psi, prec, nucs);
+    // initial_guess::sad::project_atomic_orbitals(prec, Psi, nucs);
     if (plevel == 1) mrcpp::print::time(1, "Projecting GTO AOs", t_lap);
     if (plevel == 2) mrcpp::print::header(2, "Building Fock operator");
     t_lap.start();
