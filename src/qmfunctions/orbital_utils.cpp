@@ -693,24 +693,6 @@ DoubleMatrix orbital::calc_norm_overlap_matrix(OrbitalVector &BraKet) {
 ComplexMatrix orbital::calc_lowdin_matrix(OrbitalVector &Phi) {
     Timer overlap_t;
     ComplexMatrix S_tilde = orbital::calc_overlap_matrix(Phi);
-    DoubleMatrix S = S_tilde.real();
-    std::cout << "Overlap matrix:" << std::endl;
-    for (int i = 0; i < S_tilde.rows(); i++) {
-        std::cout << S_tilde.row(i).real() << std::endl;
-    }
-    std::cout << std::endl;
-
-    // comput eigenvalues of S
-    Eigen::SelfAdjointEigenSolver<DoubleMatrix> es(S);
-    if (es.info() != Eigen::Success) {
-        MSG_ERROR("Failed to compute eigenvalues of overlap matrix");
-    }
-    Eigen::VectorXd eigvals = es.eigenvalues();
-    std::cout << "Eigenvalues of overlap matrix:" << std::endl;
-    std::cout << eigvals << std::endl;
-    std::cout << std::endl;
-    
-
     mrcpp::print::time(2, "Computing overlap matrix", overlap_t);
     Timer lowdin_t;
     ComplexMatrix S_m12 = math_utils::hermitian_matrix_pow(S_tilde, -1.0 / 2.0);
@@ -719,8 +701,6 @@ ComplexMatrix orbital::calc_lowdin_matrix(OrbitalVector &Phi) {
 }
 
 ComplexMatrix orbital::localize(double prec, OrbitalVector &Phi, ComplexMatrix &F) {
-
-    std::cout << "its now localizing" << std::endl;
 
     Timer t_tot;
     auto plevel = Printer::getPrintLevel();
