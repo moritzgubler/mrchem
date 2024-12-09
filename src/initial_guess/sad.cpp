@@ -73,7 +73,7 @@ namespace sad {
 void project_atomic_densities(double prec, Density &rho_tot, const Nuclei &nucs, double screen = -1.0);
 // void project_hydrogen_densities(double prec, Density &rho, const Nuclei &nucs, int totalCharge);
 void project_atomic_densities_new(double prec, Density &rho_tot, const Nuclei &nucs);
-void project_atomic_orbitals(double prec, OrbitalVector &Phi, const Nuclei &nucs);
+void project_atomic_orbitals(double prec, OrbitalVector &Phi, const Nuclei &nucs, bool restricted);
 
 } // namespace sad
 } // namespace initial_guess
@@ -188,8 +188,8 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
 
     mrdft::Factory xc_factory(*MRA);
     xc_factory.setSpin(false);
-    xc_factory.setFunctional("PBEX", 1.0);
-    xc_factory.setFunctional("PBEC", 1.0);
+    xc_factory.setFunctional("SLATERX", 1.0);
+    xc_factory.setFunctional("VWN5C", 1.0);
     auto mrdft_p = xc_factory.build();
     MomentumOperator p(D_p);
     CoulombOperator J(P_p);
@@ -232,13 +232,13 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
         model_pp = "pp";
         NuclearOperator pp_nuc(nucs_pp, prec, prec, false,  model_pp);
         V_nuc->add(pp_nuc);
-        V = V + *V_nuc + *P;
+        V = V + (*V_nuc) + (*P);
         // V_nuc_ptr = std::make_shared<NuclearOperator>(V_nuc_all_el);
     } else{
         // NuclearOperator V_nuc(nucs, prec);
         // std::make_shared<NuclearOperator>(V_nuc);
         V_nuc = std::make_shared<NuclearOperator>(nucs, prec);
-        V = V + *V_nuc;
+        V = V + (*V_nuc);
     }
 
     if (plevel == 1) mrcpp::print::time(1, "Projecting GTO density", t_lap);
@@ -247,7 +247,10 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     t_lap.start();
     OrbitalVector Psi;
     // initial_guess::gto::project_ao(Psi, prec, nucs);
-    initial_guess::sad::project_atomic_orbitals(prec, Psi, nucs);
+    initial_guess::sad::project_atomic_orbitals(prec, Psi, nucs, restricted);
+
+    std::cout << "Psi size: " << Psi.size() << std::endl;
+
     if (plevel == 1) mrcpp::print::time(1, "Projecting GTO AOs", t_lap);
     if (plevel == 2) mrcpp::print::header(2, "Building Fock operator");
     t_lap.start();
@@ -257,18 +260,36 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
 
     for (int iorb = 0; iorb < Phi.size(); iorb++) {
         Psi[iorb].setOcc(Phi[iorb].occ());
+        // Psi[iorb].setSpin(Phi[iorb].spin());
     }
     for (int iorb = Phi.size(); iorb < Psi.size(); iorb++) {
         Psi[iorb].setOcc(0);
+        // if (restricted) {
+        //     Psi[iorb].setSpin(SPIN::Paired);
+        // } else {
+        //     if (iorb % 2 == 0) {
+        //         Psi[iorb].setSpin(SPIN::Alpha);
+        //     } else {
+        //         Psi[iorb].setSpin(SPIN::Beta);
+        //     }
+        // }
     }
+    Phi.clear();
+    for (int i = 0; i < Psi.size(); i++)
+    {
+        Phi.push_back(Psi[i]);
+    }
+    Phi.distribute();
+    return true;
     
     ComplexMatrix t_tilde = qmoperator::calc_kinetic_matrix(p, Psi, Psi);
+    // std::cout << "t_tilde: " << t_tilde << std::endl;
     // std::cout << "t_tilde: " << t_tilde << std::endl;
 
     // p.clear();
 
-    int nGauss = 20;
-    double alpha = 0.5;
+    int nGauss = 1;
+    double alpha = 0.4;
 
     // mrcpp::cplxfunc::deep_copy(rho_new, rho_j);
     for (int iGauss = 0; iGauss < nGauss; iGauss++) {
@@ -299,6 +320,17 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
         ComplexMatrix U = initial_guess::core::diagonalize(Psi, t_tilde, V);
         // std::cout << "diagonalized " << std::endl;
         initial_guess::core::rotate_orbitals(Phi, prec, U, Psi);
+
+        for (int iorb = 0; iorb < Psi.size(); iorb++) {
+            std::cout << "Norm Psi" << iorb << ": " << Psi[iorb].norm() << std::endl;
+        }
+
+        for (int iorb = 0; iorb < Phi.size(); iorb++) {
+            double tnrm = Phi[iorb].norm();
+            std::cout << "Norm Phi" << iorb << ": " << tnrm << std::endl;
+            Phi[iorb].rescale(1 / tnrm);
+        }
+
         // std::cout << "rotated " << std::endl;
         density::compute(prec, rho_new, Phi, DensityType::Total);
         rho_new.rescale(1 - alpha);
@@ -306,34 +338,36 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
         V.clear();
     }
 
-    mrcpp::cplxfunc::deep_copy(rho_j, rho_new);
-    mrcpp::cplxfunc::deep_copy(rho_xc, rho_new);
+    orbital::calc_lowdin_matrix(Phi);
+
+    // mrcpp::cplxfunc::deep_copy(rho_j, rho_new);
+    // mrcpp::cplxfunc::deep_copy(rho_xc, rho_new);
     // p.setup(prec);
-    V.setup(prec);
+    // V.setup(prec);
 
-    // std::cout << "before U " << std::endl;
+    // // std::cout << "before U " << std::endl;
 
 
-    ComplexMatrix U = initial_guess::core::diagonalize(Psi, p, V);
-    // std::cout << "diagonalized " << std::endl;
+    // ComplexMatrix U = initial_guess::core::diagonalize(Psi, p, V);
+    // // std::cout << "diagonalized " << std::endl;
 
-    // Rotate orbitals and fill electrons by Aufbau
-    t_lap.start();
-    auto Phi_a = orbital::disjoin(Phi, SPIN::Alpha);
-    auto Phi_b = orbital::disjoin(Phi, SPIN::Beta);
-    // std::cout << "disjoined " << std::endl;
-    initial_guess::core::rotate_orbitals(Phi, prec, U, Psi);
-    // std::cout << "rotated Phi " << std::endl;
-    initial_guess::core::rotate_orbitals(Phi_a, prec, U, Psi);
-    // std::cout << "rotated Phi_a " << std::endl;
-    initial_guess::core::rotate_orbitals(Phi_b, prec, U, Psi);
-    // std::cout << "rotated Phi_b " << std::endl;
-    Phi = orbital::adjoin(Phi, Phi_a);
-    // std::cout << "adjoined " << std::endl;
-    Phi = orbital::adjoin(Phi, Phi_b);
-    // std::cout << "adjoined " << std::endl;
-    p.clear();
-    V.clear();
+    // // Rotate orbitals and fill electrons by Aufbau
+    // t_lap.start();
+    // auto Phi_a = orbital::disjoin(Phi, SPIN::Alpha);
+    // auto Phi_b = orbital::disjoin(Phi, SPIN::Beta);
+    // // std::cout << "disjoined " << std::endl;
+    // initial_guess::core::rotate_orbitals(Phi, prec, U, Psi);
+    // // std::cout << "rotated Phi " << std::endl;
+    // initial_guess::core::rotate_orbitals(Phi_a, prec, U, Psi);
+    // // std::cout << "rotated Phi_a " << std::endl;
+    // initial_guess::core::rotate_orbitals(Phi_b, prec, U, Psi);
+    // // std::cout << "rotated Phi_b " << std::endl;
+    // Phi = orbital::adjoin(Phi, Phi_a);
+    // // std::cout << "adjoined " << std::endl;
+    // Phi = orbital::adjoin(Phi, Phi_b);
+    // // std::cout << "adjoined " << std::endl;
+    // p.clear();
+    // V.clear();
 
     mrcpp::print::footer(2, t_tot, 2);
     if (plevel == 1) mrcpp::print::footer(1, t_tot, 2);
@@ -504,16 +538,23 @@ public:
             + (r[1] - pos[1]) * (r[1] - pos[1])
             + (r[2] - pos[2]) * (r[2] - pos[2]));
         mrcpp::Coord<3> rp = {r[0] - pos[0], r[1] - pos[1], r[2] - pos[2]};
-        return radial_function->evalfLeftNoRightZero(rnorm) * spherical_harmonic(r, rnorm) / (std::pow(rnorm, l));
+        mrcpp::Coord<3> rnormp;
+        if (rnorm > 1e-10) {
+            rnormp = {rp[0] / rnorm, rp[1] / rnorm, rp[2] / rnorm};
+        } else {
+            rnormp = {1, 0, 0};
+        }
+        return radial_function->evalfLeftNoRightZero(rnorm) * spherical_harmonic(rnormp, 1.0);
         
     }
     protected:
-    // bool isVisibleAtScale(int scale, int nQuadPts) const {
-    // double stdDeviation = 0.1;
-    // auto visibleScale = static_cast<int>(-std::floor(std::log2(nQuadPts * 0.5 * stdDeviation)));     
-    // if (scale < visibleScale) return false;
-    // return true;
-    // }
+    bool isVisibleAtScale(int scale, int nQuadPts) const override {
+        // double stdDeviation = 1.0;
+        // auto visibleScale = static_cast<int>(std::floor(std::log2(nQuadPts * 5.0 * stdDeviation)));
+        // std::cout << "visibleScale: " << visibleScale << " scale: " << scale << std::endl;
+        int visibleScale = -5;
+        return (scale >= visibleScale);
+    }
 
 private:
     int l;
@@ -525,9 +566,10 @@ private:
 
 };
 
-void initial_guess::sad::project_atomic_orbitals(double prec, OrbitalVector &Phi, const Nuclei &nucs) {
+void initial_guess::sad::project_atomic_orbitals(double prec, OrbitalVector &Phi, const Nuclei &nucs, bool restricted) {
     std::string source_dir = HIRSHFELD_SOURCE_DIR;
     std::string install_dir = HIRSHFELD_INSTALL_DIR;
+    OrbitalVector phi_beta;
     std::string data_dir = "";
     // check if data_dir exists
     if (std::filesystem::exists(install_dir)) {
@@ -574,22 +616,47 @@ void initial_guess::sad::project_atomic_orbitals(double prec, OrbitalVector &Phi
                 mrcpp::Coord<3> pos = nucs[iNuc].getCoord();
                 AnalyticOrbital orb(l, m, pos, rad_func);
 
-                std::cout << orb.evalf(pos) << std::endl;
+                // std::cout << orb.evalf(pos) << std::endl;
                 // pos[0] += 0.1;
                 // std::cout << orb.evalf(pos) << std::endl;
                 // for (int i =0; i < 100; i++) {
-                //     std::cout << 0.01 * i << " " << orb.evalf({0.01 * i, 0.0, 0.0}) << std::endl;
+                //     std::cout << 0.01 * i << " " << orb.evalf({pos[0] + i * 0.01, pos[1], pos[2]}) << std::endl;
                 // }
 
-                mrcpp::ComplexFunction orb_mw;
-                mrcpp::cplxfunc::project(orb_mw, orb, mrcpp::NUMBER::Real, prec);
-                std::cout << "n nodes " << orb_mw.getNNodes(mrcpp::NUMBER::Total) << std::endl;
-                std::cout << "norm " << orb_mw.norm() << std::endl;
-                Phi.push_back(orb_mw);
+                // mrcpp::ComplexFunction orb_mw;
+                if (restricted) {
+                    Orbital orb_mw(SPIN::Paired);
+                    mrcpp::cplxfunc::project(orb_mw, orb, mrcpp::NUMBER::Real, prec);
+                    double nrm = orb_mw.norm();
+                    orb_mw.rescale(1 / nrm);
+                    std::cout << "n nodes " << orb_mw.getNNodes(mrcpp::NUMBER::Total) << std::endl;
+                    std::cout << "norm " << orb_mw.norm() << std::endl;
+                    Phi.push_back(orb_mw);
+                } else {
+                    Orbital orb_mw_alpha(SPIN::Alpha);
+                    Orbital orb_mw_beta(SPIN::Beta);
+                    mrcpp::cplxfunc::project(orb_mw_alpha, orb, mrcpp::NUMBER::Real, prec);
+                    mrcpp::cplxfunc::project(orb_mw_beta, orb, mrcpp::NUMBER::Real, prec);
+                    double nrm_alpha = orb_mw_alpha.norm();
+                    double nrm_beta = orb_mw_beta.norm();
+                    std::cout << "nrms " << nrm_alpha << " " << nrm_beta << std::endl;
+                    std::cout << "n nodes alpha " << orb_mw_alpha.getNNodes(mrcpp::NUMBER::Total) << " beta " << orb_mw_beta.getNNodes(mrcpp::NUMBER::Total) << std::endl;
+                    orb_mw_alpha.rescale(1 / nrm_alpha);
+                    orb_mw_beta.rescale(1 / nrm_beta);
+                    Phi.push_back(orb_mw_alpha);
+                    // Phi.push_back(orb_mw_beta);
+                    phi_beta.push_back(orb_mw_beta);
+                    std::cout << "spin dot test: " << mrcpp::cplxfunc::dot(orb_mw_alpha, orb_mw_beta) << std::endl;
+                }
             }
         } 
     }
 
+    if (!restricted) {
+        for (int i = 0; i < phi_beta.size(); i++) {
+            Phi.push_back(phi_beta[i]);
+        }
+    }
     // exit(0);
 
 }
