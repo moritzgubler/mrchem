@@ -206,6 +206,17 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
 
     Density rho_new(false);
     initial_guess::sad::project_atomic_densities_new(prec, rho_new, nucs);
+    double total_charge = 0.0;
+    for (int i = 0; i < Phi.size(); i++) {
+        total_charge += Phi[i].occ();
+    }
+    double rho_int = rho_new.integrate().real();
+    if (std::abs(rho_int - total_charge) > 1e-6) {
+        std::cout << "Total charge: " << total_charge << std::endl;
+        std::cout << "Integrated charge: " << rho_int << std::endl;
+        rho_new.rescale(total_charge / rho_int);
+    }
+
 
     // Compute XC density
     Density &rho_xc = XC.getDensity(DensityType::Total);
@@ -246,8 +257,8 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     // Project AO basis of hydrogen functions
     t_lap.start();
     OrbitalVector Psi;
-    initial_guess::gto::project_ao(Psi, prec, nucs);
-    // initial_guess::sad::project_atomic_orbitals(prec, Psi, nucs, true);
+    // initial_guess::gto::project_ao(Psi, prec, nucs);
+    initial_guess::sad::project_atomic_orbitals(prec, Psi, nucs, true);
 
     // std::cout << "Psi size: " << Psi.size() << std::endl;
 
@@ -284,8 +295,8 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     p.setup(prec);
     ComplexMatrix t_tilde = qmoperator::calc_kinetic_matrix(p, Psi, Psi);
 
-    int nGauss = 10;
-    double alpha = 0.5;
+    int nGauss = 6;
+    double alpha = 0.4;
 
     // mrcpp::cplxfunc::deep_copy(rho_new, rho_j);
     for (int iGauss = 0; iGauss < nGauss; iGauss++) {
