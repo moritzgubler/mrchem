@@ -246,50 +246,46 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     // Project AO basis of hydrogen functions
     t_lap.start();
     OrbitalVector Psi;
-    // initial_guess::gto::project_ao(Psi, prec, nucs);
-    initial_guess::sad::project_atomic_orbitals(prec, Psi, nucs, restricted);
+    initial_guess::gto::project_ao(Psi, prec, nucs);
+    // initial_guess::sad::project_atomic_orbitals(prec, Psi, nucs, true);
 
-    std::cout << "Psi size: " << Psi.size() << std::endl;
+    // std::cout << "Psi size: " << Psi.size() << std::endl;
 
     if (plevel == 1) mrcpp::print::time(1, "Projecting GTO AOs", t_lap);
     if (plevel == 2) mrcpp::print::header(2, "Building Fock operator");
     t_lap.start();
-    p.setup(prec);
     if (plevel == 2) mrcpp::print::footer(2, t_lap, 2);
     if (plevel == 1) mrcpp::print::time(1, "Building Fock operator", t_lap);
 
-    for (int iorb = 0; iorb < Phi.size(); iorb++) {
-        Psi[iorb].setOcc(Phi[iorb].occ());
-        // Psi[iorb].setSpin(Phi[iorb].spin());
-    }
-    for (int iorb = Phi.size(); iorb < Psi.size(); iorb++) {
-        Psi[iorb].setOcc(0);
-        // if (restricted) {
-        //     Psi[iorb].setSpin(SPIN::Paired);
-        // } else {
-        //     if (iorb % 2 == 0) {
-        //         Psi[iorb].setSpin(SPIN::Alpha);
-        //     } else {
-        //         Psi[iorb].setSpin(SPIN::Beta);
-        //     }
-        // }
-    }
-    Phi.clear();
-    for (int i = 0; i < Psi.size(); i++)
-    {
-        Phi.push_back(Psi[i]);
-    }
-    Phi.distribute();
-    return true;
+    // for (int iorb = 1; iorb < Phi.size(); iorb++) {
+    //     Psi[iorb].setOcc(Phi[iorb].occ());
+    //     // Psi[iorb].setSpin(Phi[iorb].spin());
+    // }
+    // for (int iorb = Phi.size(); iorb < Psi.size(); iorb++) {
+    //     Psi[iorb].setOcc(0);
+    //     // if (restricted) {
+    //     //     Psi[iorb].setSpin(SPIN::Paired);
+    //     // } else {
+    //     //     if (iorb % 2 == 0) {
+    //     //         Psi[iorb].setSpin(SPIN::Alpha);
+    //     //     } else {
+    //     //         Psi[iorb].setSpin(SPIN::Beta);
+    //     //     }
+    //     // }
+    // }
+    // Phi.clear();
+    // for (int i = 0; i < Psi.size(); i++)
+    // {
+    //     Phi.push_back(Psi[i]);
+    // }
+    // Phi.distribute();
+    // return true;
     
+    p.setup(prec);
     ComplexMatrix t_tilde = qmoperator::calc_kinetic_matrix(p, Psi, Psi);
-    // std::cout << "t_tilde: " << t_tilde << std::endl;
-    // std::cout << "t_tilde: " << t_tilde << std::endl;
 
-    // p.clear();
-
-    int nGauss = 1;
-    double alpha = 0.4;
+    int nGauss = 10;
+    double alpha = 0.5;
 
     // mrcpp::cplxfunc::deep_copy(rho_new, rho_j);
     for (int iGauss = 0; iGauss < nGauss; iGauss++) {
@@ -319,17 +315,22 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
 
         ComplexMatrix U = initial_guess::core::diagonalize(Psi, t_tilde, V);
         // std::cout << "diagonalized " << std::endl;
+        // initial_guess::core::rotate_orbitals(Phi, prec, U, Psi);
+
+
+        auto Phi_a = orbital::disjoin(Phi, SPIN::Alpha);
+        auto Phi_b = orbital::disjoin(Phi, SPIN::Beta);
+        // std::cout << "disjoined " << std::endl;
         initial_guess::core::rotate_orbitals(Phi, prec, U, Psi);
+        // std::cout << "rotated Phi " << std::endl;
+        initial_guess::core::rotate_orbitals(Phi_a, prec, U, Psi);
+        // std::cout << "rotated Phi_a " << std::endl;
+        initial_guess::core::rotate_orbitals(Phi_b, prec, U, Psi);
+        // std::cout << "rotated Phi_b " << std::endl;
+        Phi = orbital::adjoin(Phi, Phi_a);
+        // std::cout << "adjoined " << std::endl;
+        Phi = orbital::adjoin(Phi, Phi_b);
 
-        for (int iorb = 0; iorb < Psi.size(); iorb++) {
-            std::cout << "Norm Psi" << iorb << ": " << Psi[iorb].norm() << std::endl;
-        }
-
-        for (int iorb = 0; iorb < Phi.size(); iorb++) {
-            double tnrm = Phi[iorb].norm();
-            std::cout << "Norm Phi" << iorb << ": " << tnrm << std::endl;
-            Phi[iorb].rescale(1 / tnrm);
-        }
 
         // std::cout << "rotated " << std::endl;
         density::compute(prec, rho_new, Phi, DensityType::Total);
@@ -338,7 +339,7 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
         V.clear();
     }
 
-    orbital::calc_lowdin_matrix(Phi);
+    p.clear();
 
     // mrcpp::cplxfunc::deep_copy(rho_j, rho_new);
     // mrcpp::cplxfunc::deep_copy(rho_xc, rho_new);
@@ -347,9 +348,10 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
 
     // // std::cout << "before U " << std::endl;
 
+    //
 
     // ComplexMatrix U = initial_guess::core::diagonalize(Psi, p, V);
-    // // std::cout << "diagonalized " << std::endl;
+    // std::cout << "diagonalized " << std::endl;
 
     // // Rotate orbitals and fill electrons by Aufbau
     // t_lap.start();
@@ -594,7 +596,7 @@ void initial_guess::sad::project_atomic_orbitals(double prec, OrbitalVector &Phi
         }
         for (auto it=orbs_json.begin(); it!=orbs_json.end(); it++) {
             if (it.key() == "rgrid") continue;
-            std::cout << "key: " << it.key() << std::endl;
+            // std::cout << "key: " << it.key() << std::endl;
             char ang_mom_char = it.key()[1];
             std::string ang_mom = std::string(1, ang_mom_char);
             int l;
@@ -606,8 +608,8 @@ void initial_guess::sad::project_atomic_orbitals(double prec, OrbitalVector &Phi
             else l = -1;
             std::vector<double> coeffs = it.value();
             Eigen::VectorXd coeffVec(coeffs.size());
-            std::cout << "ang_mom: " << ang_mom << " l: " << l << std::endl;
-            std::cout << "coeffs: " << coeffs.size() << std::endl;
+            // std::cout << "ang_mom: " << ang_mom << " l: " << l << std::endl;
+            // std::cout << "coeffs: " << coeffs.size() << std::endl;
             for (int i = 0; i < coeffs.size(); i++) {
                 coeffVec(i) = coeffs[i];
             }
@@ -615,50 +617,16 @@ void initial_guess::sad::project_atomic_orbitals(double prec, OrbitalVector &Phi
             for (int m = -l; m <= l; m++) {
                 mrcpp::Coord<3> pos = nucs[iNuc].getCoord();
                 AnalyticOrbital orb(l, m, pos, rad_func);
-
-                // std::cout << orb.evalf(pos) << std::endl;
-                // pos[0] += 0.1;
-                // std::cout << orb.evalf(pos) << std::endl;
-                // for (int i =0; i < 100; i++) {
-                //     std::cout << 0.01 * i << " " << orb.evalf({pos[0] + i * 0.01, pos[1], pos[2]}) << std::endl;
-                // }
-
-                // mrcpp::ComplexFunction orb_mw;
-                if (restricted) {
-                    Orbital orb_mw(SPIN::Paired);
-                    mrcpp::cplxfunc::project(orb_mw, orb, mrcpp::NUMBER::Real, prec);
-                    double nrm = orb_mw.norm();
-                    orb_mw.rescale(1 / nrm);
-                    std::cout << "n nodes " << orb_mw.getNNodes(mrcpp::NUMBER::Total) << std::endl;
-                    std::cout << "norm " << orb_mw.norm() << std::endl;
-                    Phi.push_back(orb_mw);
-                } else {
-                    Orbital orb_mw_alpha(SPIN::Alpha);
-                    Orbital orb_mw_beta(SPIN::Beta);
-                    mrcpp::cplxfunc::project(orb_mw_alpha, orb, mrcpp::NUMBER::Real, prec);
-                    mrcpp::cplxfunc::project(orb_mw_beta, orb, mrcpp::NUMBER::Real, prec);
-                    double nrm_alpha = orb_mw_alpha.norm();
-                    double nrm_beta = orb_mw_beta.norm();
-                    std::cout << "nrms " << nrm_alpha << " " << nrm_beta << std::endl;
-                    std::cout << "n nodes alpha " << orb_mw_alpha.getNNodes(mrcpp::NUMBER::Total) << " beta " << orb_mw_beta.getNNodes(mrcpp::NUMBER::Total) << std::endl;
-                    orb_mw_alpha.rescale(1 / nrm_alpha);
-                    orb_mw_beta.rescale(1 / nrm_beta);
-                    Phi.push_back(orb_mw_alpha);
-                    // Phi.push_back(orb_mw_beta);
-                    phi_beta.push_back(orb_mw_beta);
-                    std::cout << "spin dot test: " << mrcpp::cplxfunc::dot(orb_mw_alpha, orb_mw_beta) << std::endl;
-                }
+                Orbital orb_mw;
+                mrcpp::cplxfunc::project(orb_mw, orb, mrcpp::NUMBER::Real, prec);
+                double nrm = orb_mw.norm();
+                orb_mw.rescale(1 / nrm);
+                // std::cout << "n nodes " << orb_mw.getNNodes(mrcpp::NUMBER::Total) << std::endl;
+                // std::cout << "norm " << orb_mw.norm() << std::endl;
+                Phi.push_back(orb_mw);
             }
         } 
     }
-
-    if (!restricted) {
-        for (int i = 0; i < phi_beta.size(); i++) {
-            Phi.push_back(phi_beta[i]);
-        }
-    }
-    // exit(0);
-
 }
 
 } // namespace mrchem
