@@ -13,7 +13,7 @@
 // double (*)(const std::array<double, 3> &r, const double &normr) get_spherical_harmonics(const int &l, const int &m) {
 double (*get_spherical_harmonics(const int &l, const int &m))(const std::array<double, 3> &r, const double &normr){
     if (l == 0 && m == 0) return s0;
-    else if (l == 0 && m == -1) return s1m1;
+    else if (l == 1 && m == -1) return s1m1;
     else if (l == 1 && m == 0) return s10;
     else if (l == 1 && m == 1) return s11;
     else if (l == 2 && m == -2) return s2m2;
