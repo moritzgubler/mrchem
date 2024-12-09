@@ -469,7 +469,14 @@ bool driver::scf::guess_energy(const json &json_guess, Molecule &mol, FockBuilde
     mol.getSCFEnergy() = F.trace(Phi, nucs);
     F.clear();
 
-    if (not localize && rotate) orbital::diagonalize(prec, Phi, F_mat);
+    if (not localize && rotate) {
+        std::cout << "this diagnonalizations is not working" << std::endl;
+        std::cout << "look at spins " << std::endl;
+        for (int i = 0; i < Phi.size(); i++) {
+            std::cout << Phi[i].spin() << std::endl;
+        }
+        orbital::diagonalize(prec, Phi, F_mat);
+    }
     if (plevel == 1) mrcpp::print::footer(1, t_scf, 2);
 
     Timer t_eps;
