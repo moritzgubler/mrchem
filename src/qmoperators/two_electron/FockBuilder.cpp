@@ -232,11 +232,7 @@ SCFEnergy FockBuilder::trace(OrbitalVector &Phi, const Nuclei &nucs) {
     if (this->ext != nullptr) E_eext = this->ext->trace(Phi).real();
     if (getProjectorOperator() != nullptr) {
         E_nl = this->pp_projector->trace(Phi).real();
-        std::cout << "E_nl: " << E_nl << std::endl;
-    } else {
-        std::cout << "No projector operator set" << std::endl;
     }
-    // std::cout << "E_nl: " << E_nl << std::endl;
 
     mrcpp::print::footer(2, t_tot, 2);
     if (plevel == 1) mrcpp::print::time(1, "Computing molecular energy", t_tot);
