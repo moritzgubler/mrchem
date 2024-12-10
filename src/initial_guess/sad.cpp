@@ -243,13 +243,13 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
         model_pp = "pp";
         NuclearOperator pp_nuc(nucs_pp, prec, prec, false,  model_pp);
         V_nuc->add(pp_nuc);
-        V = V + (*V_nuc) + (*P);
+        V = V + (*P);
         // V_nuc_ptr = std::make_shared<NuclearOperator>(V_nuc_all_el);
     } else{
         // NuclearOperator V_nuc(nucs, prec);
         // std::make_shared<NuclearOperator>(V_nuc);
         V_nuc = std::make_shared<NuclearOperator>(nucs, prec);
-        V = V + (*V_nuc);
+        // V = V;
     }
 
     if (plevel == 1) mrcpp::print::time(1, "Projecting GTO density", t_lap);
@@ -293,7 +293,12 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     // return true;
     
     p.setup(prec);
-    ComplexMatrix t_tilde = qmoperator::calc_kinetic_matrix(p, Psi, Psi);
+    // t_tilde stor
+    ComplexMatrix kin_and_nuc_mat = qmoperator::calc_kinetic_matrix(p, Psi, Psi);
+
+    RankZeroOperator V_nuc_op = *V_nuc;
+    V_nuc_op.setup(prec);
+    kin_and_nuc_mat = kin_and_nuc_mat + V_nuc_op(Psi, Psi);
 
     int nGauss = 6;
     double alpha = 0.4;
@@ -324,7 +329,7 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
             std::cout << "Initial LDA energy: " << e_tot << std::endl;
         }
 
-        ComplexMatrix U = initial_guess::core::diagonalize(Psi, t_tilde, V);
+        ComplexMatrix U = initial_guess::core::diagonalize(Psi, kin_and_nuc_mat, V);
         // std::cout << "diagonalized " << std::endl;
         // initial_guess::core::rotate_orbitals(Phi, prec, U, Psi);
 
@@ -351,6 +356,7 @@ bool initial_guess::sad::setup(OrbitalVector &Phi, double prec, double screen, c
     }
 
     p.clear();
+    V_nuc_op.clear();
 
     // mrcpp::cplxfunc::deep_copy(rho_j, rho_new);
     // mrcpp::cplxfunc::deep_copy(rho_xc, rho_new);
