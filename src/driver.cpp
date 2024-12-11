@@ -40,6 +40,7 @@
 #include "initial_guess/gto.h"
 #include "initial_guess/mw.h"
 #include "initial_guess/sad.h"
+#include "initial_guess/nao.h"
 
 #include "utils/MolPlotter.h"
 #include "utils/math_utils.h"
@@ -400,12 +401,9 @@ bool driver::scf::guess_orbitals(const json &json_guess, Molecule &mol) {
 
     auto success = true;
 
-    // if (mol.hasPseudopotential()) {
-    //     type = "core";
-    //     if (zeta <= 0) {
-    //         zeta = 1;
-    //     }
-    // }
+    if (mol.hasPseudopotential()) {
+        type = "nao";
+    }
 
     if (type == "chk") {
         success = initial_guess::chk::setup(Phi, file_chk);
@@ -421,6 +419,16 @@ bool driver::scf::guess_orbitals(const json &json_guess, Molecule &mol) {
         success = initial_guess::gto::setup(Phi, prec, screen, gto_bas, gto_p, gto_a, gto_b);
     } else if (type == "cube") {
         success = initial_guess::cube::setup(Phi, prec, cube_p, cube_a, cube_b);
+    } else if (type == "nao") {
+
+        int nmix = 1;
+        std::string key = "initial_mixing_steps";
+        if (json_guess.contains(key)) nmix = json_guess[key];
+        double alpha_mix = 0.4;
+        key = "initial_mixing_step_size";
+        if (json_guess.contains(key)) alpha_mix = json_guess[key];
+
+        success = initial_guess::nao::setup(Phi, prec, nucs, nmix, alpha_mix);
     } else {
         MSG_ERROR("Invalid initial guess");
         success = false;
@@ -470,11 +478,6 @@ bool driver::scf::guess_energy(const json &json_guess, Molecule &mol, FockBuilde
     F.clear();
 
     if (not localize && rotate) {
-        std::cout << "this diagnonalizations is not working" << std::endl;
-        std::cout << "look at spins " << std::endl;
-        for (int i = 0; i < Phi.size(); i++) {
-            std::cout << Phi[i].spin() << std::endl;
-        }
         orbital::diagonalize(prec, Phi, F_mat);
     }
     if (plevel == 1) mrcpp::print::footer(1, t_scf, 2);
@@ -1088,8 +1091,6 @@ void driver::rsp::calc_properties(const json &json_prop, Molecule &mol, int dir,
  */
 void driver::build_fock_operator(const json &json_fock, Molecule &mol, FockBuilder &F, int order, bool is_dynamic) {
 
-    std::cout << "building fock operator" << std::endl;
-
     auto &nuclei = mol.getNuclei();
     auto pp_nuclei = mol.getPseudoPotentialNuclei();
     auto all_electron_nuclei = mol.getAllElectronNuclei();
@@ -1111,13 +1112,10 @@ void driver::build_fock_operator(const json &json_fock, Molecule &mol, FockBuild
     ///////////////////////////////////////////////////////////
     if (json_fock.contains("nuclear_operator")) {
 
-        std::cout << "nuclear operator" << std::endl;
-
         auto nuc_model = json_fock["nuclear_operator"]["nuclear_model"];
         auto proj_prec = json_fock["nuclear_operator"]["proj_prec"];
         auto smooth_prec = json_fock["nuclear_operator"]["smooth_prec"];
         auto shared_memory = json_fock["nuclear_operator"]["shared_memory"];
-        std::cout << "nuclear operator before constructor" << std::endl;
         std::shared_ptr<NuclearOperator> V_p;
         if (json_fock.contains("pseudopotential")) {
             NuclearOperator all_el = NuclearOperator(all_electron_nuclei, proj_prec, smooth_prec, shared_memory, nuc_model);
@@ -1131,7 +1129,6 @@ void driver::build_fock_operator(const json &json_fock, Molecule &mol, FockBuild
         }
         F.getNuclearOperator() = V_p;
 
-        std::cout << "nuclear operator set" << std::endl;
     }
     ///////////////////////////////////////////////////////////
     //////////////////////   Zora Operator   //////////////////
@@ -1194,11 +1191,9 @@ void driver::build_fock_operator(const json &json_fock, Molecule &mol, FockBuild
     }
 
     if (json_fock.contains("pseudopotential")) {
-        std::cout << "making projector operator" << std::endl;
         std::shared_ptr<ProjectorOperator> pp = std::make_shared<ProjectorOperator>(pp_nuclei, json_fock["pseudopotential"]["pp_prec"]);
         pp->setup(json_fock["pseudopotential"]["pp_prec"]);
         F.getProjectorOperator() = pp;
-        std::cout << "projector set" << std::endl;
     }
 
     ///////////////////////////////////////////////////////////

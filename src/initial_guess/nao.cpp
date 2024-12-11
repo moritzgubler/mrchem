@@ -66,7 +66,7 @@ using mrcpp::Timer;
 
 namespace mrchem {
 
-bool initial_guess::nao::setup(OrbitalVector &Phi, double prec, const Nuclei &nucs) {
+bool initial_guess::nao::setup(OrbitalVector &Phi, double prec, const Nuclei &nucs, int n_mix, double alpha_mix) {
     if (Phi.size() == 0) return false;
 
     auto restricted = (orbital::size_singly(Phi)) ? false : true;
@@ -160,13 +160,12 @@ bool initial_guess::nao::setup(OrbitalVector &Phi, double prec, const Nuclei &nu
 
     if (plevel == 1) mrcpp::print::time(1, "Projecting GTO density", t_lap);
 
-    // Project AO basis of hydrogen functions
     t_lap.start();
     OrbitalVector Psi;
-    // initial_guess::gto::project_ao(Psi, prec, nucs);
     initial_guess::nao::project_atomic_orbitals(prec, Psi, nucs);
 
-    // std::cout << "Psi size: " << Psi.size() << std::endl;
+    ComplexMatrix S_m12 = orbital::calc_lowdin_matrix(Phi);
+
 
     if (plevel == 1) mrcpp::print::time(1, "Projecting GTO AOs", t_lap);
     if (plevel == 2) mrcpp::print::header(2, "Building Fock operator");
@@ -182,12 +181,8 @@ bool initial_guess::nao::setup(OrbitalVector &Phi, double prec, const Nuclei &nu
     V_nuc_op.setup(prec);
     kin_and_nuc_mat = kin_and_nuc_mat + V_nuc_op(Psi, Psi);
 
-    int nGauss = 6;
-    double alpha = 0.4;
-
-    // mrcpp::cplxfunc::deep_copy(rho_new, rho_j);
-    for (int iGauss = 0; iGauss < nGauss; iGauss++) {
-        std::cout << "Mixing iteration " << iGauss << std::endl;
+    for (int imix = 0; imix < n_mix; imix++) {
+        std::cout << "Mixing iteration " << imix << std::endl;
         // Compute Fock matrix
         mrcpp::print::header(2, "Diagonalizing Fock matrix");
 
@@ -196,7 +191,7 @@ bool initial_guess::nao::setup(OrbitalVector &Phi, double prec, const Nuclei &nu
 
         V.setup(prec);
 
-        if (iGauss > 0) {
+        if (imix > 0) {
             double e_kin = qmoperator::calc_kinetic_trace(p, Phi);
             double e_en = V_nuc->trace(Phi).real();
             double e_ee = 0.5 * J.trace(Phi).real();
@@ -211,64 +206,35 @@ bool initial_guess::nao::setup(OrbitalVector &Phi, double prec, const Nuclei &nu
             std::cout << "Initial LDA energy: " << e_tot << std::endl;
         }
 
-        ComplexMatrix U = initial_guess::core::diagonalize(Psi, kin_and_nuc_mat, V);
-        // std::cout << "diagonalized " << std::endl;
-        // initial_guess::core::rotate_orbitals(Phi, prec, U, Psi);
+        // ComplexMatrix U = initial_guess::core::diagonalize(Psi, kin_and_nuc_mat, V);
+        Timer t1;
+        ComplexMatrix f_tilde = kin_and_nuc_mat + V(Psi, Psi);
+        ComplexMatrix f = S_m12.adjoint() * f_tilde * S_m12;
+        mrcpp::print::separator(2, '-');
+        mrcpp::print::time(1, "Computing NAO Fock matrix", t1);
+
+        DoubleVector eig;
+        ComplexMatrix U = math_utils::diagonalize_hermitian_matrix(f, eig);
+        mrcpp::print::time(1, "Diagonalizing NAO Fock matrix", t1);
+        U = S_m12 * U;
 
 
         auto Phi_a = orbital::disjoin(Phi, SPIN::Alpha);
         auto Phi_b = orbital::disjoin(Phi, SPIN::Beta);
-        // std::cout << "disjoined " << std::endl;
         initial_guess::core::rotate_orbitals(Phi, prec, U, Psi);
-        // std::cout << "rotated Phi " << std::endl;
         initial_guess::core::rotate_orbitals(Phi_a, prec, U, Psi);
-        // std::cout << "rotated Phi_a " << std::endl;
         initial_guess::core::rotate_orbitals(Phi_b, prec, U, Psi);
-        // std::cout << "rotated Phi_b " << std::endl;
         Phi = orbital::adjoin(Phi, Phi_a);
-        // std::cout << "adjoined " << std::endl;
         Phi = orbital::adjoin(Phi, Phi_b);
 
-
-        // std::cout << "rotated " << std::endl;
         density::compute(prec, rho_new, Phi, DensityType::Total);
-        rho_new.rescale(1 - alpha);
-        rho_new.add(alpha, rho_j);
+        rho_new.rescale(1 - alpha_mix);
+        rho_new.add(alpha_mix, rho_j);
         V.clear();
     }
 
     p.clear();
     V_nuc_op.clear();
-
-    // mrcpp::cplxfunc::deep_copy(rho_j, rho_new);
-    // mrcpp::cplxfunc::deep_copy(rho_xc, rho_new);
-    // p.setup(prec);
-    // V.setup(prec);
-
-    // // std::cout << "before U " << std::endl;
-
-    //
-
-    // ComplexMatrix U = initial_guess::core::diagonalize(Psi, p, V);
-    // std::cout << "diagonalized " << std::endl;
-
-    // // Rotate orbitals and fill electrons by Aufbau
-    // t_lap.start();
-    // auto Phi_a = orbital::disjoin(Phi, SPIN::Alpha);
-    // auto Phi_b = orbital::disjoin(Phi, SPIN::Beta);
-    // // std::cout << "disjoined " << std::endl;
-    // initial_guess::core::rotate_orbitals(Phi, prec, U, Psi);
-    // // std::cout << "rotated Phi " << std::endl;
-    // initial_guess::core::rotate_orbitals(Phi_a, prec, U, Psi);
-    // // std::cout << "rotated Phi_a " << std::endl;
-    // initial_guess::core::rotate_orbitals(Phi_b, prec, U, Psi);
-    // // std::cout << "rotated Phi_b " << std::endl;
-    // Phi = orbital::adjoin(Phi, Phi_a);
-    // // std::cout << "adjoined " << std::endl;
-    // Phi = orbital::adjoin(Phi, Phi_b);
-    // // std::cout << "adjoined " << std::endl;
-    // p.clear();
-    // V.clear();
 
     mrcpp::print::footer(2, t_tot, 2);
     if (plevel == 1) mrcpp::print::footer(1, t_tot, 2);
