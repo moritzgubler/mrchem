@@ -29,9 +29,6 @@
 #include "GroundStateSolver.h"
 #include "HelmholtzVector.h"
 #include "KAIN.h"
-#include "initial_guess/gto.h"
-#include "initial_guess/core.h"
-#include "qmfunctions/density_utils.h"
 
 #include "chemistry/Molecule.h"
 #include "qmfunctions/Orbital.h"
@@ -39,8 +36,6 @@
 #include "qmoperators/one_electron/ZoraOperator.h"
 #include "qmoperators/two_electron/FockBuilder.h"
 #include "qmoperators/two_electron/ReactionOperator.h"
-#include "qmoperators/two_electron/CoulombOperator.h"
-#include "qmoperators/two_electron/XCOperator.h"
 
 using mrcpp::Printer;
 using mrcpp::Timer;
