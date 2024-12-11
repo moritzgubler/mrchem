@@ -43,9 +43,6 @@
 #include "qmoperators/one_electron/MomentumOperator.h"
 #include "qmoperators/one_electron/NuclearOperator.h"
 #include "qmoperators/qmoperator_utils.h"
-#include "pseudopotential/projectorOperator.h"
-
-#include <string>
 
 using mrcpp::Printer;
 using mrcpp::Timer;
@@ -108,41 +105,7 @@ bool initial_guess::core::setup(OrbitalVector &Phi, double prec, const Nuclei &n
     t_lap.start();
     auto D_p = std::make_shared<mrcpp::ABGVOperator<3>>(*MRA, 0.5, 0.5);
     MomentumOperator p(D_p);
-
-    bool use_pp = false;
-    for (int i = 0; i < nucs.size(); i++) {
-        if (nucs[i].hasPseudopotential()) {
-            use_pp = true;
-            break;
-        }
-    }
-
-
-    std::shared_ptr<RankZeroOperator> V;
-    if (use_pp) {
-        Nuclei nucs_pp;
-        Nuclei nucs_all_el;
-        for (int i = 0; i < nucs.size(); i++) {
-            if (nucs[i].hasPseudopotential()) {
-                nucs_pp.push_back(nucs[i]);
-            } else {
-                nucs_all_el.push_back(nucs[i]);
-            }
-        }
-        std::string model_pp = "point_like";
-        NuclearOperator V_nuc_all_el(nucs_all_el, prec, prec, false, model_pp);
-        model_pp = "pp";
-        NuclearOperator pp_nuc(nucs_pp, prec, prec, false,  model_pp);
-        V_nuc_all_el.add(pp_nuc);
-
-        ProjectorOperator P(nucs_pp, prec);
-
-        V = std::make_shared<RankZeroOperator>(V_nuc_all_el + P);
-    }
-    else{
-        NuclearOperator V_nuc(nucs, prec, prec, false, "point_like");
-        V = std::make_shared<RankZeroOperator>(V_nuc);
-    }
+    NuclearOperator V(nucs, prec);
     if (plevel == 1) mrcpp::print::time(1, "Projecting nuclear potential", t_lap);
 
     // Project AO basis of hydrogen functions
@@ -152,12 +115,12 @@ bool initial_guess::core::setup(OrbitalVector &Phi, double prec, const Nuclei &n
     if (plevel == 1) mrcpp::print::time(1, "Projecting Hydrogen AOs", t_lap);
 
     p.setup(prec);
-    V->setup(prec);
+    V.setup(prec);
 
     // Compute Hamiltonian matrix
     t_lap.start();
     mrcpp::print::header(2, "Diagonalize Hamiltonian matrix");
-    ComplexMatrix U = initial_guess::core::diagonalize(Psi, p, *V);
+    ComplexMatrix U = initial_guess::core::diagonalize(Psi, p, V);
 
     // Rotate orbitals and fill electrons by Aufbau
     auto Phi_a = orbital::disjoin(Phi, SPIN::Alpha);
@@ -169,7 +132,7 @@ bool initial_guess::core::setup(OrbitalVector &Phi, double prec, const Nuclei &n
     Phi = orbital::adjoin(Phi, Phi_a);
     Phi = orbital::adjoin(Phi, Phi_b);
 
-    V->clear();
+    V.clear();
     p.clear();
 
     mrcpp::print::footer(2, t_tot, 2);
@@ -221,7 +184,7 @@ void initial_guess::core::project_ao(OrbitalVector &Phi, double prec, const Nucl
 
     for (int i = 0; i < nucs.size(); i++) {
         const Nucleus &nuc = nucs[i];
-        int minAO = std::ceil(nuc.getCharge() / 2.0);
+        int minAO = std::ceil(nuc.getElement().getZ() / 2.0);
         double Z = nuc.getCharge();
         const mrcpp::Coord<3> &R = nuc.getCoord();
 
@@ -273,25 +236,6 @@ ComplexMatrix initial_guess::core::diagonalize(OrbitalVector &Phi, MomentumOpera
     ComplexMatrix S_m12 = orbital::calc_lowdin_matrix(Phi);
     mrcpp::print::separator(2, '-');
     ComplexMatrix t_tilde = qmoperator::calc_kinetic_matrix(p, Phi, Phi);
-    ComplexMatrix v_tilde = V(Phi, Phi);
-    ComplexMatrix f_tilde = t_tilde + v_tilde;
-    ComplexMatrix f = S_m12.adjoint() * f_tilde * S_m12;
-    mrcpp::print::separator(2, '-');
-    mrcpp::print::time(1, "Computing Fock matrix", t1);
-
-    Timer t2;
-    DoubleVector eig;
-    ComplexMatrix U = math_utils::diagonalize_hermitian_matrix(f, eig);
-    mrcpp::print::time(1, "Diagonalizing Fock matrix", t2);
-
-    return S_m12 * U;
-}
-
-ComplexMatrix initial_guess::core::diagonalize(OrbitalVector &Phi, ComplexMatrix &t_tilde, RankZeroOperator &V) {
-    Timer t1;
-    ComplexMatrix S_m12 = orbital::calc_lowdin_matrix(Phi);
-    mrcpp::print::separator(2, '-');
-    // ComplexMatrix t_tilde = qmoperator::calc_kinetic_matrix(p, Phi, Phi);
     ComplexMatrix v_tilde = V(Phi, Phi);
     ComplexMatrix f_tilde = t_tilde + v_tilde;
     ComplexMatrix f = S_m12.adjoint() * f_tilde * S_m12;
