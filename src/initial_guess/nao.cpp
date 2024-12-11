@@ -331,13 +331,13 @@ public:
         
     }
     protected:
-    bool isVisibleAtScale(int scale, int nQuadPts) const override {
-        // double stdDeviation = 1.0;
-        // auto visibleScale = static_cast<int>(std::floor(std::log2(nQuadPts * 5.0 * stdDeviation)));
-        // std::cout << "visibleScale: " << visibleScale << " scale: " << scale << std::endl;
-        int visibleScale = -5;
-        return (scale >= visibleScale);
-    }
+    // bool isVisibleAtScale(int scale, int nQuadPts) const override {
+    //     // double stdDeviation = 1.0;
+    //     // auto visibleScale = static_cast<int>(std::floor(std::log2(nQuadPts * 5.0 * stdDeviation)));
+    //     // std::cout << "visibleScale: " << visibleScale << " scale: " << scale << std::endl;
+    //     int visibleScale = -4;
+    //     return (scale >= visibleScale);
+    // }
 
 private:
     int l;
@@ -399,8 +399,40 @@ void initial_guess::nao::project_atomic_orbitals(double prec, OrbitalVector &Phi
                 mrcpp::Coord<3> pos = nucs[iNuc].getCoord();
                 AnalyticOrbital orb(l, m, pos, rad_func);
                 Orbital orb_mw;
+
+                double (*spherical_harmonic)(const std::array<double, 3> &r, const double &normr) = get_spherical_harmonics(l, m);
+
+                double sigma = 1.5;
+                auto gauss = [pos, sigma, spherical_harmonic](const std::array<double, 3> &r) -> double {
+                    std::array<double, 3> rprime = {r[0] - pos[0], r[1] - pos[1], r[2] - pos[2]};
+                    double normr = std::sqrt( rprime[0] * rprime[0] + rprime[1] * rprime[1] + rprime[2] * rprime[2]);
+                    double gaussNormalization = 1.0 / std::pow(2.0 * M_PI * sigma * sigma, 1.5);
+                    return std::exp(- 0.5 * normr * normr / (sigma * sigma) ) * spherical_harmonic(rprime, normr) / normr;
+                };
+
+                mrcpp::cplxfunc::project(orb_mw, gauss, mrcpp::NUMBER::Real, prec);
+                sigma = 0.6;
+
+                auto gauss2 = [pos, sigma, spherical_harmonic](const std::array<double, 3> &r) -> double {
+                    std::array<double, 3> rprime = {r[0] - pos[0], r[1] - pos[1], r[2] - pos[2]};
+                    double normr = std::sqrt( rprime[0] * rprime[0] + rprime[1] * rprime[1] + rprime[2] * rprime[2]);
+                    double gaussNormalization = 1.0 / std::pow(2.0 * M_PI * sigma * sigma, 1.5);
+                    return std::exp(- 0.5 * normr * normr / (sigma * sigma) ) * spherical_harmonic(rprime, normr) / normr;
+                };
+                mrcpp::cplxfunc::project(orb_mw, gauss2, mrcpp::NUMBER::Real, prec);
+
                 mrcpp::cplxfunc::project(orb_mw, orb, mrcpp::NUMBER::Real, prec);
+                // std::cout << "n nodes " << orb_mw.getNNodes(mrcpp::NUMBER::Total) << std::endl;
+                double nrm1 = orb_mw.norm();
+                // orb_mw.crop(prec);
                 double nrm = orb_mw.norm();
+                int nnodes = orb_mw.getNNodes(mrcpp::NUMBER::Total);
+                if (nnodes < 10) {
+                    std::cout << "l = " << l << " m = " << m << std::endl;
+                    std::cout << "key " << it.key() << std::endl;
+                    std::cout << "nrom " << nrm << " before " << nrm1 << std::endl;
+                    std::cout << "this is really bad" << std::endl;
+                }
                 orb_mw.rescale(1 / nrm);
                 // std::cout << "n nodes " << orb_mw.getNNodes(mrcpp::NUMBER::Total) << std::endl;
                 // std::cout << "norm " << orb_mw.norm() << std::endl;
