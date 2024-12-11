@@ -42,7 +42,7 @@ class Nuclei;
 namespace initial_guess {
 namespace nao {
 
-bool setup(OrbitalVector &Phi, double prec, const Nuclei &nucs);
+bool setup(OrbitalVector &Phi, double prec, const Nuclei &nucs, int n_mix, double alpha_mix);
 void project_atomic_densities(double prec, Density &rho_tot, const Nuclei &nucs);
 void project_atomic_orbitals(double prec, OrbitalVector &Phi, const Nuclei &nucs);
 
