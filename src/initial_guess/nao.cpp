@@ -73,10 +73,11 @@ bool initial_guess::nao::setup(OrbitalVector &Phi, double prec, const Nuclei &nu
     mrcpp::print::separator(0, '~');
     print_utils::text(0, "Calculation ", "Compute initial orbitals");
     print_utils::text(0, "Method      ", "Diagonalize NAO Hamiltonian with optional mixing");
+    print_utils::text(0, "Mixing steps", std::to_string(n_mix));
+    print_utils::text(0, "Mixing step size", print_utils::dbl_to_str(alpha_mix, 5, true));
     print_utils::text(0, "Precision   ", print_utils::dbl_to_str(prec, 5, true));
     print_utils::text(0, "Restricted  ", (restricted) ? "True" : "False");
     print_utils::text(0, "Functional  ", "LDA (SVWN5)");
-    print_utils::text(0, "AO basis    ", "3-21G");
     mrcpp::print::separator(0, '~', 2);
 
     bool use_pp = false;
