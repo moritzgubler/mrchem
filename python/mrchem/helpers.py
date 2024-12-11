@@ -182,6 +182,8 @@ def _reaction_operator_handler(user_dict, rsp=False):
 def write_scf_guess(user_dict, wf_dict):
     guess_str = user_dict["SCF"]["guess_type"].lower()
     guess_type = guess_str.split("_")[0]
+    nmix = user_dict["SCF"]["initial_mixing_steps"]
+    alpha_mix = user_dict["SCF"]["initial_mixing_step_size"]
     zeta = 0
 
     scf_dict = user_dict["SCF"]
@@ -249,6 +251,8 @@ def write_scf_guess(user_dict, wf_dict):
         "file_CUBE_p": f"{vector_dir}CUBE_p_vector.json",
         "file_CUBE_a": f"{vector_dir}CUBE_a_vector.json",
         "file_CUBE_b": f"{vector_dir}CUBE_b_vector.json",
+        "initial_mixing_steps": nmix,
+        "initial_mixing_step_size": alpha_mix,
     }
     return guess_dict
 
