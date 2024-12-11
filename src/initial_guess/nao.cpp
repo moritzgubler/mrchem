@@ -164,7 +164,7 @@ bool initial_guess::nao::setup(OrbitalVector &Phi, double prec, const Nuclei &nu
     OrbitalVector Psi;
     initial_guess::nao::project_atomic_orbitals(prec, Psi, nucs);
 
-    ComplexMatrix S_m12 = orbital::calc_lowdin_matrix(Phi);
+    ComplexMatrix S_m12 = orbital::calc_lowdin_matrix(Psi);
 
 
     if (plevel == 1) mrcpp::print::time(1, "Projecting GTO AOs", t_lap);
