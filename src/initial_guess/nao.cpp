@@ -192,6 +192,7 @@ bool initial_guess::nao::setup(OrbitalVector &Phi, double prec, const Nuclei &nu
         V.setup(prec);
 
         if (imix > 0) {
+            Timer t_energy;
             double e_kin = qmoperator::calc_kinetic_trace(p, Phi);
             double e_en = V_nuc->trace(Phi).real();
             double e_ee = 0.5 * J.trace(Phi).real();
@@ -204,9 +205,9 @@ bool initial_guess::nao::setup(OrbitalVector &Phi, double prec, const Nuclei &nu
             double e_nuc = chemistry::compute_nuclear_repulsion(nucs);
             double e_tot = e_kin + e_en + e_ee + e_xc + e_nuc + e_nl;
             std::cout << "Initial LDA energy: " << e_tot << std::endl;
+            mrcpp::print::time(1, "Computing nao energy", t_energy);
         }
-
-        // ComplexMatrix U = initial_guess::core::diagonalize(Psi, kin_and_nuc_mat, V);
+        
         Timer t1;
         ComplexMatrix f_tilde = kin_and_nuc_mat + V(Psi, Psi);
         ComplexMatrix f = S_m12.adjoint() * f_tilde * S_m12;
