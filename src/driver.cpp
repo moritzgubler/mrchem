@@ -427,8 +427,12 @@ bool driver::scf::guess_orbitals(const json &json_guess, Molecule &mol) {
         double alpha_mix = 0.4;
         key = "initial_mixing_step_size";
         if (json_guess.contains(key)) alpha_mix = json_guess[key];
+        key = "nao_directory";
+        std::string nao_directory = "";
+        if (json_guess.contains(key)) nao_directory = json_guess[key];
 
-        success = initial_guess::nao::setup(Phi, prec, nucs, nmix, alpha_mix);
+
+        success = initial_guess::nao::setup(Phi, prec, nucs, nmix, alpha_mix, nao_directory);
     } else {
         MSG_ERROR("Invalid initial guess");
         success = false;

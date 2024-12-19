@@ -66,7 +66,7 @@ using mrcpp::Timer;
 
 namespace mrchem {
 
-bool initial_guess::nao::setup(OrbitalVector &Phi, double prec, const Nuclei &nucs, int n_mix, double alpha_mix) {
+bool initial_guess::nao::setup(OrbitalVector &Phi, double prec, const Nuclei &nucs, int n_mix, double alpha_mix, std::string nao_directory) {
     if (Phi.size() == 0) return false;
 
     auto restricted = (orbital::size_singly(Phi)) ? false : true;
@@ -163,7 +163,7 @@ bool initial_guess::nao::setup(OrbitalVector &Phi, double prec, const Nuclei &nu
 
     t_lap.start();
     OrbitalVector Psi;
-    initial_guess::nao::project_atomic_orbitals(prec, Psi, nucs);
+    initial_guess::nao::project_atomic_orbitals(prec, Psi, nucs, nao_directory);
 
     ComplexMatrix S_m12 = orbital::calc_lowdin_matrix(Psi);
 
@@ -350,7 +350,7 @@ private:
 
 };
 
-void initial_guess::nao::project_atomic_orbitals(double prec, OrbitalVector &Phi, const Nuclei &nucs) {
+void initial_guess::nao::project_atomic_orbitals(double prec, OrbitalVector &Phi, const Nuclei &nucs, std::string nao_directory) {
     std::string source_dir = HIRSHFELD_SOURCE_DIR;
     std::string install_dir = HIRSHFELD_INSTALL_DIR;
     OrbitalVector phi_beta;
@@ -363,6 +363,11 @@ void initial_guess::nao::project_atomic_orbitals(double prec, OrbitalVector &Phi
     } else {
         MSG_ABORT("Hirshfeld data directory not found");
     }
+    if (nao_directory != "") {
+        data_dir = nao_directory;
+    }
+
+    std::cout << "data_dir: " << data_dir << std::endl << std::endl;
 
     for (int iNuc = 0; iNuc < nucs.size(); iNuc++) {
         std::string element = nucs[iNuc].getElement().getSymbol();
