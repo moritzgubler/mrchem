@@ -184,6 +184,7 @@ def write_scf_guess(user_dict, wf_dict):
     guess_type = guess_str.split("_")[0]
     nmix = user_dict["SCF"]["initial_mixing_steps"]
     alpha_mix = user_dict["SCF"]["initial_mixing_step_size"]
+    nao_directory = user_dict["SCF"]["nao_directory"]
     zeta = 0
 
     scf_dict = user_dict["SCF"]
@@ -254,6 +255,8 @@ def write_scf_guess(user_dict, wf_dict):
         "initial_mixing_steps": nmix,
         "initial_mixing_step_size": alpha_mix,
     }
+    if nao_directory is not "none":
+        guess_dict["nao_dir"] = nao_directory
     return guess_dict
 
 
