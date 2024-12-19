@@ -255,7 +255,7 @@ def write_scf_guess(user_dict, wf_dict):
         "initial_mixing_steps": nmix,
         "initial_mixing_step_size": alpha_mix,
     }
-    if nao_directory is not "none":
+    if nao_directory != "none":
         guess_dict["nao_dir"] = nao_directory
     return guess_dict
 
