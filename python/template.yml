@@ -742,6 +742,11 @@ sections:
           ``nao`` will start from orbitals saved in NAO format from external calculations. 
           It also allows for some mixing iterations to converge the initial guess within the
           nao basis.
+      - name: nao_directory
+        type: str
+        default: none
+        docstring: |
+          Directory where NAO orbitals are stored for mrchem calculation.
       - name: initial_mixing_steps
         type: int
         default: 4
