@@ -752,6 +752,12 @@ User input reference
     **Predicates**
       - ``value.lower() in ['mw', 'chk', 'gto', 'core_sz', 'core_dz', 'core_tz', 'core_qz', 'sad_sz', 'sad_dz', 'sad_tz', 'sad_qz', 'sad_gto', 'cube', 'nao']``
   
+   :nao_directory: Directory where NAO orbitals are stored for mrchem calculation. 
+  
+    **Type** ``str``
+  
+    **Default** ``none``
+  
    :initial_mixing_steps: Number of mixing iterations to converge the initial guess within the nao basis. 
   
     **Type** ``int``
