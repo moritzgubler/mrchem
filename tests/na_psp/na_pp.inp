@@ -9,6 +9,10 @@ $pp_files
 $end
 }
 
+SCF {
+    initial_mixing_steps = 1
+}
+
 Molecule {
 charge = 0
 multiplicity = 2
