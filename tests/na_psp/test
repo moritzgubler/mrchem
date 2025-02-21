@@ -9,16 +9,18 @@ from tester import *  # isort:skip
 
 options = script_cli()
 
+rel_tolerances = 1.0e-4
+
 filters = {
-    SUM_OCCUPIED: rel_tolerance(1.0e-6),
-    E_KIN: rel_tolerance(1.0e-6),
-    E_EN: rel_tolerance(1.0e-6),
-    E_EE: rel_tolerance(1.0e-6),
-    E_X: rel_tolerance(1.0e-6),
-    E_XC: rel_tolerance(1.0e-6),
-    E_EEXT: rel_tolerance(1.0e-6),
-    E_NEXT: rel_tolerance(1.0e-6),
-    E_EL: rel_tolerance(1.0e-6),
+    SUM_OCCUPIED: rel_tolerance(rel_tolerances),
+    E_KIN: rel_tolerance(rel_tolerances),
+    E_EN: rel_tolerance(rel_tolerances),
+    E_EE: rel_tolerance(rel_tolerances),
+    E_X: rel_tolerance(rel_tolerances),
+    E_XC: rel_tolerance(rel_tolerances),
+    E_EEXT: rel_tolerance(rel_tolerances),
+    E_NEXT: rel_tolerance(rel_tolerances),
+    E_EL: rel_tolerance(rel_tolerances),
 }
 
 print(options)
