@@ -1,4 +1,4 @@
-#include "catch.hpp"
+#include "catch2/catch_all.hpp"
 #include "pseudopotential/sphericalHarmonics.h"
 #include "qmfunctions/qmfunction_utils.h"
 
