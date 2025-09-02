@@ -2,6 +2,7 @@ name: mrchem-codecov
 channels:
   - conda-forge
 dependencies:
+  - catch2
   - cmake
   - cxx-compiler
   - eigen
